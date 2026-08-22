@@ -386,7 +386,7 @@ class OrderController extends Controller
                 ->addColumn('pelanggan', fn($row) => $row->user->name ?? '-')
                 ->addColumn('aksi', function ($row) {
                     $btn = '<div class="dropdown position-relative d-inline-block">
-                    <button class="btn btn-secondary btn-sm dropdown-toggle" type="button" data-toggle="dropdown">
+                    <button class="btn btn-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
                         Action
                     </button>
                     <div class="dropdown-menu center-below p-2 shadow" style="min-width: 160px;">
@@ -448,7 +448,7 @@ class OrderController extends Controller
                 ->addColumn('pelanggan', fn($row) => $row->user->name ?? '-')
                 ->addColumn('aksi', function ($row) {
                     $btn = '<div class="dropdown position-relative d-inline-block">
-                        <button class="btn btn-secondary btn-sm dropdown-toggle" type="button" data-toggle="dropdown">
+                        <button class="btn btn-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
                             Action
                         </button>
                         <div class="dropdown-menu center-below p-2 shadow" style="min-width: 140px;">
