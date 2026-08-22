@@ -17,7 +17,16 @@ class Order extends Model
         'tipe_pembayaran',
         'total_berat',
         'alamat',
-        'midtrans_order_id'
+        'midtrans_order_id',
+        'bukti_pembayaran',
+        'petugas_approval',
+        'waktu_approval',
+        'image',
+        'catatan',
+    ];
+
+    protected $casts = [
+        'waktu_approval' => 'datetime',
     ];
 
     public function orderItems()

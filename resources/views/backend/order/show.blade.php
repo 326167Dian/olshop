@@ -12,7 +12,43 @@
                 <h2>Detail Pesanan #{{ $order->kode_pesanan }}</h2>
                 <strong>Tanggal:</strong> {{ $order->created_at->format('d M Y H:i') }}
             </div>
-            <form action="{{ route('pesanan.proses.update', $order->id) }}" method="post">
+            @if($order->bukti_pembayaran)
+            <div class="alert alert-warning text-center mb-3">
+                <h5>Bukti Pembayaran QRIS</h5>
+                <a href="{{ asset('storage/' . $order->bukti_pembayaran) }}" target="_blank">
+                    <img src="{{ asset('storage/' . $order->bukti_pembayaran) }}" alt="Bukti Pembayaran"
+                        class="img-thumbnail" style="max-height: 300px;">
+                </a>
+                <p class="mb-0 mt-2">Klik gambar untuk melihat ukuran penuh. Periksa lalu pilih status
+                    <strong>Paid</strong> (approve) atau <strong>Ditolak</strong> di bawah.</p>
+            </div>
+            @endif
+
+            @if($order->petugas_approval)
+            <div class="alert alert-info text-center mb-3">
+                Pembayaran diverifikasi oleh <strong>{{ $order->petugas_approval }}</strong>
+                @if($order->waktu_approval)
+                pada {{ $order->waktu_approval->format('d M Y H:i') }}
+                @endif
+            </div>
+            @endif
+
+            @if($order->image || $order->catatan)
+            <div class="alert alert-success mb-3">
+                <h5>Bukti Penyerahan</h5>
+                @if($order->image)
+                <a href="{{ asset('storage/' . $order->image) }}" target="_blank">
+                    <img src="{{ asset('storage/' . $order->image) }}" alt="Foto Penyerahan" class="img-thumbnail"
+                        style="max-height: 200px;">
+                </a>
+                @endif
+                @if($order->catatan)
+                <p class="mb-0 mt-2"><strong>Catatan:</strong> {{ $order->catatan }}</p>
+                @endif
+            </div>
+            @endif
+
+            <form action="{{ route('pesanan.proses.update', $order->id) }}" method="post" enctype="multipart/form-data">
                 @csrf
                 @method('PUT')
                 <hr>
@@ -165,6 +201,34 @@
                             @enderror
                         </div>
                     </div>
+
+                    <div class="col-xs-12 col-sm-12 col-md-12" id="penyerahan-container" style="display: none;">
+                        <hr>
+                        <h5>Bukti Penyerahan Pesanan <small class="text-muted">(opsional)</small></h5>
+                        <div class="row">
+                            <div class="col-xs-6 col-sm-6 col-md-6">
+                                <div class="form-group">
+                                    <label>Foto Penyerahan</label>
+                                    <input type="file" name="image" accept="image/*"
+                                        class="form-control @error('image') is-invalid @enderror">
+                                    @error('image')
+                                    <span class="invalid-feedback alert-danger" role="alert">{{ $message }}</span>
+                                    @enderror
+                                </div>
+                            </div>
+                            <div class="col-xs-6 col-sm-6 col-md-6">
+                                <div class="form-group">
+                                    <label>Catatan Penyerahan</label>
+                                    <input type="text" name="catatan" value="{{ old('catatan', $order->catatan) }}"
+                                        class="form-control @error('catatan') is-invalid @enderror"
+                                        placeholder="Contoh: Diambil oleh Budi, Senin 24 Agustus jam 10.00" maxlength="255">
+                                    @error('catatan')
+                                    <span class="invalid-feedback alert-danger" role="alert">{{ $message }}</span>
+                                    @enderror
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <br>
@@ -180,3 +244,22 @@
 
 <!-- end template-->
 @endsection
+
+@push('scripts')
+<script>
+    (function() {
+        var statusSelect = document.querySelector('select[name="status"]');
+        var penyerahanContainer = document.getElementById('penyerahan-container');
+
+        function togglePenyerahan() {
+            if (!statusSelect || !penyerahanContainer) return;
+            penyerahanContainer.style.display = statusSelect.value === 'Selesai' ? 'block' : 'none';
+        }
+
+        if (statusSelect) {
+            togglePenyerahan();
+            statusSelect.addEventListener('change', togglePenyerahan);
+        }
+    })();
+</script>
+@endpush

@@ -34,6 +34,7 @@ class CompanySettingController extends Controller
             'website'         => 'nullable|max:255',
             'deskripsi'       => 'nullable|string',
             'logo'            => 'nullable|image|mimes:jpg,jpeg,png,webp',
+            'qris_image'      => 'nullable|image|mimes:jpg,jpeg,png,webp',
             'alamat'          => 'nullable|string',
             'telepon'         => 'nullable|string|max:16',
             'peta_lokasi'     => 'nullable|string',
@@ -43,6 +44,11 @@ class CompanySettingController extends Controller
         // Simpan file logo jika diupload
         if ($request->hasFile('logo')) {
             $validated['logo'] = $request->file('logo')->store('logos', 'public');
+        }
+
+        // Simpan gambar QRIS jika diupload
+        if ($request->hasFile('qris_image')) {
+            $validated['qris_image'] = $request->file('qris_image')->store('qris', 'public');
         }
 
         CompanySetting::create($validated);
@@ -64,6 +70,7 @@ class CompanySettingController extends Controller
             'website'         => 'nullable|max:255',
             'deskripsi'       => 'nullable|string',
             'logo'            => 'nullable|image|mimes:jpg,jpeg,png,webp',
+            'qris_image'      => 'nullable|image|mimes:jpg,jpeg,png,webp',
             'alamat'          => 'nullable|string',
             'telepon'         => 'nullable|string|max:16',
             'peta_lokasi'     => 'nullable|string',
@@ -76,6 +83,14 @@ class CompanySettingController extends Controller
                 Storage::disk('public')->delete($companySetting->logo);
             }
             $validated['logo'] = $request->file('logo')->store('logos', 'public');
+        }
+
+        // Hapus gambar QRIS lama dan simpan yang baru jika diupload
+        if ($request->hasFile('qris_image')) {
+            if ($companySetting->qris_image) {
+                Storage::disk('public')->delete($companySetting->qris_image);
+            }
+            $validated['qris_image'] = $request->file('qris_image')->store('qris', 'public');
         }
 
         $companySetting->update($validated);

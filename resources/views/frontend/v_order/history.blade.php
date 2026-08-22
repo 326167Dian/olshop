@@ -77,12 +77,17 @@
                                 case 'paid':
                                 case 'proses cod':
                                 case 'kirim':
+                                case 'barang siap diambil':
                                 $labelClass = 'label-info';
                                 break;
                                 case 'selesai':
                                 $labelClass = 'label-success';
                                 break;
+                                case 'proses konfirmasi pembayaran':
+                                $labelClass = 'label-warning';
+                                break;
                                 case 'dibatalkan':
+                                case 'ditolak':
                                 $labelClass = 'label-danger';
                                 break;
                                 }

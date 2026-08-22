@@ -15,6 +15,7 @@ class CompanySetting extends Model
         'website',
         'deskripsi',
         'logo',
+        'qris_image',
         'alamat',
         'telepon',
         'peta_lokasi',

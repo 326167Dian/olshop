@@ -109,54 +109,66 @@
                         </div>
                     </div>
                     {{-- Form pembayaran --}}
-                    <input type="hidden" name="total_price" value="{{ $totalHarga }}">
+                    @php
+                        $qrisImage = asset('storage/' . ($companySetting->qris_image ?? 'images/qris.jpeg'));
+                    @endphp
+                    <form method="POST" action="{{ route('order.bank_transfer') }}" enctype="multipart/form-data">
+                        @csrf
+                        <input type="hidden" name="total_price" value="{{ $totalHarga }}">
 
-                    <div class="form-group" style="max-width: 300px; margin-top: 20px;">
-                        <label for="payment_method">Metode Pembayaran:</label>
-                        <select id="payment_method" name="payment_method" class="form-control" required>
-                            {{-- <option value="midtrans">Bayar Online (Midtrans)</option> --}}
-                            {{-- <option value="cod">Bayar di Tempat (COD)</option> --}}
-                            <option value="bank_transfer">Qris</option>
-                        </select>
-                    </div>
-
-                    {{-- QRIS container --}}
-                    <div id="qris-container" class="panel panel-default text-center"
-                        style="display: {{ old('payment_method') == 'bank_transfer' ? 'block' : 'none' }}; margin-top: 20px;">
-
-                        <div class="panel-heading" style="background-color: #f5f5f5;">
-                            <h4 class="panel-title" style="font-weight: bold; color: #d10024;">
-                                Pembayaran QRIS
-                            </h4>
+                        <div class="form-group" style="max-width: 300px; margin-top: 20px;">
+                            <label for="payment_method">Metode Pembayaran:</label>
+                            <select id="payment_method" name="payment_method" class="form-control" required>
+                                {{-- <option value="midtrans">Bayar Online (Midtrans)</option> --}}
+                                {{-- <option value="cod">Bayar di Tempat (COD)</option> --}}
+                                <option value="bank_transfer">Qris</option>
+                            </select>
                         </div>
 
-                        <div class="panel-body">
-                            <p style="margin-bottom: 10px;">Silakan scan QRIS berikut untuk pembayaran:</p>
+                        {{-- QRIS container --}}
+                        <div id="qris-container" class="panel panel-default text-center" style="margin-top: 20px;">
 
-                            <img src="{{ asset('images/qris.jpeg') }}" alt="QRIS"
-                                class="img-responsive img-thumbnail center-block"
-                                style="max-width: 200px; margin-bottom: 15px;">
-
-                            <div class="text-center" style="margin-bottom: 20px;">
-                                <a href="{{ asset('images/qris.jpeg') }}" download="QRIS-Pembayaran.jpeg" class="btn btn-sm btn-info">
-                                    <i class="fa fa-download"></i> Unduh QR Code
-                                </a>
+                            <div class="panel-heading" style="background-color: #f5f5f5;">
+                                <h4 class="panel-title" style="font-weight: bold; color: #d10024;">
+                                    Pembayaran QRIS
+                                </h4>
                             </div>
 
-                            <div class="alert alert-warning text-left" style="max-width: 500px; margin: 0 auto;">
-                                <strong>Note:</strong> Pastikan Anda sudah melakukan <strong>transfer terlebih
-                                    dahulu</strong> sebelum
-                                menekan tombol <em>“Bayar Sekarang”</em>.<br>
-                                Setelah transfer, silakan <strong>hubungi nomor WhatsApp</strong> yang ada di pojok
-                                kanan bawah untuk
-                                konfirmasi.
+                            <div class="panel-body">
+                                <p style="margin-bottom: 10px;">Silakan scan QRIS berikut untuk pembayaran:</p>
+
+                                <img src="{{ $qrisImage }}" alt="QRIS"
+                                    class="img-responsive img-thumbnail center-block"
+                                    style="max-width: 200px; margin-bottom: 15px;">
+
+                                <div class="text-center" style="margin-bottom: 20px;">
+                                    <a href="{{ $qrisImage }}" download="QRIS-Pembayaran.jpeg" class="btn btn-sm btn-info">
+                                        <i class="fa fa-download"></i> Unduh QR Code
+                                    </a>
+                                </div>
+
+                                <div class="alert alert-warning text-left" style="max-width: 500px; margin: 0 auto;">
+                                    <strong>Note:</strong> Pastikan Anda sudah melakukan <strong>transfer terlebih
+                                        dahulu</strong> sebelum mengirim bukti pembayaran di bawah ini.
+                                </div>
+
+                                <div class="form-group text-left" style="max-width: 500px; margin: 0 auto 15px;">
+                                    <label for="bukti_pembayaran">Upload Bukti Pembayaran <span
+                                            style="color:#d10024;">*</span></label>
+                                    <input type="file" id="bukti_pembayaran" name="bukti_pembayaran"
+                                        class="form-control @error('bukti_pembayaran') is-invalid @enderror"
+                                        accept="image/*" required>
+                                    @error('bukti_pembayaran')
+                                    <span class="help-block" style="color:#d10024;">{{ $message }}</span>
+                                    @enderror
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div class="pull-right">
-                        <button class="primary-btn" id="pay-button">Bayar Sekarang</button>
-                    </div>
+                        <div class="pull-right">
+                            <button type="submit" class="primary-btn" id="pay-button">Bayar Sekarang</button>
+                        </div>
+                    </form>
                     @else
                     <p>Keranjang belanja kosong.</p>
                     @endif
@@ -167,42 +179,25 @@
     </div>
 </div>
 
-{{-- Script pembayaran --}}
+{{-- Midtrans dinonaktifkan — UI pembayaran sekarang hanya menawarkan QRIS manual. --}}
+{{--
 <script type="text/javascript">
-    const payButton = document.getElementById('pay-button');
-    const paymentMethod = document.getElementById('payment_method');
-    const qrisContainer = document.getElementById('qris-container');
-
-    function toggleQris() {
-        if (!qrisContainer || !paymentMethod) return;
-        qrisContainer.style.display = paymentMethod.value === 'bank_transfer' ? 'block' : 'none';
-    }
-
-    toggleQris();
-    if (paymentMethod) paymentMethod.addEventListener('change', toggleQris);
-
-    payButton.addEventListener('click', function() {
-        if (paymentMethod.value === 'midtrans') {
-            window.snap.pay('{{ $snapToken }}', {
-                onSuccess: function(result) {
-                    alert("Pembayaran berhasil!");
-                    window.location.href = "{{ route('order.complete') }}";
-                },
-                onPending: function(result) {
-                    alert("Menunggu pembayaran...");
-                },
-                onError: function(result) {
-                    alert("Pembayaran gagal!");
-                },
-                onClose: function() {
-                    alert('Kamu menutup popup tanpa menyelesaikan pembayaran');
-                }
-            });
-        } else if (paymentMethod.value === 'bank_transfer') {
-            window.location.href = "{{ route('order.bank_transfer') }}";
-            // alert("Silakan scan QRIS yang tertera, lalu konfirmasi via WhatsApp.");
+    window.snap.pay('{{ $snapToken }}', {
+        onSuccess: function(result) {
+            alert("Pembayaran berhasil!");
+            window.location.href = "{{ route('order.complete') }}";
+        },
+        onPending: function(result) {
+            alert("Menunggu pembayaran...");
+        },
+        onError: function(result) {
+            alert("Pembayaran gagal!");
+        },
+        onClose: function() {
+            alert('Kamu menutup popup tanpa menyelesaikan pembayaran');
         }
     });
 </script>
+--}}
 
 @endsection

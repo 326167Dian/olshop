@@ -76,6 +76,9 @@
                                             <del
                                                 class="product-old-price">Rp.{{ number_format($item->hrgjual_barang2, 0, ',', '.') }}</del>
                                         </h3>
+                                        <div class="product-stock" style="font-size: 12px; margin-bottom: 4px; color: {{ $item->stok_barang <= 5 ? '#d9534f' : '#5cb85c' }};">
+                                            Stok: {{ $item->stok_barang }} {{ $item->sat_barang }}
+                                        </div>
                                         <div class="product-rating">
                                             <i class="fa fa-star"></i>
                                             <i class="fa fa-star"></i>
@@ -160,6 +163,9 @@
                                             Rp{{ number_format($item->hrgjual_barang2, 0, ',', '.') }}<small
                                                 style="font-weight: bold">/{{ $item->sat_barang }}</small>
                                         </h3>
+                                        <div class="product-stock" style="font-size: 12px; margin-bottom: 4px; color: {{ $item->stok_barang <= 5 ? '#d9534f' : '#5cb85c' }};">
+                                            Stok: {{ $item->stok_barang }} {{ $item->sat_barang }}
+                                        </div>
                                         <div class="product-rating">
                                             <i class="fa fa-star"></i>
                                             <i class="fa fa-star"></i>

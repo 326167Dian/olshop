@@ -22,6 +22,7 @@
                             <th>Tanggal</th>
                             <th>Total</th>
                             <th>Status</th>
+                            <th>Bukti Penyerahan</th>
                             <th>Pelanggan</th>
                             <th>Aksi</th>
                         </tr>
@@ -53,6 +54,7 @@
                 { data: 'created_at', name: 'created_at' },
                 { data: 'total_harga', name: 'total_harga' },
                 { data: 'status', name: 'status' },
+                { data: 'penyerahan', name: 'penyerahan', orderable: false, searchable: false },
                 { data: 'pelanggan', name: 'pelanggan', orderable: false, searchable: false },
                 { data: 'aksi', name: 'aksi', orderable: false, searchable: false },
             ]

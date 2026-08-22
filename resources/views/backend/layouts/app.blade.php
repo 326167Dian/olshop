@@ -174,6 +174,9 @@
                                 <a href="{{ route('pesanan.proses') }}">
                                     <i class="feather icon-refresh-cw"></i>
                                     <span class="nav-menu-item-title">Pesanan Proses</span>
+                                    @if(($pendingPaymentCount ?? 0) > 0)
+                                    <span class="badge bg-danger ms-1">{{ $pendingPaymentCount }}</span>
+                                    @endif
                                 </a>
                             </li>
                             <li class="nav-menu-item {{ Route::currentRouteName() == 'pesanan.selesai' ? 'active' : '' }}">

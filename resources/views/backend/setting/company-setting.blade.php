@@ -62,6 +62,22 @@
                             @enderror
                         </div>
 
+                        <div class="mb-3">
+                            <label class="form-label">Gambar QRIS Pembayaran</label>
+                            @if(isset($companySetting->qris_image))
+                            <div class="mb-2 text-center">
+                                <img src="{{ asset('storage/' . $companySetting->qris_image) }}" alt="QRIS"
+                                    class="img-thumbnail" style="max-height: 182px; max-width: auto;">
+                            </div>
+                            @endif
+                            <input type="file" name="qris_image" class="form-control">
+                            <small class="form-text text-muted">Gambar ini ditampilkan ke pelanggan saat memilih
+                                pembayaran QRIS di halaman checkout.</small>
+                            @error('qris_image')
+                            <div class="text-danger">{{ $message }}</div>
+                            @enderror
+                        </div>
+
                     </div>
                 </div>
             </div>

@@ -59,7 +59,7 @@ Route::middleware('is.customer')->group(function () {
     Route::get('history', [OrderController::class, 'orderHistory'])->name('order.history');
     Route::get('order/invoice/{id}', [OrderController::class, 'invoiceFrontend'])->name('order.invoice');
     Route::get('/order/cod', [OrderController::class, 'cod'])->name('order.cod');
-    Route::get('/order/bank-transfer', [OrderController::class, 'bankTransfer'])->name('order.bank_transfer');
+    Route::post('/order/bank-transfer', [OrderController::class, 'bankTransfer'])->name('order.bank_transfer');
     Route::get('/produk/all', [ProductController::class, 'index'])->name('produk.all');
 });
 

@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Midtrans\Snap;
 use Midtrans\Config;
 use Yajra\DataTables\Facades\DataTables;
@@ -189,42 +190,30 @@ class OrderController extends Controller
         // Muat relasi orderItems dan produk terkait
         $order->load('orderItems.produk');
 
-        // Hitung total harga produk
-        $totalHarga = 0;
-        foreach ($order->orderItems as $item) {
-            $totalHarga += $item->harga * $item->quantity;
-        }
+        // Midtrans dinonaktifkan — UI pembayaran sekarang hanya menawarkan QRIS manual.
+        // Kode di bawah ini disimpan (bukan dihapus) untuk diaktifkan lagi jika Midtrans dipakai kembali.
+        //
+        // $grossAmount = $totalHarga + $order->biaya_ongkir;
+        // Config::$serverKey = config('midtrans.server_key');
+        // Config::$isProduction = false;
+        // Config::$isSanitized = true;
+        // Config::$is3ds = true;
+        // $orderId = $order->id . '-' . time();
+        // $params = [
+        //     'transaction_details' => [
+        //         'order_id' => $orderId,
+        //         'gross_amount' => (int) $grossAmount,
+        //     ],
+        //     'customer_details' => [
+        //         'first_name' => $customer->nama,
+        //         'email' => $customer->email,
+        //         'phone' => $customer->hp,
+        //     ],
+        //     'enabled_payments' => ['gopay', 'bank_transfer', 'credit_card'],
+        // ];
+        // $snapToken = Snap::getSnapToken($params);
+        $snapToken = null;
 
-        // Tambahkan biaya ongkir ke total harga
-        $grossAmount = $totalHarga + $order->biaya_ongkir;
-
-        // Midtrans configuration
-        Config::$serverKey = config('midtrans.server_key');
-        Config::$isProduction = false;
-        Config::$isSanitized = true;
-        Config::$is3ds = true;
-
-        // Generate unique order_id
-        $orderId = $order->id . '-' . time();
-
-        $params = [
-            'transaction_details' => [
-                'order_id' => $orderId,
-                'gross_amount' => (int) $grossAmount, // Pastikan gross_amount adalah integer
-            ],
-            'customer_details' => [
-                'first_name' => $customer->nama,
-                'email' => $customer->email,
-                'phone' => $customer->hp,
-            ],
-            'enabled_payments' => [
-                'gopay',
-                'bank_transfer',
-                'credit_card',
-            ],
-        ];
-
-        $snapToken = Snap::getSnapToken($params);
         return view('frontend.v_order.payment', [
             'order' => $order,
             'origin' => $origin,
@@ -262,7 +251,7 @@ class OrderController extends Controller
     {
         $customer = User::where('id', Auth::id())->first();;;
         // $orders = Order::where('customer_id', $customer->id)->where('status', 'completed')->get();
-        $statuses = ['Paid', 'Kirim', 'Selesai', 'Proses COD', 'Dibatalkan'];
+        $statuses = ['Paid', 'Kirim', 'Barang Siap Diambil', 'Selesai', 'Proses COD', 'Proses konfirmasi pembayaran', 'Ditolak', 'Dibatalkan'];
         $orders = Order::where('user_id', $customer->id)
             ->whereIn('status', $statuses)
             ->orderBy('id', 'desc')
@@ -376,14 +365,37 @@ class OrderController extends Controller
     {
         if ($request->ajax()) {
             $data = Order::with('user')
-                ->whereIn('status', ['Proses COD', 'Paid', 'Kirim', 'Barang Siap Diambil'])
+                ->whereIn('status', ['Proses COD', 'Paid', 'Kirim', 'Barang Siap Diambil', 'Proses konfirmasi pembayaran'])
                 ->orderBy('id', 'desc');
 
             return DataTables::of($data)
                 ->addIndexColumn()
                 ->editColumn('created_at', fn($row) => $row->created_at->format('Y-m-d H:i'))
                 ->editColumn('total_harga', fn($row) => 'Rp ' . number_format($row->total_harga, 0, ',', '.'))
+                ->editColumn('status', function ($row) {
+                    if ($row->status === 'Proses konfirmasi pembayaran') {
+                        return '<span class="badge bg-warning text-dark">' . e($row->status) . '</span>';
+                    }
+                    return e($row->status);
+                })
+                ->addColumn('bukti_pembayaran_thumb', function ($row) {
+                    if (empty($row->bukti_pembayaran)) {
+                        return '-';
+                    }
+                    $url = asset('storage/' . $row->bukti_pembayaran);
+                    return '<a href="' . $url . '" target="_blank" title="Lihat bukti pembayaran">'
+                        . '<img src="' . $url . '" alt="Bukti pembayaran" class="img-thumbnail" '
+                        . 'style="width:50px;height:50px;object-fit:cover;">'
+                        . '</a>';
+                })
                 ->addColumn('pelanggan', fn($row) => $row->user->name ?? '-')
+                ->addColumn('petugas_approval', function ($row) {
+                    if (empty($row->petugas_approval)) {
+                        return '-';
+                    }
+                    $waktu = $row->waktu_approval ? $row->waktu_approval->format('Y-m-d H:i') : '';
+                    return e($row->petugas_approval) . ($waktu ? '<br><small class="text-muted">' . $waktu . '</small>' : '');
+                })
                 ->addColumn('aksi', function ($row) {
                     $btn = '<div class="dropdown position-relative d-inline-block">
                     <button class="btn btn-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
@@ -416,7 +428,7 @@ class OrderController extends Controller
                     $btn .= '</div></div>';
                     return $btn;
                 })
-                ->rawColumns(['aksi'])
+                ->rawColumns(['aksi', 'status', 'bukti_pembayaran_thumb', 'petugas_approval'])
                 ->make(true);
         }
     }
@@ -446,6 +458,17 @@ class OrderController extends Controller
                 ->editColumn('created_at', fn($row) => $row->created_at->format('Y-m-d H:i'))
                 ->editColumn('total_harga', fn($row) => 'Rp ' . number_format($row->total_harga, 0, ',', '.'))
                 ->addColumn('pelanggan', fn($row) => $row->user->name ?? '-')
+                ->addColumn('penyerahan', function ($row) {
+                    if (empty($row->image)) {
+                        return $row->catatan ? e($row->catatan) : '-';
+                    }
+                    $url = asset('storage/' . $row->image);
+                    $thumb = '<a href="' . $url . '" target="_blank" title="Lihat foto penyerahan">'
+                        . '<img src="' . $url . '" alt="Foto penyerahan" class="img-thumbnail" '
+                        . 'style="width:50px;height:50px;object-fit:cover;">'
+                        . '</a>';
+                    return $thumb . ($row->catatan ? '<br><small>' . e($row->catatan) . '</small>' : '');
+                })
                 ->addColumn('aksi', function ($row) {
                     $btn = '<div class="dropdown position-relative d-inline-block">
                         <button class="btn btn-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
@@ -462,7 +485,7 @@ class OrderController extends Controller
                     </div>';
                     return $btn;
                 })
-                ->rawColumns(['aksi'])
+                ->rawColumns(['aksi', 'penyerahan'])
                 ->make(true);
         }
     }
@@ -484,27 +507,72 @@ class OrderController extends Controller
         $order = Order::findOrFail($id);
 
         $validatedData = $request->validate([
-            'status' => 'required|in:Paid,Kirim,Selesai,Barang Siap Diambil,Dibatalkan,Proses COD',
+            'status' => 'required|in:Paid,Kirim,Selesai,Barang Siap Diambil,Dibatalkan,Proses COD,Ditolak',
+            'image' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
+            'catatan' => 'nullable|string|max:255',
         ]);
 
         $oldStatus = $order->status;
         $tglharini = Carbon::now()->format('Y-m-d');
 
-        $activeShift = DB::table('waktukerja')
-            ->where('status', 'ON')
-            ->where('tanggal', $tglharini)
-            ->orderBy('id_shift', 'desc')
-            ->first();
+        // Approve/reject pembayaran QRIS ('Proses konfirmasi pembayaran' <-> 'Paid'/'Ditolak') tidak
+        // menyentuh data kasir (trkasir), jadi tidak perlu shift kasir aktif seperti transisi status lain.
+        $isPaymentVerification = $oldStatus === 'Proses konfirmasi pembayaran'
+            && in_array($validatedData['status'], ['Paid', 'Ditolak']);
 
-        if (!$activeShift) {
-            return redirect()->route('pesanan.proses')
-                ->with('error', 'Tidak ada shift aktif. Silakan buka shift terlebih dahulu.');
+        $shift = null;
+        if (!$isPaymentVerification) {
+            $activeShift = DB::table('waktukerja')
+                ->where('status', 'ON')
+                ->where('tanggal', $tglharini)
+                ->orderBy('id_shift', 'desc')
+                ->first();
+
+            if (!$activeShift) {
+                return redirect()->route('pesanan.proses')
+                    ->with('error', 'Tidak ada shift aktif. Silakan buka shift terlebih dahulu.');
+            }
+
+            $shift = $activeShift->shift;
         }
-
-        $shift = $activeShift->shift;
 
         try {
             DB::beginTransaction();
+
+            // Jika pembayaran QRIS ditolak, kembalikan stok yang sudah dikurangi saat bukti bayar dikirim
+            if ($validatedData['status'] === 'Ditolak' && $oldStatus !== 'Ditolak') {
+                $order->load('orderItems.produk');
+                foreach ($order->orderItems as $item) {
+                    $produk = $item->produk;
+                    if ($produk) {
+                        $produk->stok_barang += $item->quantity;
+                        $produk->save();
+                    }
+                }
+            }
+
+            // Catat petugas yang approve/reject pembayaran QRIS
+            if ($isPaymentVerification) {
+                $admin = Auth::user();
+                $order->petugas_approval = $admin->nama_lengkap ?? $admin->username ?? '-';
+                $order->waktu_approval = now();
+            }
+
+            // Foto & catatan penyerahan (opsional) saat pesanan ditandai Selesai
+            if ($validatedData['status'] === 'Selesai') {
+                if ($request->hasFile('image')) {
+                    if (!Storage::disk('public')->exists('penyerahan')) {
+                        Storage::disk('public')->makeDirectory('penyerahan');
+                    }
+                    if ($order->image && Storage::disk('public')->exists($order->image)) {
+                        Storage::disk('public')->delete($order->image);
+                    }
+                    $order->image = $request->file('image')->store('penyerahan', 'public');
+                }
+                if ($request->filled('catatan')) {
+                    $order->catatan = $request->input('catatan');
+                }
+            }
 
             // Jika status berubah ke "Selesai", insert ke trkasir
             if ($validatedData['status'] === 'Selesai' && $oldStatus !== 'Selesai') {
@@ -513,15 +581,20 @@ class OrderController extends Controller
                 // insert ke trkasir
                 DB::table('trkasir')->insertGetId([
                     'kd_trkasir'       => $order->kode_pesanan,
+                    'id_user'          => Auth::id(),
                     'petugas'          => Auth::user()->username,
                     'shift'            => $shift,
                     'tgl_trkasir'      => now(),
+                    'id_pelanggan'     => 0,
                     'nm_pelanggan'     => $user->name,
                     'tlp_pelanggan'    => $user->no_tlp ?? '-',
                     'alamat_pelanggan' => $user->alamat ?? '-',
                     'ttl_trkasir'      => $order->total_harga,
                     'id_carabayar'     => $order->tipe_pembayaran === 'COD' ? 1 : 2,
                     'jenistx'          => 3,
+                    'poin_awal'        => 0,
+                    'tambahan_poin'    => 0,
+                    'redeem_poin'      => 0,
                 ]);
 
                 // insert detail barang
@@ -531,6 +604,8 @@ class OrderController extends Controller
                         throw new \Exception("Barang dengan ID {$item->produk_id} tidak ditemukan");
                     }
 
+                    $modal = $barang->hrgsat_barang ?? 0;
+
                     DB::table('trkasir_detail')->insert([
                         'kd_trkasir'       => $order->kode_pesanan,
                         'id_barang'        => $barang->id_barang,
@@ -539,7 +614,11 @@ class OrderController extends Controller
                         'qty_dtrkasir'     => $item->quantity,
                         'sat_dtrkasir'     => $barang->sat_barang,
                         'hrgjual_dtrkasir' => $item->harga,
+                        'modal'            => $modal,
+                        'profit'           => ($item->harga - $modal) * $item->quantity,
                         'hrgttl_dtrkasir'  => $item->quantity * $item->harga,
+                        'kd_bundle'        => '',
+                        'nm_bundle'        => '',
                         'tipe'             => 3,
                         'idadmin'          => Auth::id(),
                         'waktu'            => now(),
@@ -677,9 +756,15 @@ class OrderController extends Controller
         }
     }
 
-    public function bankTransfer()
+    public function bankTransfer(Request $request)
     {
         $customer = Auth::user();
+
+        $request->validate([
+            'bukti_pembayaran' => 'required|image|mimes:jpg,jpeg,png|max:5120',
+        ], [
+            'bukti_pembayaran.required' => 'Silakan upload screenshot bukti pembayaran QRIS.',
+        ]);
 
         $order = Order::where('user_id', $customer->id)
             ->where('status', 'pending') // hanya order yang belum dibayar
@@ -691,9 +776,15 @@ class OrderController extends Controller
         }
         DB::beginTransaction();
         try {
+            // Simpan bukti pembayaran yang diupload pelanggan
+            if (!Storage::disk('public')->exists('bukti-pembayaran')) {
+                Storage::disk('public')->makeDirectory('bukti-pembayaran');
+            }
+            $order->bukti_pembayaran = $request->file('bukti_pembayaran')->store('bukti-pembayaran', 'public');
+
             // Update status dan tipe pembayaran lebih dulu
-            $order->tipe_pembayaran = 'Bank Transfer / Qris';
-            $order->status = 'Proses konfirmasi pembayaran'; // tetap pending sampai pembayaran dikonfirmasi
+            $order->tipe_pembayaran = 'Qris';
+            $order->status = 'Proses konfirmasi pembayaran'; // tetap pending sampai pembayaran dikonfirmasi admin
 
             // Kurangi stok barang
             foreach ($order->orderItems as $item) {
@@ -716,7 +807,7 @@ class OrderController extends Controller
             $order->kode_pesanan = $invoice;
             $order->save();
             DB::commit();
-            return redirect()->route('order.history')->with('success', 'Pesanan berhasil dibuat. Silakan lakukan pembayaran.');
+            return redirect()->route('order.history')->with('success', 'Bukti pembayaran berhasil dikirim. Pesanan Anda menunggu verifikasi admin.');
         } catch (\Exception $e) {
             DB::rollBack();
             return redirect()->route('order.cart')->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
@@ -728,7 +819,9 @@ class OrderController extends Controller
     public function selectPickup(Request $request)
     {
         $request->validate([
-            'tipe_layanan' => 'required|in:Dikirim ke alamat,Ambil di toko',
+            // 'Dikirim ke alamat' dinonaktifkan sementara — masih negosiasi dengan pihak ekspedisi.
+            // TODO: kembalikan ke 'required|in:Dikirim ke alamat,Ambil di toko' setelah aktif lagi.
+            'tipe_layanan' => 'required|in:Ambil di toko',
         ]);
 
         $customer = Auth::user();

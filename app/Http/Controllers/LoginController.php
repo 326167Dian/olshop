@@ -112,6 +112,7 @@ class LoginController extends Controller
 
             return redirect()->route('home-page');
         } catch (\Throwable $th) {
+            \Illuminate\Support\Facades\Log::error('Google login gagal: ' . $th->getMessage(), ['exception' => $th]);
             return redirect()->route('login')->with('error', 'Gagal login via Google.');
         }
     }

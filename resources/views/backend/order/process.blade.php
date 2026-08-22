@@ -30,6 +30,8 @@
                                 <th>Tipe Layanan</th>
                                 <th>Tipe Pembayaran</th>
                                 <th>Status</th>
+                                <th>Bukti Bayar</th>
+                                <th>Petugas Approval</th>
                                 <th>Pelanggan</th>
                                 <th>Aksi</th>
                             </tr>
@@ -84,6 +86,18 @@
                     {
                         data: 'status',
                         name: 'status'
+                    },
+                    {
+                        data: 'bukti_pembayaran_thumb',
+                        name: 'bukti_pembayaran_thumb',
+                        orderable: false,
+                        searchable: false
+                    },
+                    {
+                        data: 'petugas_approval',
+                        name: 'petugas_approval',
+                        orderable: false,
+                        searchable: false
                     },
                     {
                         data: 'pelanggan',

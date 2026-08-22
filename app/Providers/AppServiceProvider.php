@@ -48,5 +48,10 @@ class AppServiceProvider extends ServiceProvider
 
             $view->with('cartCount', $cartCount)->with('cartTotal', $cartTotal);
         });
+
+        View::composer('backend.layouts.app', function ($view) {
+            $pendingPaymentCount = Order::where('status', 'Proses konfirmasi pembayaran')->count();
+            $view->with('pendingPaymentCount', $pendingPaymentCount);
+        });
     }
 }

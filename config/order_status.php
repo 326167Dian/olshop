@@ -10,6 +10,7 @@ return [
     'Ambil di toko' => [
         'COD' => ['Proses COD', 'Barang Siap Diambil', 'Selesai', 'Dibatalkan'],
         'Midtrans' => ['Paid', 'Barang Siap Diambil', 'Selesai'],
+        'Qris' => ['Proses konfirmasi pembayaran', 'Paid', 'Barang Siap Diambil', 'Selesai', 'Ditolak'],
     ],
 
 ];

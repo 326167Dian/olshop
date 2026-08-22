@@ -80,7 +80,12 @@ class ProductController extends Controller
             })
             ->addColumn('gambar_status', function ($row) {
                 if (!empty($row->image)) {
-                    return '<span class="badge bg-success">Sudah diupload</span>';
+                    $url = asset('storage/' . $row->image);
+                    return '<a href="' . $url . '" target="_blank" title="Lihat ukuran penuh">'
+                        . '<img src="' . $url . '" alt="Gambar produk" class="img-thumbnail" '
+                        . 'style="width:50px;height:50px;object-fit:cover;" '
+                        . 'onerror="this.onerror=null;this.style.display=\'none\';this.insertAdjacentHTML(\'afterend\',\'<span class=&quot;badge bg-warning text-dark&quot;>File tidak ditemukan</span>\');">'
+                        . '</a>';
                 } else {
                     return '<span class="badge bg-danger">Belum upload</span>';
                 }
