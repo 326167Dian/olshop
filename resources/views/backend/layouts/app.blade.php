@@ -25,6 +25,25 @@
             margin-top: 0.3rem;
             z-index: 9999;
         }
+
+        /* Halaman lama membungkus konten dengan <section class="content">,
+           yang bentrok dengan class ".content" milik Espire (wrapper utama
+           dengan margin-left/margin-top untuk sidebar & topbar). Netralkan
+           supaya tidak ada margin dobel di dalam .main. */
+        .main .content {
+            margin: 0 !important;
+            width: 100% !important;
+        }
+
+        /* Hilangkan jarak kosong di sisi kiri konten (padding .main +
+           padding bawaan .container-fluid). */
+        .main {
+            padding-left: 0 !important;
+        }
+
+        .main .container-fluid {
+            padding-left: 0 !important;
+        }
     </style>
 </head>
 
