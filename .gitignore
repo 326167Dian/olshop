@@ -1,0 +1,18 @@
+/vendor
+/node_modules
+/public/build
+/public/hot
+.env
+.env.backup
+.phpunit.result.cache
+Homestead.json
+Homestead.yaml
+npm-debug.log
+yarn-error.log
+/storage/*.key
+/.idea
+/.fleet
+/.vscode
+
+# External Espire template source (huge, will be removed after asset extraction)
+/public/Espire
