@@ -7,7 +7,7 @@
 @section('content')
     @if (session('error'))
         <div class="alert alert-danger alert-dismissible">
-            <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             <strong>{{ session('error') }}</strong>
         </div>
     @endif

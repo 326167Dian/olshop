@@ -32,83 +32,80 @@ Dashboard
 <!-- Main content -->
 <section class="content">
     <div class="container-fluid">
-        <!-- Small boxes (Stat box) -->
+        <!-- Stat cards -->
         <div class="row">
             <div class="col-lg-3 col-6">
-                <!-- small box -->
-                <div class="small-box bg-info">
-                    <div class="inner">
-                        <h3>{{ $products->count() }}</h3>
-
-                        <p>Total produk</p>
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>
+                                <h3 class="mb-0">{{ $products->count() }}</h3>
+                                <span class="text-muted fw-semibold">Total Produk</span>
+                            </div>
+                            <div class="avatar avatar-circle bg-info-subtle text-info" style="width: 45px; height: 45px; line-height: 45px;">
+                                <i class="feather icon-package"></i>
+                            </div>
+                        </div>
+                        <a href="{{ route('product.index') }}" class="d-block mt-3">Lihat detail <i class="feather icon-arrow-right"></i></a>
                     </div>
-                    <div class="icon">
-                        <i class="ion ion-pricetag"></i>
-                    </div>
-                    <a href="{{ route('product.index') }}" class="small-box-footer">Lihat detail <i
-                            class="fas fa-arrow-circle-right"></i></a>
                 </div>
             </div>
-            <!-- ./col -->
             <div class="col-lg-3 col-6">
-                <!-- small box -->
-                <div class="small-box bg-success">
-                    <div class="inner">
-                        <h3>{{ $orders->count() }}</h3>
-
-                        <p>Pesanan</p>
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>
+                                <h3 class="mb-0">{{ $orders->count() }}</h3>
+                                <span class="text-muted fw-semibold">Pesanan</span>
+                            </div>
+                            <div class="avatar avatar-circle bg-success-subtle text-success" style="width: 45px; height: 45px; line-height: 45px;">
+                                <i class="feather icon-shopping-bag"></i>
+                            </div>
+                        </div>
+                        <a href="{{ route('pesanan.proses') }}" class="d-block mt-3">Lihat detail <i class="feather icon-arrow-right"></i></a>
                     </div>
-                    <div class="icon">
-                        <i class="ion ion-bag"></i>
-                    </div>
-                    <a href="{{ route('pesanan.proses') }} " class="small-box-footer">Lihat detail <i
-                            class="fas fa-arrow-circle-right"></i></a>
                 </div>
             </div>
-            <!-- ./col -->
             <div class="col-lg-3 col-6">
-                <!-- small box -->
-                <div class="small-box bg-warning">
-                    <div class="inner">
-                        <h3>{{ $customers->count() }}</h3>
-
-                        <p>Pelanggan</p>
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>
+                                <h3 class="mb-0">{{ $customers->count() }}</h3>
+                                <span class="text-muted fw-semibold">Pelanggan</span>
+                            </div>
+                            <div class="avatar avatar-circle bg-warning-subtle text-warning" style="width: 45px; height: 45px; line-height: 45px;">
+                                <i class="feather icon-users"></i>
+                            </div>
+                        </div>
+                        <a href="{{ route('customer.index') }}" class="d-block mt-3">Lihat detail <i class="feather icon-arrow-right"></i></a>
                     </div>
-                    <div class="icon">
-                        <i class="fas fa-user-friends"></i>
-
-                    </div>
-                    <a href="{{ route('customer.index') }}" class="small-box-footer">Lihat detail <i
-                            class="fas fa-arrow-circle-right"></i></a>
                 </div>
             </div>
-            <!-- ./col -->
             <div class="col-lg-3 col-6">
-                <!-- small box -->
-                <div class="small-box bg-danger">
-                    <div class="inner">
-                        <h3>{{ $articles->count() }}</h3>
-
-                        <p>Artikel</p>
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>
+                                <h3 class="mb-0">{{ $articles->count() }}</h3>
+                                <span class="text-muted fw-semibold">Artikel</span>
+                            </div>
+                            <div class="avatar avatar-circle bg-danger-subtle text-danger" style="width: 45px; height: 45px; line-height: 45px;">
+                                <i class="feather icon-file-text"></i>
+                            </div>
+                        </div>
+                        <a href="{{ route('article.index') }}" class="d-block mt-3">Lihat detail <i class="feather icon-arrow-right"></i></a>
                     </div>
-                    <div class="icon">
-                        <i class="fas fa-file-alt"></i>
-                    </div>
-                    <a href="{{ route('article.index') }}" class="small-box-footer">Lihat detail <i
-                            class="fas fa-arrow-circle-right"></i></a>
                 </div>
             </div>
-            <!-- ./col -->
         </div>
         <!-- /.row -->
         <!-- Main row -->
         <div class="row">
-            <!-- Left col -->
-            <section class="col-lg-12 connectedSortable">
-                <!-- Custom tabs (Charts with tabs)-->
-                <div class="card bg-gradient-primary">
+            <div class="col-lg-12">
+                <div class="card bg-primary bg-gradient text-white">
                     <div class="card-header border-0">
-                        <h3 class="card-title">
+                        <h3 class="card-title text-white">
                             <i class="fas fa-user-shield"></i> Selamat Datang, admin!
                         </h3>
                     </div>
@@ -122,10 +119,7 @@ Dashboard
                         </p>
                     </div>
                 </div>
-                <!-- /.card -->
-
-            </section>
-            <!-- /.Left col -->
+            </div>
         </div>
         <!-- /.row (main row) -->
     </div><!-- /.container-fluid -->
