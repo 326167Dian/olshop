@@ -81,6 +81,9 @@ Route::prefix('/backend')->middleware('auth:admin')->group(function () {
 
     // Product
     Route::get('/product', [ProductController::class, 'indexbackend'])->name('product.index');
+    Route::get('/product/select-category', [ProductController::class, 'selectCategory'])->name('product.selectCategory');
+    Route::get('/product-select-category-data', [ProductController::class, 'selectCategoryData'])->name('backend.product.selectCategoryData');
+    Route::put('/product/{product}/update-category', [ProductController::class, 'updateCategory'])->name('product.updateCategory');
     Route::get('/product/{product}/edit', [ProductController::class, 'edit'])->name('product.edit');
     Route::put('/product/{product}', [ProductController::class, 'update'])->name('product.update');
     Route::get('/product/{product}', [ProductController::class, 'show'])->name('product.show');

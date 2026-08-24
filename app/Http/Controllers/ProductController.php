@@ -118,6 +118,51 @@ class ProductController extends Controller
             ->make(true);
     }
 
+    public function selectCategory()
+    {
+        $categories = Category::orderBy('name')->get();
+        return view('backend.product.select-category', compact('categories'));
+    }
+
+    public function selectCategoryData()
+    {
+        $query = Product::select([
+            'id_barang',
+            'kd_barang',
+            'nm_barang',
+            'sat_barang',
+            'image',
+            'category_id',
+        ]);
+
+        return DataTables::of($query)
+            ->addIndexColumn()
+            ->addColumn('gambar', function ($row) {
+                if (!empty($row->image)) {
+                    $url = asset('storage/' . $row->image);
+                    return '<img src="' . $url . '" alt="Gambar produk" class="img-thumbnail" '
+                        . 'style="width:50px;height:50px;object-fit:cover;" '
+                        . 'onerror="this.onerror=null;this.src=\'\';this.alt=\'Gambar tidak ditemukan\';">';
+                }
+                return '<span class="badge bg-danger">Belum upload</span>';
+            })
+            ->rawColumns(['gambar'])
+            ->make(true);
+    }
+
+    public function updateCategory(Request $request, Product $product)
+    {
+        $request->validate([
+            'category_id' => 'nullable|exists:categories,id',
+        ]);
+
+        $product->category_id = $request->category_id;
+        $product->updated_by = Auth::id();
+        $product->save();
+
+        return response()->json(['message' => 'Kategori produk berhasil diperbarui.']);
+    }
+
     public function multipleUpdateStatus(Request $request)
     {
         $allIds = $request->input('all_ids', []);

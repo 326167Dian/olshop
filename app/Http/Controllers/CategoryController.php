@@ -30,10 +30,13 @@ class CategoryController extends Controller
                     Action
                 </button>
                 <div class="dropdown-menu center-below p-2 shadow" style="min-width: 140px;">
+                    <a href="' . route('product.selectCategory') . '" class="btn btn-info btn-sm w-100 mb-1">
+                        <i class="fas fa-tags"></i> Pilih Produk
+                    </a>
                     <a href="' . route('category.edit', $row->id) . '" class="btn btn-warning btn-sm w-100 mb-1">
                         <i class="fas fa-edit"></i> Edit
                     </a>
-                    <button onclick="deleteData(\'' . route('category.destroy', $row->id) . '\', this)" 
+                    <button onclick="deleteData(\'' . route('category.destroy', $row->id) . '\', this)"
                             class="btn btn-danger btn-sm w-100" 
                             data-konf-delete="' . e($row->name) . '">
                         <i class="fa fa-trash"></i> Hapus
