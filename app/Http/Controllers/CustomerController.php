@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\Order;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Yajra\DataTables\Facades\DataTables;
@@ -39,6 +40,9 @@ class CustomerController extends Controller
                     <a href="' . route('customer.show', $row->id) . '" class="btn btn-info btn-sm w-100 mb-1">
                         <i class="fas fa-eye"></i> Detail
                     </a>
+                    <button onclick="deleteData(\'' . route('customer.destroy', $row->id) . '\', this)" class="btn btn-danger btn-sm w-100" data-konf-delete="' . e($row->name) . '">
+                        <i class="fa fa-trash"></i> Hapus
+                    </button>
                 </div>
             </div>';
                 return $btn;
@@ -50,6 +54,21 @@ class CustomerController extends Controller
     public function show(User $customer)
     {
         return view('backend.customer.show', compact('customer'));
+    }
+
+    public function destroy(User $customer)
+    {
+        if (Order::where('user_id', $customer->id)->exists()) {
+            return response()->json([
+                'message' => 'Customer tidak dapat dihapus karena masih memiliki riwayat pesanan.'
+            ], 422);
+        }
+
+        $customer->delete();
+
+        return response()->json([
+            'message' => 'Customer berhasil dihapus.'
+        ]);
     }
 
     public function akun($id)

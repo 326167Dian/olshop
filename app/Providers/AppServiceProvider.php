@@ -51,7 +51,9 @@ class AppServiceProvider extends ServiceProvider
 
         View::composer('backend.layouts.app', function ($view) {
             $pendingPaymentCount = Order::where('status', 'Proses konfirmasi pembayaran')->count();
-            $view->with('pendingPaymentCount', $pendingPaymentCount);
+            $latestOrderId = Order::whereNotIn('status', ['Selesai', 'pending', 'Dibatalkan'])->max('id');
+            $view->with('pendingPaymentCount', $pendingPaymentCount)
+                ->with('latestOrderId', $latestOrderId);
         });
     }
 }

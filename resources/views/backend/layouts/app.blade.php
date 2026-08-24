@@ -350,6 +350,11 @@
         @csrf
     </form>
 
+    @if($companySetting->notification_sound ?? null)
+    <audio id="order-notification-audio" preload="auto"
+        src="{{ asset('storage/' . $companySetting->notification_sound) }}"></audio>
+    @endif
+
     <!-- Core Vendors JS (jQuery + Bootstrap 5 + Popper + feather icons) -->
     <script src="{{ asset('newadmin/assets/js/vendors.min.js') }}"></script>
 
@@ -441,6 +446,55 @@
             });
         }
     </script>
+
+    @if($companySetting->notification_sound ?? null)
+    <script>
+        (function () {
+            var audioEl = document.getElementById('order-notification-audio');
+            var pollUrl = "{{ route('backend.dashboard.checkNewOrder') }}";
+            var storageKey = 'lastSeenOrderId';
+            var serverLatest = {{ (int) ($latestOrderId ?? 0) }};
+
+            // Seed hanya sekali (kunjungan pertama) supaya order lama tidak memicu alarm.
+            if (localStorage.getItem(storageKey) === null) {
+                localStorage.setItem(storageKey, serverLatest);
+            }
+
+            function playAlarm() {
+                audioEl.currentTime = 0;
+                audioEl.play().catch(function () {
+                    // Browser memblokir autoplay sebelum ada interaksi pengguna; akan berhasil setelah klik pertama di halaman.
+                });
+            }
+
+            function checkNewOrder() {
+                fetch(pollUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    .then(function (res) { return res.json(); })
+                    .then(function (data) {
+                        var lastSeen = parseInt(localStorage.getItem(storageKey) || '0', 10);
+                        var latest = parseInt(data.latest_id || 0, 10);
+                        if (latest > lastSeen) {
+                            playAlarm();
+                            if (window.Swal) {
+                                Swal.fire({
+                                    icon: 'info',
+                                    title: 'Pesanan baru masuk!',
+                                    toast: true,
+                                    position: 'top-end',
+                                    showConfirmButton: false,
+                                    timer: 4000
+                                });
+                            }
+                        }
+                        localStorage.setItem(storageKey, Math.max(latest, lastSeen));
+                    })
+                    .catch(function () {});
+            }
+
+            setInterval(checkNewOrder, 15000);
+        })();
+    </script>
+    @endif
 
     @yield('script')
     @stack('scripts')

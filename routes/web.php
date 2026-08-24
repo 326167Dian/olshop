@@ -67,11 +67,13 @@ Route::middleware('is.customer')->group(function () {
 Route::prefix('/backend')->middleware('auth:admin')->group(function () {
     // Dashboard backend
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('backend.dashboard');
+    Route::get('/dashboard/check-new-order', [DashboardController::class, 'checkNewOrder'])->name('backend.dashboard.checkNewOrder');
 
     // Customer
     Route::get('/customer', [CustomerController::class, 'index'])->name('customer.index');
     Route::get('/customer/{customer}', [CustomerController::class, 'show'])->name('customer.show');
     Route::get('/customer-data', [CustomerController::class, 'data'])->name('backend.customer.data');
+    Route::delete('/customer/{customer}', [CustomerController::class, 'destroy'])->name('customer.destroy');
 
     // Product
     Route::get('/product', [ProductController::class, 'indexbackend'])->name('product.index');

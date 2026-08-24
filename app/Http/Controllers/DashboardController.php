@@ -18,4 +18,14 @@ class DashboardController extends Controller
         $orders = Order::whereNotIn('status', ['Selesai', 'pending', 'Dibatalkan'])->get();
         return view('backend.dashboard.index', compact('products', 'customers', 'articles', 'orders'));
     }
+
+    public function checkNewOrder()
+    {
+        $query = Order::whereNotIn('status', ['Selesai', 'pending', 'Dibatalkan']);
+
+        return response()->json([
+            'latest_id' => (clone $query)->max('id'),
+            'count'     => $query->count(),
+        ]);
+    }
 }

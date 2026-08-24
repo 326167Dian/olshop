@@ -35,6 +35,7 @@ class CompanySettingController extends Controller
             'deskripsi'       => 'nullable|string',
             'logo'            => 'nullable|image|mimes:jpg,jpeg,png,webp',
             'qris_image'      => 'nullable|image|mimes:jpg,jpeg,png,webp',
+            'notification_sound' => 'nullable|mimes:mp3,wav,ogg,m4a|max:5120',
             'alamat'          => 'nullable|string',
             'telepon'         => 'nullable|string|max:16',
             'peta_lokasi'     => 'nullable|string',
@@ -49,6 +50,11 @@ class CompanySettingController extends Controller
         // Simpan gambar QRIS jika diupload
         if ($request->hasFile('qris_image')) {
             $validated['qris_image'] = $request->file('qris_image')->store('qris', 'public');
+        }
+
+        // Simpan file suara notifikasi jika diupload
+        if ($request->hasFile('notification_sound')) {
+            $validated['notification_sound'] = $request->file('notification_sound')->store('sounds', 'public');
         }
 
         CompanySetting::create($validated);
@@ -71,6 +77,7 @@ class CompanySettingController extends Controller
             'deskripsi'       => 'nullable|string',
             'logo'            => 'nullable|image|mimes:jpg,jpeg,png,webp',
             'qris_image'      => 'nullable|image|mimes:jpg,jpeg,png,webp',
+            'notification_sound' => 'nullable|mimes:mp3,wav,ogg,m4a|max:5120',
             'alamat'          => 'nullable|string',
             'telepon'         => 'nullable|string|max:16',
             'peta_lokasi'     => 'nullable|string',
@@ -91,6 +98,14 @@ class CompanySettingController extends Controller
                 Storage::disk('public')->delete($companySetting->qris_image);
             }
             $validated['qris_image'] = $request->file('qris_image')->store('qris', 'public');
+        }
+
+        // Hapus suara notifikasi lama dan simpan yang baru jika diupload
+        if ($request->hasFile('notification_sound')) {
+            if ($companySetting->notification_sound) {
+                Storage::disk('public')->delete($companySetting->notification_sound);
+            }
+            $validated['notification_sound'] = $request->file('notification_sound')->store('sounds', 'public');
         }
 
         $companySetting->update($validated);

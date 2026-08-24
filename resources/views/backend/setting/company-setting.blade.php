@@ -78,6 +78,23 @@
                             @enderror
                         </div>
 
+                        <div class="mb-3">
+                            <label class="form-label">Suara Notifikasi Pesanan Baru</label>
+                            @if(isset($companySetting->notification_sound))
+                            <div class="mb-2 d-flex align-items-center gap-2">
+                                <audio id="notification-sound-preview" controls
+                                    src="{{ asset('storage/' . $companySetting->notification_sound) }}"
+                                    style="height: 36px;"></audio>
+                            </div>
+                            @endif
+                            <input type="file" name="notification_sound" accept="audio/*" class="form-control">
+                            <small class="form-text text-muted">Format mp3, wav, ogg, atau m4a (maks. 5 MB). Suara ini
+                                akan diputar otomatis di dashboard admin saat ada pesanan baru masuk.</small>
+                            @error('notification_sound')
+                            <div class="text-danger">{{ $message }}</div>
+                            @enderror
+                        </div>
+
                     </div>
                 </div>
             </div>
