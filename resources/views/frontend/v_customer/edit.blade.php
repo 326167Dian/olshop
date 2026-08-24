@@ -86,16 +86,6 @@
                                     @enderror
                                 </div>
 
-                                {{-- Password --}}
-                                <div class="form-group">
-                                    <label>Password Baru (opsional)</label>
-                                    <input type="password" name="password"
-                                        class="form-control @error('password') is-invalid @enderror"
-                                        placeholder="Biarkan kosong jika tidak diganti">
-                                    @error('password')
-                                    <div class="invalid-feedback alert-danger">{{ $message }}</div>
-                                    @enderror
-                                </div>
                             </div>
 
                             {{-- Tombol Submit --}}

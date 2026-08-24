@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 use Yajra\DataTables\Facades\DataTables;
 
 
@@ -76,19 +75,11 @@ class CustomerController extends Controller
         $rules = [
             'name' => 'required|max:255',
             'email' => 'required|email|max:255|unique:users,email,' . $id,
-            'password' => 'nullable|min:6',
             'alamat' => 'nullable|max:255',
-            'no_tlp' => 'nullable|max:255' // tambah validasi password
+            'no_tlp' => 'nullable|max:255'
         ];
 
         $validatedData = $request->validate($rules);
-
-        // Hanya update password jika diisi
-        if (!empty($validatedData['password'])) {
-            $validatedData['password'] = Hash::make($validatedData['password']);
-        } else {
-            unset($validatedData['password']); // jangan update password kalau kosong
-        }
 
         $user->update($validatedData);
 
