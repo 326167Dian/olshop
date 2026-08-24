@@ -76,9 +76,12 @@
                         </div>
                         <div class="header-nav-item">
                             <div class="dropdown header-nav-item-select nav-profile">
+                                @php
+                                    $adminAvatar = Auth::user()->foto ? asset('storage/' . Auth::user()->foto) : asset('newadmin/assets/images/avatars/default-avatar.jpg');
+                                @endphp
                                 <div class="toggle-wrapper" id="nav-profile-dropdown" data-bs-toggle="dropdown">
                                     <div class="avatar avatar-circle avatar-image" style="width: 35px; height: 35px; line-height: 35px;">
-                                        <img src="{{ asset('newadmin/assets/images/avatars/default-avatar.jpg') }}" alt="">
+                                        <img src="{{ $adminAvatar }}" alt="">
                                     </div>
                                     <span class="fw-bold mx-1">{{ Auth::user()->nama_lengkap }}</span>
                                     <i class="feather icon-chevron-down"></i>
@@ -87,7 +90,7 @@
                                     <div class="nav-profile-header">
                                         <div class="d-flex align-items-center">
                                             <div class="avatar avatar-circle avatar-image">
-                                                <img src="{{ asset('newadmin/assets/images/avatars/default-avatar.jpg') }}" alt="">
+                                                <img src="{{ $adminAvatar }}" alt="">
                                             </div>
                                             <div class="d-flex flex-column ms-1">
                                                 <span class="fw-bold text-dark">{{ Auth::user()->nama_lengkap }}</span>
@@ -95,6 +98,12 @@
                                             </div>
                                         </div>
                                     </div>
+                                    <a href="{{ route('admin.profile.edit') }}" class="dropdown-item">
+                                        <div class="d-flex align-items-center">
+                                            <i class="font-size-lg me-2 feather icon-user"></i>
+                                            <span>Edit Profil</span>
+                                        </div>
+                                    </a>
                                     <a href="javascript:void(0)" class="dropdown-item" onclick="logoutConfirm(event)">
                                         <div class="d-flex align-items-center">
                                             <i class="font-size-lg me-2 feather icon-log-out"></i>

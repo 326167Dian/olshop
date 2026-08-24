@@ -12,6 +12,7 @@ use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\CompanySettingController;
 use App\Http\Controllers\BannerController;
+use App\Http\Controllers\AdminProfileController;
 
 Route::get('/', function () {
     return redirect()->route('home-page');
@@ -127,6 +128,10 @@ Route::prefix('/backend')->middleware('auth:admin')->group(function () {
     Route::post('/company-setting', [CompanySettingController::class, 'store'])->name('company-setting.store');
     Route::put('/company-setting/{id}', [CompanySettingController::class, 'update'])->name('company-setting.update');
 
-    // Banner 
+    // Banner
     Route::resource('banner', BannerController::class);
+
+    // Profil admin (foto profil)
+    Route::get('/profile', [AdminProfileController::class, 'edit'])->name('admin.profile.edit');
+    Route::put('/profile', [AdminProfileController::class, 'update'])->name('admin.profile.update');
 });
