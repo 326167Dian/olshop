@@ -10,16 +10,26 @@ use App\Models\User;
 class LoginController extends Controller
 {
     /**
-     * Tampilkan form login admin backend.
+     * Tampilkan form login pelanggan/member (Google saja).
      */
     public function loginForm()
     {
-        if (Auth::guard('admin')->check()) {
-            return redirect()->route('backend.dashboard');
-        }
-
         if (Auth::guard('web')->check()) {
             return redirect()->route('home-page');
+        }
+
+        return view('frontend.auth.login', [
+            'judul' => 'Login',
+        ]);
+    }
+
+    /**
+     * Tampilkan form login admin/staf (username & password).
+     */
+    public function adminLoginForm()
+    {
+        if (Auth::guard('admin')->check()) {
+            return redirect()->route('backend.dashboard');
         }
 
         return view('backend.auth.login', [
@@ -30,7 +40,7 @@ class LoginController extends Controller
     /**
      * Proses autentikasi admin.
      */
-    public function unifiedLogin(Request $request)
+    public function adminLogin(Request $request)
     {
         $request->validate([
             'login' => 'required',
@@ -47,10 +57,6 @@ class LoginController extends Controller
             return redirect()->route('backend.dashboard');
         }
 
-        if (Auth::guard('web')->attempt(['email' => $login, 'password' => $password])) {
-            return redirect()->route('home-page');
-        }
-
         return back()->withErrors(['auth' => 'Username/email atau password salah.']);
     }
 
@@ -64,7 +70,7 @@ class LoginController extends Controller
         request()->session()->invalidate();
         request()->session()->regenerateToken();
 
-        return redirect(route('login'))->with('success', 'Anda telah berhasil logout.');
+        return redirect(route('admin.login.form'))->with('success', 'Anda telah berhasil logout.');
     }
 
     public function logoutFrontend()
@@ -113,7 +119,7 @@ class LoginController extends Controller
             return redirect()->route('home-page');
         } catch (\Throwable $th) {
             \Illuminate\Support\Facades\Log::error('Google login gagal: ' . $th->getMessage(), ['exception' => $th]);
-            return redirect()->route('login')->with('error', 'Gagal login via Google.');
+            return redirect()->route('login.form')->with('error', 'Gagal login via Google.');
         }
     }
 }

@@ -25,34 +25,23 @@
                                     </div>
                                 </div>
                                 <div class="text-center mt-3">
-                                    <h3 class="fw-bolder">Login Staf/Admin</h3>
-                                    <p class="text-muted">Masuk ke panel admin {{ $companySetting->nama_perusahaan }}</p>
+                                    <h3 class="fw-bolder">Sign In</h3>
+                                    <p class="text-muted">Masuk ke {{ $companySetting->nama_perusahaan }}</p>
                                 </div>
 
-                                @if ($errors->has('auth'))
+                                @if (session('error'))
                                 <div class="alert alert-danger">
-                                    {{ $errors->first('auth') }}
+                                    {{ session('error') }}
                                 </div>
                                 @endif
 
-                                <form action="{{ route('admin.login') }}" method="post">
-                                    @csrf
-                                    <div class="form-group mb-3">
-                                        <label class="form-label">Username atau Email</label>
-                                        <input type="text" name="login" class="form-control @error('login') is-invalid @enderror" value="{{ old('login') }}">
-                                        @error('login')
-                                        <span class="invalid-feedback" role="alert">{{ $message }}</span>
-                                        @enderror
+                                <div class="row mt-4">
+                                    <div class="col px-1">
+                                        <a href="{{ route('google.login') }}" class="btn btn-outline-secondary w-100">
+                                            <i class="fab fa-google me-2"></i> Masuk dengan Google
+                                        </a>
                                     </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">Password</label>
-                                        <input name="password" class="form-control @error('password') is-invalid @enderror" type="password">
-                                        @error('password')
-                                        <span class="invalid-feedback" role="alert">{{ $message }}</span>
-                                        @enderror
-                                    </div>
-                                    <button type="submit" class="btn btn-primary w-100">Log In</button>
-                                </form>
+                                </div>
                             </div>
                         </div>
                     </div>

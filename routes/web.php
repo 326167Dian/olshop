@@ -18,10 +18,14 @@ Route::get('/', function () {
     return redirect()->route('home-page');
 });
 
+// Login pelanggan/member (Google saja)
 Route::get('/login', [LoginController::class, 'loginForm'])->name('login.form')->middleware('prevent.back.history');
-Route::post('/login', [LoginController::class, 'unifiedLogin'])->name('login');
-Route::post('backend/logout', [LoginController::class, 'logoutBackend'])->name('backend.logout');
 Route::post('/logout', [LoginController::class, 'logoutFrontend'])->name('logout');
+
+// Login admin/staf (username & password)
+Route::get('/staf', [LoginController::class, 'adminLoginForm'])->name('admin.login.form')->middleware('prevent.back.history');
+Route::post('/staf', [LoginController::class, 'adminLogin'])->name('admin.login');
+Route::post('backend/logout', [LoginController::class, 'logoutBackend'])->name('backend.logout');
 
 Route::get('auth/google', [LoginController::class, 'redirectToGoogle'])->name('google.login');
 Route::get('auth/google/callback', [LoginController::class, 'handleGoogleCallback']);

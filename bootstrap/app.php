@@ -18,6 +18,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'is.customer' => \App\Http\Middleware\IsCustomer::class,
             'prevent.back.history' => \App\Http\Middleware\PreventBackHistory::class,
         ]);
+        $middleware->redirectGuestsTo(function ($request) {
+            return $request->is('backend/*')
+                ? route('admin.login.form')
+                : route('login.form');
+        });
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
