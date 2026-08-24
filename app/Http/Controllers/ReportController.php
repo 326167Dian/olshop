@@ -4,12 +4,44 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Order;
+use App\Models\PageVisit;
+use Illuminate\Support\Facades\DB;
 
 class ReportController extends Controller
 {
     public function reportProcess()
     {
         return view('backend.report.process', []);
+    }
+
+    public function reportVisits()
+    {
+        $totalVisits = PageVisit::where('page', 'home-page')->count();
+
+        $dailyVisits = PageVisit::where('page', 'home-page')
+            ->where('created_at', '>=', now()->subDays(29)->startOfDay())
+            ->selectRaw('DATE(created_at) as tanggal, COUNT(*) as jumlah')
+            ->groupBy('tanggal')
+            ->orderBy('tanggal', 'desc')
+            ->get()
+            ->keyBy('tanggal');
+
+        // Susun 30 hari terakhir termasuk hari tanpa kunjungan (jumlah 0)
+        $rekap = collect();
+        for ($i = 0; $i < 30; $i++) {
+            $tanggal = now()->subDays($i)->format('Y-m-d');
+            $rekap->push([
+                'tanggal' => $tanggal,
+                'jumlah' => $dailyVisits->get($tanggal)->jumlah ?? 0,
+            ]);
+        }
+
+        return view('backend.report.visits', [
+            'judul' => 'Laporan',
+            'subJudul' => 'Laporan Kunjungan Website',
+            'totalVisits' => $totalVisits,
+            'rekap' => $rekap,
+        ]);
     }
 
     public function cetakOrderProses(Request $request)

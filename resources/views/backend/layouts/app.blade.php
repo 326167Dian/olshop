@@ -207,6 +207,12 @@
                                     <span class="nav-menu-item-title">Laporan Pesanan Selesai</span>
                                 </a>
                             </li>
+                            <li class="nav-menu-item {{ Route::currentRouteName() == 'report.visits' ? 'active' : '' }}">
+                                <a href="{{ route('report.visits') }}">
+                                    <i class="feather icon-eye"></i>
+                                    <span class="nav-menu-item-title">Laporan Kunjungan Website</span>
+                                </a>
+                            </li>
                         </ul>
                     </li>
 

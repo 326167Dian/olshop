@@ -254,6 +254,18 @@
                 @endforeach
             </div>
             <!-- /row -->
+
+            <!-- Visitor Counter -->
+            <div class="row">
+                <div class="col-md-12 text-center" style="margin-top: 20px; margin-bottom: 10px;">
+                    <div style="display: inline-block; padding: 10px 24px; border-radius: 30px; background-color: #f6f7f8; color: #333;">
+                        <i class="fa fa-eye" style="margin-right: 8px; color: #2eb85c;"></i>
+                        <span style="font-weight: bold;">{{ number_format($visitorCount ?? 0, 0, ',', '.') }}</span>
+                        Pengunjung Halaman Ini
+                    </div>
+                </div>
+            </div>
+            <!-- /Visitor Counter -->
         </div>
         <!-- /container -->
     </div>

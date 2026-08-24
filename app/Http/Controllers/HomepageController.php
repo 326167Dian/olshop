@@ -10,6 +10,7 @@ use App\Models\Category;
 use App\Models\Article;
 use App\Models\CompanySetting;
 use App\Models\Banner;
+use App\Models\PageVisit;
 use Faker\Provider\ar_EG\Company;
 use Illuminate\Support\Facades\DB;
 
@@ -18,7 +19,7 @@ class HomepageController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
 
     {
         $companySetting = CompanySetting::first();
@@ -30,7 +31,16 @@ class HomepageController extends Controller
         $banners = Banner::where('status', 'active')->get();
 
         $articles = Article::where('status', 'published')->orderBy('created_at', 'desc')->paginate(3);
-        return view('frontend.dashboard.index', compact('companySetting', 'databarang', 'produkTerlaris', 'jenisobat', 'kategori', 'articles', 'diskonbarang', 'banners'));
+
+        // Catat kunjungan halaman utama untuk melihat efektivitas konten
+        PageVisit::create([
+            'page' => 'home-page',
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+        $visitorCount = PageVisit::where('page', 'home-page')->count();
+
+        return view('frontend.dashboard.index', compact('companySetting', 'databarang', 'produkTerlaris', 'jenisobat', 'kategori', 'articles', 'diskonbarang', 'banners', 'visitorCount'));
     }
 
     /**

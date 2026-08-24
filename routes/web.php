@@ -118,6 +118,7 @@ Route::prefix('/backend')->middleware('auth:admin')->group(function () {
     // Laporan
     Route::get('/report/process', [ReportController::class, 'reportProcess'])->name('report.process');
     Route::get('/report/finished', [ReportController::class, 'reportFinished'])->name('report.finished');
+    Route::get('/report/visits', [ReportController::class, 'reportVisits'])->name('report.visits');
     Route::match(['get', 'post'], 'backend/laporan/cetak-pesanan-proses', [ReportController::class, 'cetakOrderProses'])->name('backend.laporan.cetakpesananproses')->middleware('auth');
     Route::match(['get', 'post'], 'backend/laporan/cetak-pesanan-selesai', [ReportController::class, 'cetakOrderSelesai'])->name('backend.laporan.cetakpesananselesai')->middleware('auth');
 
