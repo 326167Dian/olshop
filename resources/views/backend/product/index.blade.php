@@ -30,8 +30,7 @@
                             <th>Nama Barang</th>
                             <th>Status</th>
                             <th>Kategori</th>
-                            <th>Jenis Obat</th>
-                            <th>Harga Beli</th>
+                            <th>Stok</th>
                             <th>Harga Jual</th>
                             <th>Diskon</th>
                             <th>Gambar Produk</th>
@@ -74,8 +73,7 @@
             },
             { data: 'status', name: 'status' },
             { data: 'kategori', name: 'kategori' },
-            { data: 'jenisobat', name: 'jenisobat' },
-            { data: 'hrgsat_barang', name: 'hrgsat_barang', render: $.fn.dataTable.render.number('.', ',', 0) },
+            { data: 'stok_barang', name: 'stok_barang' },
             { data: 'hrgjual_barang2', name: 'hrgjual_barang2', render: $.fn.dataTable.render.number('.', ',', 0) },
             { 
                 data: 'diskon', 
