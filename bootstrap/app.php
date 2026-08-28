@@ -17,9 +17,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'is.customer' => \App\Http\Middleware\IsCustomer::class,
             'prevent.back.history' => \App\Http\Middleware\PreventBackHistory::class,
+            'admin.active' => \App\Http\Middleware\EnsureAdminActive::class,
         ]);
         $middleware->redirectGuestsTo(function ($request) {
-            return $request->is('backend/*')
+            return $request->is('backend/*') || $request->is('inventory') || $request->is('inventory/*')
                 ? route('admin.login.form')
                 : route('login.form');
         });

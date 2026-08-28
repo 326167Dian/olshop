@@ -54,7 +54,7 @@ class LoginController extends Controller
         $password = $request->input('password');
 
         if (Auth::guard('admin')->attempt(['username' => $login, 'password' => $password])) {
-            return redirect()->route('backend.dashboard');
+            return redirect()->intended(route('backend.dashboard'));
         }
 
         return back()->withErrors(['auth' => 'Username/email atau password salah.']);

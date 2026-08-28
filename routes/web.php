@@ -14,6 +14,8 @@ use App\Http\Controllers\CompanySettingController;
 use App\Http\Controllers\BannerController;
 use App\Http\Controllers\PromoController;
 use App\Http\Controllers\AdminProfileController;
+use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\InventoryAdminController;
 
 Route::get('/', function () {
     return redirect()->route('home-page');
@@ -147,4 +149,20 @@ Route::prefix('/backend')->middleware('auth:admin')->group(function () {
     // Profil admin (foto profil)
     Route::get('/profile', [AdminProfileController::class, 'edit'])->name('admin.profile.edit');
     Route::put('/profile', [AdminProfileController::class, 'update'])->name('admin.profile.update');
+});
+
+// Sistem Inventory (adaptasi Laravel dari public/apotekberlian, database yang sama)
+Route::prefix('inventory')->middleware(['auth:admin', 'admin.active'])->name('inventory.')->group(function () {
+    Route::get('/', [InventoryController::class, 'index'])->name('index');
+    Route::get('/sales-chart-data', [InventoryController::class, 'salesChartData'])->name('sales-chart-data');
+
+    Route::prefix('admin')->name('admin.')->group(function () {
+        Route::get('/', [InventoryAdminController::class, 'index'])->name('index');
+        Route::get('/create', [InventoryAdminController::class, 'create'])->name('create');
+        Route::post('/', [InventoryAdminController::class, 'store'])->name('store');
+        Route::get('/login-logs', [InventoryAdminController::class, 'loginLogs'])->name('login-logs');
+        Route::get('/{admin}/edit', [InventoryAdminController::class, 'edit'])->name('edit');
+        Route::put('/{admin}', [InventoryAdminController::class, 'update'])->name('update');
+        Route::delete('/{admin}', [InventoryAdminController::class, 'destroy'])->name('destroy');
+    });
 });

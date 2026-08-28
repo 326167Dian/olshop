@@ -16,3 +16,6 @@ yarn-error.log
 
 # External Espire template source (huge, will be removed after asset extraction)
 /public/Espire
+
+# Legacy PHP/PDO inventory app kept as a local reference for the Laravel /inventory adaptation
+/public/apotekberlian
