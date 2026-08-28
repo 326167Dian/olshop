@@ -91,6 +91,9 @@
             'mheader' => 'inventory.setheader.',
             'mjenisbayar' => 'inventory.carabayar.',
             'mpelanggan' => 'inventory.pelanggan.',
+            'msupplier' => 'inventory.supplier.',
+            'msatuan' => 'inventory.satuan.',
+            'mjenisobat' => 'inventory.jenisobat.',
             'cekdarah' => 'inventory.cekdarah.',
         ];
 

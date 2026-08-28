@@ -16,7 +16,7 @@
                 <a class="btn btn-sm btn-secondary" href="{{ route('inventory.pto.index') }}" target="_blank">PTO</a>
                 <a class="btn btn-sm btn-success" href="{{ route('inventory.cpp.index') }}" target="_blank">CATATAN PENGOBATAN PASIEN (CPP)</a>
                 <a class="btn btn-sm btn-info" href="{{ route('inventory.homecare.index') }}" target="_blank">HOME CARE</a>
-                <a class="btn btn-sm btn-info" href="{{ route('inventory.index', ['module' => 'riwayat']) }}" target="_blank">SWAMEDIKASI</a>
+                <a class="btn btn-sm btn-info" href="{{ route('inventory.swamedikasi.index') }}" target="_blank">SWAMEDIKASI</a>
                 <a class="btn btn-sm btn-info" href="{{ route('inventory.cekdarah.index') }}" target="_blank">CEK DARAH</a>
                 <a class="btn btn-sm btn-info" href="{{ route('inventory.index', ['module' => 'poin']) }}" target="_blank">POIN MEMBER</a>
             </div>
@@ -51,7 +51,7 @@
                                     <div class="dropdown-menu center-below p-2 shadow" style="min-width: 180px;">
                                         <a href="{{ route('inventory.pelanggan.edit', $row->id_pelanggan) }}"
                                             class="btn btn-info btn-sm w-100 mb-1">EDIT</a>
-                                        <a href="{{ route('inventory.index', ['module' => 'riwayat', 'id' => $row->id_pelanggan]) }}"
+                                        <a href="{{ route('inventory.swamedikasi.riwayat', ['id_pelanggan' => $row->id_pelanggan]) }}"
                                             class="btn btn-success btn-sm w-100 mb-1">SWAMEDIKASI</a>
                                         <a href="{{ route('inventory.cekdarah.create', ['id' => $row->id_pelanggan]) }}"
                                             class="btn btn-primary btn-sm w-100 mb-1">Cek Darah</a>

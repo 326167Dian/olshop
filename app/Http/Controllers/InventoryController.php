@@ -22,6 +22,9 @@ class InventoryController extends Controller
         'setheader' => 'inventory.setheader.index',
         'carabayar' => 'inventory.carabayar.index',
         'pelanggan' => 'inventory.pelanggan.index',
+        'supplier' => 'inventory.supplier.index',
+        'satuan' => 'inventory.satuan.index',
+        'jenisobat' => 'inventory.jenisobat.index',
         'cekdarah' => 'inventory.cekdarah.index',
         'konseling' => 'inventory.konseling.index',
         'meso' => 'inventory.meso.index',
@@ -29,6 +32,7 @@ class InventoryController extends Controller
         'pto' => 'inventory.pto.index',
         'cpp' => 'inventory.cpp.index',
         'homecare' => 'inventory.homecare.index',
+        'swamedikasi' => 'inventory.swamedikasi.index',
     ];
 
     /**
@@ -39,7 +43,6 @@ class InventoryController extends Controller
      * ini ditampilkan sebagai placeholder, bukan "akses ditolak".
      */
     private const UNGATED_MODULES = [
-        'riwayat' => 'Swamedikasi (Riwayat Pelanggan)',
         'poin' => 'Poin Member',
     ];
 

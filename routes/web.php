@@ -26,6 +26,10 @@ use App\Http\Controllers\InventoryPioController;
 use App\Http\Controllers\InventoryPtoController;
 use App\Http\Controllers\InventoryCppController;
 use App\Http\Controllers\InventoryHomecareController;
+use App\Http\Controllers\InventorySwamedikasiController;
+use App\Http\Controllers\InventorySupplierController;
+use App\Http\Controllers\InventorySatuanController;
+use App\Http\Controllers\InventoryJenisobatController;
 
 Route::get('/', function () {
     return redirect()->route('home-page');
@@ -199,6 +203,39 @@ Route::prefix('inventory')->middleware(['auth:admin', 'admin.active'])->name('in
         Route::delete('/{pelanggan}', [InventoryPelangganController::class, 'destroy'])->name('destroy');
     });
 
+    Route::prefix('supplier')->middleware('inventory.module:msupplier')->name('supplier.')->group(function () {
+        Route::get('/', [InventorySupplierController::class, 'index'])->name('index');
+        Route::get('/create', [InventorySupplierController::class, 'create'])->name('create');
+        Route::post('/', [InventorySupplierController::class, 'store'])->name('store');
+        Route::get('/print', [InventorySupplierController::class, 'print'])->name('print');
+        Route::post('/obat-search', [InventorySupplierController::class, 'obatSearch'])->name('obat-search');
+        Route::delete('/barang/{barangSupplier}', [InventorySupplierController::class, 'hapusBarang'])->name('hapus-barang');
+        Route::get('/{supplier}/edit', [InventorySupplierController::class, 'edit'])->name('edit');
+        Route::put('/{supplier}', [InventorySupplierController::class, 'update'])->name('update');
+        Route::delete('/{supplier}', [InventorySupplierController::class, 'destroy'])->name('destroy');
+        Route::get('/{supplier}/dataobat', [InventorySupplierController::class, 'dataobat'])->name('dataobat');
+        Route::post('/{supplier}/dataobat', [InventorySupplierController::class, 'simpanBarang'])->name('simpan-barang');
+        Route::get('/{supplier}/hutang', [InventorySupplierController::class, 'hutang'])->name('hutang');
+    });
+
+    Route::prefix('satuan')->middleware('inventory.module:msatuan')->name('satuan.')->group(function () {
+        Route::get('/', [InventorySatuanController::class, 'index'])->name('index');
+        Route::get('/create', [InventorySatuanController::class, 'create'])->name('create');
+        Route::post('/', [InventorySatuanController::class, 'store'])->name('store');
+        Route::get('/{satuan}/edit', [InventorySatuanController::class, 'edit'])->name('edit');
+        Route::put('/{satuan}', [InventorySatuanController::class, 'update'])->name('update');
+        Route::delete('/{satuan}', [InventorySatuanController::class, 'destroy'])->name('destroy');
+    });
+
+    Route::prefix('jenisobat')->middleware('inventory.module:mjenisobat')->name('jenisobat.')->group(function () {
+        Route::get('/', [InventoryJenisobatController::class, 'index'])->name('index');
+        Route::get('/create', [InventoryJenisobatController::class, 'create'])->name('create');
+        Route::post('/', [InventoryJenisobatController::class, 'store'])->name('store');
+        Route::get('/{jenisobat}/edit', [InventoryJenisobatController::class, 'edit'])->name('edit');
+        Route::put('/{jenisobat}', [InventoryJenisobatController::class, 'update'])->name('update');
+        Route::delete('/{jenisobat}', [InventoryJenisobatController::class, 'destroy'])->name('destroy');
+    });
+
     Route::prefix('cekdarah')->middleware('inventory.module:cekdarah')->name('cekdarah.')->group(function () {
         Route::get('/', [InventoryCekdarahController::class, 'index'])->name('index');
         Route::get('/create', [InventoryCekdarahController::class, 'create'])->name('create');
@@ -275,5 +312,18 @@ Route::prefix('inventory')->middleware(['auth:admin', 'admin.active'])->name('in
         Route::get('/{homecare}/edit', [InventoryHomecareController::class, 'edit'])->name('edit');
         Route::put('/{homecare}', [InventoryHomecareController::class, 'update'])->name('update');
         Route::delete('/{homecare}', [InventoryHomecareController::class, 'destroy'])->name('destroy');
+    });
+
+    // Tidak digerbang flag admin manapun di legacy (semua admin yang login bisa akses).
+    Route::prefix('swamedikasi')->name('swamedikasi.')->group(function () {
+        Route::get('/', [InventorySwamedikasiController::class, 'index'])->name('index');
+        Route::get('/riwayat', [InventorySwamedikasiController::class, 'riwayat'])->name('riwayat');
+        Route::get('/export-pdf', [InventorySwamedikasiController::class, 'exportPdf'])->name('export-pdf');
+        Route::post('/obat-search', [InventorySwamedikasiController::class, 'obatSearch'])->name('obat-search');
+        Route::post('/', [InventorySwamedikasiController::class, 'store'])->name('store');
+        Route::get('/{riwayat}/edit', [InventorySwamedikasiController::class, 'edit'])->name('edit');
+        Route::put('/{riwayat}', [InventorySwamedikasiController::class, 'update'])->name('update');
+        Route::delete('/{riwayat}', [InventorySwamedikasiController::class, 'destroy'])->name('destroy');
+        Route::post('/{riwayat}/followup', [InventorySwamedikasiController::class, 'followup'])->name('followup');
     });
 });
