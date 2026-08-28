@@ -5,7 +5,9 @@
         <div class="container" style="margin-top:15px;">
             <div class="alert alert-warning text-center" role="alert" style="font-size: 16px; font-weight: 600;">
                 <i class="fa fa-exclamation-circle"></i>
-                Silahkan Login untuk Transaksi Pembelian Obat dan Alat Kesehatan
+                Silahkan Login untuk Transaksi Pembelian Obat dan Alat Kesehatan<br>
+                diskon 5% all produk tanpa syarat belanja via website<br>
+                promo hingga akhir september 2026
             </div>
         </div>
     @endif

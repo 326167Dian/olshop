@@ -62,17 +62,31 @@
                                 @endforeach
                             </tbody>
                             <tfoot>
+                                @php
+                                $totalDiskon = $activePromo ? round($totalHarga * $activePromo->nilai_diskon / 100,
+                                2) : 0;
+                                @endphp
                                 <tr>
                                     <th class="empty" colspan="3"></th>
                                     <th>SUBTOTAL</th>
                                     <th colspan="2" class="sub-total">Rp.
                                         {{ number_format($totalHarga, 0, ',', '.') }}</th>
                                 </tr>
+                                @if ($activePromo)
+                                <tr>
+                                    <th class="empty" colspan="3"></th>
+                                    <th>DISKON ({{ $activePromo->nama_promo }} -{{
+                                        rtrim(rtrim(number_format($activePromo->nilai_diskon, 2, ',', '.'), '0'), ',')
+                                        }}%)</th>
+                                    <th colspan="2" class="sub-total" style="color:#d10024;">- Rp.
+                                        {{ number_format($totalDiskon, 0, ',', '.') }}</th>
+                                </tr>
+                                @endif
                                 <tr>
                                     <th class="empty" colspan="3"></th>
                                     <th>TOTAL BAYAR</th>
                                     <th colspan="2" class="total">Rp.
-                                        {{ number_format($totalHarga, 0, ',', '.') }}</th>
+                                        {{ number_format($totalHarga - $totalDiskon, 0, ',', '.') }}</th>
                                 </tr>
                             </tfoot>
                         </table>
@@ -99,11 +113,33 @@
 
 
                         {{-- Total harga mobile --}}
+                        @php
+                        $totalDiskonMobile = $activePromo ? round($totalHarga * $activePromo->nilai_diskon / 100, 2)
+                        : 0;
+                        @endphp
                         <div style="margin-top: 15px; background: #f9f9f9; padding: 10px 15px; border-radius: 8px;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <span style="font-size: 16px; font-weight: bold;">Subtotal</span>
-                                <span style="font-size: 18px; font-weight: bold; color: #d10024;">
+                                <span style="font-size: 16px; font-weight: bold;">
                                     Rp. {{ number_format($totalHarga, 0, ',', '.') }}
+                                </span>
+                            </div>
+                            @if ($activePromo)
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
+                                <span style="font-size: 14px;">Diskon ({{ $activePromo->nama_promo }} -{{
+                                    rtrim(rtrim(number_format($activePromo->nilai_diskon, 2, ',', '.'), '0'), ',')
+                                    }}%)</span>
+                                <span style="font-size: 14px; color:#d10024;">
+                                    - Rp. {{ number_format($totalDiskonMobile, 0, ',', '.') }}
+                                </span>
+                            </div>
+                            @endif
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
+                                <span style="font-size: 16px; font-weight: bold;">Total Bayar</span>
+                                <span style="font-size: 18px; font-weight: bold; color: #d10024;">
+                                    Rp. {{ number_format($totalHarga - $totalDiskonMobile, 0, ',', '.') }}
                                 </span>
                             </div>
                         </div>

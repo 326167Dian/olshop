@@ -245,6 +245,12 @@
                                     <span class="nav-menu-item-title">Banner</span>
                                 </a>
                             </li>
+                            <li class="nav-menu-item {{ in_array(Route::currentRouteName(), ['promo.index', 'promo.create', 'promo.edit']) ? 'active' : '' }}">
+                                <a href="{{ route('promo.index') }}">
+                                    <i class="feather icon-percent"></i>
+                                    <span class="nav-menu-item-title">Promo</span>
+                                </a>
+                            </li>
                         </ul>
                     </li>
 

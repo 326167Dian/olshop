@@ -11,6 +11,10 @@ class Order extends Model
     protected $fillable = [
         'user_id',
         'total_harga',
+        'promo_id',
+        'nama_promo',
+        'nilai_diskon_promo',
+        'total_diskon',
         'status',
         'tipe_layanan',
         'layanan_pengiriman',
@@ -37,6 +41,11 @@ class Order extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function promo()
+    {
+        return $this->belongsTo(Promo::class);
     }
 
     public static function mapMidtransStatus($transactionStatus, $paymentType = null, $fraudStatus = null)

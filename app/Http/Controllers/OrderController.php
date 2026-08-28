@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
+use App\Models\Promo;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -219,6 +220,7 @@ class OrderController extends Controller
             'origin' => $origin,
             'originName' => $originName,
             'snapToken' => $snapToken,
+            'activePromo' => $this->getActivePromo(),
         ]);
     }
 
@@ -283,6 +285,42 @@ class OrderController extends Controller
     }
 
 
+    /**
+     * Ambil promo yang sedang berlangsung (tanggal_awal <= hari ini <= tanggal_akhir).
+     */
+    private function getActivePromo(): ?Promo
+    {
+        $today = now()->toDateString();
+
+        return Promo::where('status', 'active')
+            ->whereDate('tanggal_awal', '<=', $today)
+            ->whereDate('tanggal_akhir', '>=', $today)
+            ->orderByDesc('tanggal_awal')
+            ->first();
+    }
+
+    /**
+     * Terapkan promo yang sedang berlangsung ke order: kurangi total_harga sebesar
+     * nilai_diskon promo dan simpan snapshot promonya agar tetap konsisten meski
+     * promo diubah/dihapus di kemudian hari.
+     */
+    private function applyActivePromo(Order $order): void
+    {
+        $promo = $this->getActivePromo();
+
+        if (!$promo) {
+            return;
+        }
+
+        $totalDiskon = round($order->total_harga * $promo->nilai_diskon / 100, 2);
+
+        $order->promo_id = $promo->id;
+        $order->nama_promo = $promo->nama_promo;
+        $order->nilai_diskon_promo = $promo->nilai_diskon;
+        $order->total_diskon = $totalDiskon;
+        $order->total_harga -= $totalDiskon;
+    }
+
     public function complete()
     {
         $customer = Auth::user();
@@ -333,6 +371,8 @@ class OrderController extends Controller
             }
         }
         // --- Akhir Logika Pengurangan Stok ---
+
+        $this->applyActivePromo($order);
 
         $order->save(); // Simpan perubahan status dan kode_pesanan order
 
@@ -739,6 +779,8 @@ class OrderController extends Controller
                 }
             }
 
+            $this->applyActivePromo($order);
+
             // Simpan dulu biar dapat ID
             $order->save();
 
@@ -799,6 +841,8 @@ class OrderController extends Controller
                     }
                 }
             }
+
+            $this->applyActivePromo($order);
 
             // Simpan dulu biar dapat ID
             $order->save();

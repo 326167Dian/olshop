@@ -476,10 +476,26 @@
             <div class="col-md-5">
                 <table class="table table-borderless table-sm text-end">
                     <tbody>
+                        <tr>
+                            <td class="pe-0">Subtotal</td>
+                            <td class="ps-0">Rp. {{ number_format($subtotal, 0, ',', '.') }}</td>
+                        </tr>
+                        @if ($order->total_diskon > 0)
+                        <tr>
+                            <td class="pe-0">
+                                Diskon
+                                @if ($order->nama_promo)
+                                ({{ $order->nama_promo }} -{{
+                                rtrim(rtrim(number_format($order->nilai_diskon_promo, 2, ',', '.'), '0'), ',') }}%)
+                                @endif
+                            </td>
+                            <td class="ps-0">- Rp. {{ number_format($order->total_diskon, 0, ',', '.') }}</td>
+                        </tr>
+                        @endif
                         <tr class="total-row">
                             <td class="pe-0 fw-bold">Total</td>
                             <td class="ps-0 total-value">Rp.
-                                {{ number_format($subtotal + $order->biaya_ongkir, 0, ',', '.') }}</td>
+                                {{ number_format($subtotal - $order->total_diskon + $order->biaya_ongkir, 0, ',', '.') }}</td>
                         </tr>
                     </tbody>
                 </table>

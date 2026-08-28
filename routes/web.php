@@ -12,6 +12,7 @@ use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\CompanySettingController;
 use App\Http\Controllers\BannerController;
+use App\Http\Controllers\PromoController;
 use App\Http\Controllers\AdminProfileController;
 
 Route::get('/', function () {
@@ -139,6 +140,9 @@ Route::prefix('/backend')->middleware('auth:admin')->group(function () {
 
     // Banner
     Route::resource('banner', BannerController::class);
+
+    // Promo
+    Route::resource('promo', PromoController::class);
 
     // Profil admin (foto profil)
     Route::get('/profile', [AdminProfileController::class, 'edit'])->name('admin.profile.edit');
