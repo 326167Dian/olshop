@@ -19,6 +19,13 @@ use App\Http\Controllers\InventoryAdminController;
 use App\Http\Controllers\InventorySetheaderController;
 use App\Http\Controllers\InventoryCarabayarController;
 use App\Http\Controllers\InventoryPelangganController;
+use App\Http\Controllers\InventoryCekdarahController;
+use App\Http\Controllers\InventoryKonselingController;
+use App\Http\Controllers\InventoryMesoController;
+use App\Http\Controllers\InventoryPioController;
+use App\Http\Controllers\InventoryPtoController;
+use App\Http\Controllers\InventoryCppController;
+use App\Http\Controllers\InventoryHomecareController;
 
 Route::get('/', function () {
     return redirect()->route('home-page');
@@ -190,5 +197,83 @@ Route::prefix('inventory')->middleware(['auth:admin', 'admin.active'])->name('in
         Route::get('/{pelanggan}/edit', [InventoryPelangganController::class, 'edit'])->name('edit');
         Route::put('/{pelanggan}', [InventoryPelangganController::class, 'update'])->name('update');
         Route::delete('/{pelanggan}', [InventoryPelangganController::class, 'destroy'])->name('destroy');
+    });
+
+    Route::prefix('cekdarah')->middleware('inventory.module:cekdarah')->name('cekdarah.')->group(function () {
+        Route::get('/', [InventoryCekdarahController::class, 'index'])->name('index');
+        Route::get('/create', [InventoryCekdarahController::class, 'create'])->name('create');
+        Route::post('/', [InventoryCekdarahController::class, 'store'])->name('store');
+        Route::get('/{cekdarah}/edit', [InventoryCekdarahController::class, 'edit'])->name('edit');
+        Route::put('/{cekdarah}', [InventoryCekdarahController::class, 'update'])->name('update');
+        Route::delete('/{cekdarah}', [InventoryCekdarahController::class, 'destroy'])->name('destroy');
+        Route::get('/{cekdarah}/print', [InventoryCekdarahController::class, 'print'])->name('print');
+    });
+
+    // Tidak digerbang flag admin manapun di legacy (semua admin yang login bisa akses).
+    Route::prefix('konseling')->name('konseling.')->group(function () {
+        Route::get('/', [InventoryKonselingController::class, 'index'])->name('index');
+        Route::get('/create', [InventoryKonselingController::class, 'create'])->name('create');
+        Route::post('/', [InventoryKonselingController::class, 'store'])->name('store');
+        Route::get('/{konseling}/edit', [InventoryKonselingController::class, 'edit'])->name('edit');
+        Route::put('/{konseling}', [InventoryKonselingController::class, 'update'])->name('update');
+        Route::delete('/{konseling}', [InventoryKonselingController::class, 'destroy'])->name('destroy');
+        Route::get('/{konseling}/print', [InventoryKonselingController::class, 'print'])->name('print');
+    });
+
+    // Tidak digerbang flag admin manapun di legacy (semua admin yang login bisa akses).
+    Route::prefix('meso')->name('meso.')->group(function () {
+        Route::get('/', [InventoryMesoController::class, 'index'])->name('index');
+        Route::get('/create', [InventoryMesoController::class, 'create'])->name('create');
+        Route::post('/', [InventoryMesoController::class, 'store'])->name('store');
+        Route::get('/{meso}', [InventoryMesoController::class, 'show'])->name('show');
+        Route::get('/{meso}/edit', [InventoryMesoController::class, 'edit'])->name('edit');
+        Route::put('/{meso}', [InventoryMesoController::class, 'update'])->name('update');
+        Route::delete('/{meso}', [InventoryMesoController::class, 'destroy'])->name('destroy');
+    });
+
+    // Tidak digerbang flag admin manapun di legacy (semua admin yang login bisa akses).
+    Route::prefix('pio')->name('pio.')->group(function () {
+        Route::get('/', [InventoryPioController::class, 'index'])->name('index');
+        Route::get('/create', [InventoryPioController::class, 'create'])->name('create');
+        Route::post('/', [InventoryPioController::class, 'store'])->name('store');
+        Route::get('/{pio}', [InventoryPioController::class, 'show'])->name('show');
+        Route::get('/{pio}/edit', [InventoryPioController::class, 'edit'])->name('edit');
+        Route::put('/{pio}', [InventoryPioController::class, 'update'])->name('update');
+        Route::delete('/{pio}', [InventoryPioController::class, 'destroy'])->name('destroy');
+    });
+
+    // Tidak digerbang flag admin manapun di legacy (edit/hapus khusus pemilik, dicek di controller).
+    Route::prefix('pto')->name('pto.')->group(function () {
+        Route::get('/', [InventoryPtoController::class, 'index'])->name('index');
+        Route::get('/riwayat', [InventoryPtoController::class, 'riwayat'])->name('riwayat');
+        Route::get('/export-pdf', [InventoryPtoController::class, 'exportPdf'])->name('export-pdf');
+        Route::get('/create', [InventoryPtoController::class, 'create'])->name('create');
+        Route::post('/', [InventoryPtoController::class, 'store'])->name('store');
+        Route::get('/{pto}', [InventoryPtoController::class, 'show'])->name('show');
+        Route::get('/{pto}/edit', [InventoryPtoController::class, 'edit'])->name('edit');
+        Route::put('/{pto}', [InventoryPtoController::class, 'update'])->name('update');
+        Route::delete('/{pto}', [InventoryPtoController::class, 'destroy'])->name('destroy');
+    });
+
+    // Tidak digerbang flag admin manapun di legacy (semua admin yang login bisa akses).
+    Route::prefix('cpp')->name('cpp.')->group(function () {
+        Route::get('/', [InventoryCppController::class, 'index'])->name('index');
+        Route::get('/create', [InventoryCppController::class, 'create'])->name('create');
+        Route::post('/', [InventoryCppController::class, 'store'])->name('store');
+        Route::get('/{cpp}', [InventoryCppController::class, 'show'])->name('show');
+        Route::get('/{cpp}/edit', [InventoryCppController::class, 'edit'])->name('edit');
+        Route::put('/{cpp}', [InventoryCppController::class, 'update'])->name('update');
+        Route::delete('/{cpp}', [InventoryCppController::class, 'destroy'])->name('destroy');
+    });
+
+    // Tidak digerbang flag admin manapun di legacy (semua admin yang login bisa akses).
+    Route::prefix('homecare')->name('homecare.')->group(function () {
+        Route::get('/', [InventoryHomecareController::class, 'index'])->name('index');
+        Route::get('/create', [InventoryHomecareController::class, 'create'])->name('create');
+        Route::post('/', [InventoryHomecareController::class, 'store'])->name('store');
+        Route::get('/{homecare}', [InventoryHomecareController::class, 'show'])->name('show');
+        Route::get('/{homecare}/edit', [InventoryHomecareController::class, 'edit'])->name('edit');
+        Route::put('/{homecare}', [InventoryHomecareController::class, 'update'])->name('update');
+        Route::delete('/{homecare}', [InventoryHomecareController::class, 'destroy'])->name('destroy');
     });
 });

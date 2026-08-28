@@ -1,0 +1,195 @@
+@extends('inventory.layouts.app')
+
+@section('header', 'Edit Formulir Dokumentasi PIO')
+
+@section('content')
+    <div class="card card-primary">
+        <div class="card-header">
+            <h3 class="card-title">Edit Formulir Dokumentasi PIO</h3>
+        </div>
+        <form action="{{ route('inventory.pio.update', $pio->id_pio) }}" method="POST">
+            @csrf
+            @method('PUT')
+            <div class="card-body">
+                <h5 class="fw-bold"><u>Informasi Dasar</u></h5>
+                <div class="row">
+                    <div class="col-md-2 form-group">
+                        <label>No. PIO</label>
+                        <input type="text" class="form-control" value="{{ $pio->no_pio }}" readonly>
+                    </div>
+                    <div class="col-md-3 form-group">
+                        <label for="tanggal">Tanggal</label>
+                        <input type="date" name="tanggal" id="tanggal"
+                            class="form-control @error('tanggal') is-invalid @enderror"
+                            value="{{ old('tanggal', $pio->tanggal?->format('Y-m-d')) }}">
+                        @error('tanggal') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="col-md-3 form-group">
+                        <label for="waktu">Waktu</label>
+                        <input type="time" name="waktu" id="waktu"
+                            class="form-control @error('waktu') is-invalid @enderror"
+                            value="{{ old('waktu', $pio->waktu) }}">
+                        @error('waktu') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Metode</label><br>
+                    @foreach (['Lisan', 'Tertulis', 'Telepon'] as $m)
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="metode" id="metode_{{ $m }}" value="{{ $m }}" {{ old('metode', $pio->metode) == $m ? 'checked' : '' }}>
+                            <label class="form-check-label" for="metode_{{ $m }}">{{ $m }}</label>
+                        </div>
+                    @endforeach
+                </div>
+
+                <h5 class="fw-bold mt-3"><u>Identitas Penanya</u></h5>
+                <div class="row">
+                    <div class="col-md-4 form-group">
+                        <label for="nama_penanya">Nama Penanya</label>
+                        <input type="text" name="nama_penanya" id="nama_penanya"
+                            class="form-control @error('nama_penanya') is-invalid @enderror" value="{{ old('nama_penanya', $pio->nama_penanya) }}">
+                        @error('nama_penanya') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="col-md-4 form-group">
+                        <label for="no_telp_penanya">No. Telp</label>
+                        <input type="text" name="no_telp_penanya" id="no_telp_penanya" class="form-control" value="{{ old('no_telp_penanya', $pio->no_telp_penanya) }}">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Status</label><br>
+                    @foreach (['Pasien', 'Keluarga Pasien', 'Petugas Kesehatan'] as $s)
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="status_penanya" id="sp_{{ Str::slug($s) }}" value="{{ $s }}" {{ old('status_penanya', $pio->status_penanya) == $s ? 'checked' : '' }}>
+                            <label class="form-check-label" for="sp_{{ Str::slug($s) }}">{{ $s }}</label>
+                        </div>
+                    @endforeach
+                    <input type="text" name="status_penanya_ket" class="form-control mt-2" style="max-width: 400px;"
+                        placeholder="Instansi/Jabatan (untuk Petugas Kesehatan)" value="{{ old('status_penanya_ket', $pio->status_penanya_ket) }}">
+                </div>
+
+                <h5 class="fw-bold mt-3"><u>Data Pasien</u></h5>
+                <div class="form-group">
+                    <label>Nama Pasien</label>
+                    <input type="text" class="form-control" style="max-width: 400px;" value="{{ $pio->pelanggan->nm_pelanggan ?? '' }}" readonly>
+                </div>
+                <div class="row">
+                    <div class="col-md-2 form-group">
+                        <label for="umur_pasien">Umur (tahun)</label>
+                        <input type="number" name="umur_pasien" id="umur_pasien" class="form-control" value="{{ old('umur_pasien', $pio->umur_pasien) }}">
+                    </div>
+                    <div class="col-md-2 form-group">
+                        <label for="tinggi_pasien">Tinggi (cm)</label>
+                        <input type="number" name="tinggi_pasien" id="tinggi_pasien" class="form-control" value="{{ old('tinggi_pasien', $pio->tinggi_pasien) }}">
+                    </div>
+                    <div class="col-md-2 form-group">
+                        <label for="berat_pasien">Berat (kg)</label>
+                        <input type="number" name="berat_pasien" id="berat_pasien" class="form-control" value="{{ old('berat_pasien', $pio->berat_pasien) }}">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Jenis Kelamin</label><br>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="jenis_kelamin" id="jk_l" value="L" {{ old('jenis_kelamin', $pio->jenis_kelamin) == 'L' ? 'checked' : '' }}>
+                        <label class="form-check-label" for="jk_l">Laki-laki</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="jenis_kelamin" id="jk_p" value="P" {{ old('jenis_kelamin', $pio->jenis_kelamin) == 'P' ? 'checked' : '' }}>
+                        <label class="form-check-label" for="jk_p">Perempuan</label>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 form-group">
+                        <label>Kehamilan</label><br>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" name="kehamilan" id="kehamilan" value="1" {{ $pio->kehamilan ? 'checked' : '' }} onclick="document.getElementById('kehamilan_minggu').disabled = !this.checked">
+                            <label class="form-check-label" for="kehamilan">Ya</label>
+                        </div>
+                        <input type="number" id="kehamilan_minggu" name="kehamilan_minggu" class="form-control d-inline-block" style="width: 100px;" placeholder="Minggu" value="{{ old('kehamilan_minggu', $pio->kehamilan_minggu) }}" {{ $pio->kehamilan ? '' : 'disabled' }}>
+                    </div>
+                    <div class="col-md-4 form-group">
+                        <label>Menyusui</label><br>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" name="menyusui" id="menyusui" value="1" {{ $pio->menyusui ? 'checked' : '' }}>
+                            <label class="form-check-label" for="menyusui">Ya</label>
+                        </div>
+                    </div>
+                </div>
+
+                <h5 class="fw-bold mt-3"><u>Pertanyaan</u></h5>
+                <div class="form-group">
+                    <label for="uraian_pertanyaan">Uraian Pertanyaan</label>
+                    <textarea name="uraian_pertanyaan" id="uraian_pertanyaan" rows="4"
+                        class="form-control @error('uraian_pertanyaan') is-invalid @enderror">{{ old('uraian_pertanyaan', $pio->uraian_pertanyaan) }}</textarea>
+                    @error('uraian_pertanyaan') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                </div>
+                <div class="form-group">
+                    <label>Jenis Pertanyaan</label>
+                    <div class="row">
+                        @foreach (\App\Models\Pio::JENIS_PERTANYAAN as $key => $label)
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="jenis_pertanyaan[]" id="jp_{{ $key }}" value="{{ $key }}"
+                                        {{ $pio->{'jenis_pertanyaan_' . $key} ? 'checked' : '' }}
+                                        @if ($key === 'lain_lain') onclick="document.getElementById('jp_lain_lain_ket').disabled = !this.checked" @endif>
+                                    <label class="form-check-label" for="jp_{{ $key }}">{{ $label }}</label>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                    <input type="text" id="jp_lain_lain_ket" name="jenis_pertanyaan_lain_lain_ket" class="form-control mt-2"
+                        style="max-width: 400px;" placeholder="Sebutkan" value="{{ old('jenis_pertanyaan_lain_lain_ket', $pio->jenis_pertanyaan_lain_lain_ket) }}"
+                        {{ $pio->jenis_pertanyaan_lain_lain ? '' : 'disabled' }}>
+                </div>
+
+                <h5 class="fw-bold mt-3"><u>Jawaban & Referensi</u></h5>
+                <div class="form-group">
+                    <label for="jawaban">Jawaban</label>
+                    <textarea name="jawaban" id="jawaban" rows="5" class="form-control">{{ old('jawaban', $pio->jawaban) }}</textarea>
+                </div>
+                <div class="form-group">
+                    <label for="referensi">Referensi</label>
+                    <textarea name="referensi" id="referensi" rows="3" class="form-control">{{ old('referensi', $pio->referensi) }}</textarea>
+                </div>
+                <div class="form-group">
+                    <label>Penyampaian Jawaban</label><br>
+                    @foreach (['Segera', 'Dalam 24 jam', 'Lebih dari 24 jam'] as $pj)
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="penyampaian_jawaban" id="pj_{{ Str::slug($pj) }}" value="{{ $pj }}" {{ old('penyampaian_jawaban', $pio->penyampaian_jawaban) == $pj ? 'checked' : '' }}>
+                            <label class="form-check-label" for="pj_{{ Str::slug($pj) }}">{{ $pj }}</label>
+                        </div>
+                    @endforeach
+                </div>
+
+                <h5 class="fw-bold mt-3"><u>Apoteker Penjawab</u></h5>
+                <div class="form-group">
+                    <label for="apoteker_penjawab">Nama Apoteker</label>
+                    <input type="text" name="apoteker_penjawab" id="apoteker_penjawab" class="form-control"
+                        style="max-width: 400px;" value="{{ old('apoteker_penjawab', $pio->apoteker_penjawab) }}">
+                </div>
+                <div class="row">
+                    <div class="col-md-3 form-group">
+                        <label for="tanggal_jawab">Tanggal Jawab</label>
+                        <input type="date" name="tanggal_jawab" id="tanggal_jawab" class="form-control" value="{{ old('tanggal_jawab', $pio->tanggal_jawab?->format('Y-m-d')) }}">
+                    </div>
+                    <div class="col-md-3 form-group">
+                        <label for="waktu_jawab">Waktu Jawab</label>
+                        <input type="time" name="waktu_jawab" id="waktu_jawab" class="form-control" value="{{ old('waktu_jawab', $pio->waktu_jawab) }}">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Metode Jawaban</label><br>
+                    @foreach (['Lisan', 'Tertulis', 'Telepon'] as $mj)
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="metode_jawab" id="mj_{{ $mj }}" value="{{ $mj }}" {{ old('metode_jawab', $pio->metode_jawab) == $mj ? 'checked' : '' }}>
+                            <label class="form-check-label" for="mj_{{ $mj }}">{{ $mj }}</label>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+            <div class="card-footer">
+                <a href="{{ route('inventory.pio.index') }}" class="btn btn-secondary">Kembali</a>
+                <button type="submit" class="btn btn-primary">Update</button>
+            </div>
+        </form>
+    </div>
+@endsection

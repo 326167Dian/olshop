@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Pelanggan;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class InventoryPelangganController extends Controller
 {
@@ -82,6 +83,10 @@ class InventoryPelangganController extends Controller
 
     public function destroy(Pelanggan $pelanggan)
     {
+        // Sama seperti dropdown Aksi di legacy (pelanggan_serverside.php): tombol HAPUS
+        // hanya muncul untuk akun pemilik. Ditegakkan di server juga, bukan cuma di UI.
+        abort_unless(Auth::guard('admin')->user()?->isPemilik(), 403, 'Hanya akun pemilik yang dapat menghapus pelanggan.');
+
         $pelanggan->delete();
 
         return redirect()->route('inventory.pelanggan.index')->with('success', 'Pelanggan berhasil dihapus.');

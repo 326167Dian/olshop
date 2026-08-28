@@ -91,6 +91,7 @@
             'mheader' => 'inventory.setheader.',
             'mjenisbayar' => 'inventory.carabayar.',
             'mpelanggan' => 'inventory.pelanggan.',
+            'cekdarah' => 'inventory.cekdarah.',
         ];
 
         $activeModule = 'home';

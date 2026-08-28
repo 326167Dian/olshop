@@ -22,6 +22,25 @@ class InventoryController extends Controller
         'setheader' => 'inventory.setheader.index',
         'carabayar' => 'inventory.carabayar.index',
         'pelanggan' => 'inventory.pelanggan.index',
+        'cekdarah' => 'inventory.cekdarah.index',
+        'konseling' => 'inventory.konseling.index',
+        'meso' => 'inventory.meso.index',
+        'pio' => 'inventory.pio.index',
+        'pto' => 'inventory.pto.index',
+        'cpp' => 'inventory.cpp.index',
+        'homecare' => 'inventory.homecare.index',
+    ];
+
+    /**
+     * Modul yang dipanggil dari dropdown Aksi pelanggan (lihat
+     * public/apotekberlian/masuk/modul/mod_pelanggan/pelanggan_serverside.php)
+     * tapi TIDAK digerbang oleh flag kolom admin manapun di legacy (semua admin
+     * yang login bisa buka) dan belum dibuatkan halamannya di Laravel. Modul
+     * ini ditampilkan sebagai placeholder, bukan "akses ditolak".
+     */
+    private const UNGATED_MODULES = [
+        'riwayat' => 'Swamedikasi (Riwayat Pelanggan)',
+        'poin' => 'Poin Member',
     ];
 
     /**
@@ -40,6 +59,14 @@ class InventoryController extends Controller
 
         if (array_key_exists($module, self::MODULE_ROUTES)) {
             return redirect()->route(self::MODULE_ROUTES[$module]);
+        }
+
+        if (array_key_exists($module, self::UNGATED_MODULES)) {
+            return view('inventory.placeholder', [
+                'judul' => 'Inventory',
+                'module' => $module,
+                'label' => self::UNGATED_MODULES[$module],
+            ]);
         }
 
         /** @var Admin $admin */
