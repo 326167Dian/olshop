@@ -16,6 +16,9 @@ use App\Http\Controllers\PromoController;
 use App\Http\Controllers\AdminProfileController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InventoryAdminController;
+use App\Http\Controllers\InventorySetheaderController;
+use App\Http\Controllers\InventoryCarabayarController;
+use App\Http\Controllers\InventoryPelangganController;
 
 Route::get('/', function () {
     return redirect()->route('home-page');
@@ -164,5 +167,28 @@ Route::prefix('inventory')->middleware(['auth:admin', 'admin.active'])->name('in
         Route::get('/{admin}/edit', [InventoryAdminController::class, 'edit'])->name('edit');
         Route::put('/{admin}', [InventoryAdminController::class, 'update'])->name('update');
         Route::delete('/{admin}', [InventoryAdminController::class, 'destroy'])->name('destroy');
+    });
+
+    Route::prefix('setheader')->middleware('inventory.module:mheader')->name('setheader.')->group(function () {
+        Route::get('/', [InventorySetheaderController::class, 'index'])->name('index');
+        Route::put('/', [InventorySetheaderController::class, 'update'])->name('update');
+    });
+
+    Route::prefix('carabayar')->middleware('inventory.module:mjenisbayar')->name('carabayar.')->group(function () {
+        Route::get('/', [InventoryCarabayarController::class, 'index'])->name('index');
+        Route::get('/create', [InventoryCarabayarController::class, 'create'])->name('create');
+        Route::post('/', [InventoryCarabayarController::class, 'store'])->name('store');
+        Route::get('/{carabayar}/edit', [InventoryCarabayarController::class, 'edit'])->name('edit');
+        Route::put('/{carabayar}', [InventoryCarabayarController::class, 'update'])->name('update');
+        Route::delete('/{carabayar}', [InventoryCarabayarController::class, 'destroy'])->name('destroy');
+    });
+
+    Route::prefix('pelanggan')->middleware('inventory.module:mpelanggan')->name('pelanggan.')->group(function () {
+        Route::get('/', [InventoryPelangganController::class, 'index'])->name('index');
+        Route::get('/create', [InventoryPelangganController::class, 'create'])->name('create');
+        Route::post('/', [InventoryPelangganController::class, 'store'])->name('store');
+        Route::get('/{pelanggan}/edit', [InventoryPelangganController::class, 'edit'])->name('edit');
+        Route::put('/{pelanggan}', [InventoryPelangganController::class, 'update'])->name('update');
+        Route::delete('/{pelanggan}', [InventoryPelangganController::class, 'destroy'])->name('destroy');
     });
 });

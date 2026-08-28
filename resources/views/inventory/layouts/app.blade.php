@@ -83,8 +83,26 @@
     @php
         /** @var \App\Models\Admin $currentAdmin */
         $currentAdmin = \Illuminate\Support\Facades\Auth::guard('admin')->user();
-        $activeModule = request()->query('module', request()->routeIs('inventory.admin.*') ? 'admin' : 'home');
         $adminAvatar = $currentAdmin->foto ? asset('storage/' . $currentAdmin->foto) : asset('newadmin/assets/images/avatars/default-avatar.jpg');
+
+        // Modul yang sudah punya halaman/route sendiri: kolom flag admin => prefix nama route-nya.
+        $columnRoutes = [
+            'mpengguna' => 'inventory.admin.',
+            'mheader' => 'inventory.setheader.',
+            'mjenisbayar' => 'inventory.carabayar.',
+            'mpelanggan' => 'inventory.pelanggan.',
+        ];
+
+        $activeModule = 'home';
+        foreach ($columnRoutes as $routedColumn => $routePrefix) {
+            if (request()->routeIs($routePrefix . '*')) {
+                $activeModule = $routedColumn;
+                break;
+            }
+        }
+        if ($activeModule === 'home' && request()->routeIs('inventory.index')) {
+            $activeModule = request()->query('module', 'home');
+        }
     @endphp
 
     <div class="layout">
@@ -237,7 +255,7 @@
                                 <ul class="nav-menu menu-collapse">
                                     @foreach ($visibleItems as $column => $label)
                                         <li class="nav-menu-item {{ $activeModule === $column ? 'active' : '' }}">
-                                            <a href="{{ $column === 'mpengguna' ? route('inventory.admin.index') : route('inventory.index', ['module' => $column]) }}">
+                                            <a href="{{ isset($columnRoutes[$column]) ? route($columnRoutes[$column] . 'index') : route('inventory.index', ['module' => $column]) }}">
                                                 <i class="feather {{ $sidebarIcons[$column] ?? 'icon-circle' }}"></i>
                                                 <span class="nav-menu-item-title">{{ $label }}</span>
                                             </a>

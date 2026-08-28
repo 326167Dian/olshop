@@ -12,6 +12,19 @@ use Illuminate\Support\Facades\Schema;
 class InventoryController extends Controller
 {
     /**
+     * Modul yang sudah punya halaman sendiri: nilai ?module=xxx yang sama seperti
+     * public/apotekberlian/masuk/content_admin.php => nama route index-nya. Modul
+     * lain yang dikenal (lihat Admin::PERMISSION_GROUPS) tapi belum ada di map ini
+     * akan menampilkan placeholder "belum tersedia".
+     */
+    private const MODULE_ROUTES = [
+        'admin' => 'inventory.admin.index',
+        'setheader' => 'inventory.setheader.index',
+        'carabayar' => 'inventory.carabayar.index',
+        'pelanggan' => 'inventory.pelanggan.index',
+    ];
+
+    /**
      * Dispatcher halaman inventory berbasis ?module=xxx, mengikuti skema
      * public/apotekberlian/masuk/content_admin.php. module=home menampilkan
      * dashboard; module lain yang sudah dikenali (lihat Admin::PERMISSION_GROUPS)
@@ -25,8 +38,8 @@ class InventoryController extends Controller
             return $this->dashboard();
         }
 
-        if ($module === 'admin') {
-            return redirect()->route('inventory.admin.index');
+        if (array_key_exists($module, self::MODULE_ROUTES)) {
+            return redirect()->route(self::MODULE_ROUTES[$module]);
         }
 
         /** @var Admin $admin */

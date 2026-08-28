@@ -18,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'is.customer' => \App\Http\Middleware\IsCustomer::class,
             'prevent.back.history' => \App\Http\Middleware\PreventBackHistory::class,
             'admin.active' => \App\Http\Middleware\EnsureAdminActive::class,
+            'inventory.module' => \App\Http\Middleware\EnsureInventoryModuleAccess::class,
         ]);
         $middleware->redirectGuestsTo(function ($request) {
             return $request->is('backend/*') || $request->is('inventory') || $request->is('inventory/*')
