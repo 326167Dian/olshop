@@ -106,12 +106,12 @@ Dashboard
                 <div class="card bg-primary bg-gradient text-white">
                     <div class="card-header border-0">
                         <h3 class="card-title text-white">
-                            <i class="fas fa-user-shield"></i> Selamat Datang, admin!
+                            <i class="fas fa-user-shield"></i> Selamat Datang, {{ Auth::user()->nama_lengkap }}!
                         </h3>
                     </div>
                     <div class="card-body">
                         <p class="mb-3" style="font-size: 16px;">
-                            Anda berhasil login sebagai <strong>admin</strong>. Silakan kelola data,
+                            Anda berhasil login sebagai <strong>{{ Auth::user()->nama_lengkap }}</strong>. Silakan kelola data,
                             memonitor transaksi, serta mengatur seluruh aktivitas sistem dengan
                             mudah melalui menu navigasi yang telah disediakan.
                             Pastikan Anda rutin melakukan pengecekan data dan pembaruan informasi untuk menjaga kinerja
