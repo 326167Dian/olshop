@@ -21,6 +21,7 @@
 
         .main {
             padding-left: 0 !important;
+            padding-top: 0 !important;
         }
 
         .main .container-fluid {
@@ -92,7 +93,7 @@
             <!-- Header START -->
             <div class="header-text-dark header-nav layout-vertical">
                 <div class="header-nav-wrap">
-                    <div class="header-nav-left">
+                    <div class="header-nav-left d-flex align-items-center">
                         <div class="header-nav-item desktop-toggle">
                             <div class="header-nav-item-select cursor-pointer">
                                 <i class="nav-icon feather icon-menu icon-arrow-right"></i>
@@ -103,6 +104,7 @@
                                 <i class="nav-icon feather icon-menu icon-arrow-right"></i>
                             </div>
                         </div>
+                        <h4 class="mb-0 ms-2">@yield('header', 'Dashboard')</h4>
                     </div>
                     <div class="header-nav-right">
                         <div class="header-nav-item">
@@ -259,10 +261,6 @@
             <!-- Content START -->
             <div class="content">
                 <div class="main">
-                    <div class="d-flex align-items-center justify-content-between mb-4">
-                        <h4 class="mb-0">@yield('header', 'Dashboard')</h4>
-                    </div>
-
                     @if (session('success'))
                         <div class="alert alert-success">{{ session('success') }}</div>
                     @endif
