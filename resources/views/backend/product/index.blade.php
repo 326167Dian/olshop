@@ -92,6 +92,51 @@
         $('.checkItem').prop('checked', $(this).prop('checked'));
     });
 
+    // Simpan nilai kategori sebelum diubah, untuk dikembalikan kalau update gagal
+    $(document).on('focus', '.select-kategori-inline', function () {
+        $(this).data('previous-value', $(this).val());
+    });
+
+    // Inline edit Kategori: langsung simpan ke server saat dipilih
+    $(document).on('change', '.select-kategori-inline', function () {
+        const $select = $(this);
+        const id = $select.data('id');
+        const previousValue = $select.data('previous-value');
+        const categoryId = $select.val();
+
+        $select.prop('disabled', true);
+
+        $.ajax({
+            url: "{{ route('product.updateCategory', ':id') }}".replace(':id', id),
+            method: 'PUT',
+            data: {
+                _token: $('meta[name="csrf-token"]').attr('content'),
+                category_id: categoryId,
+            },
+            success: function (res) {
+                $select.data('previous-value', categoryId);
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil',
+                    text: res.message,
+                    showConfirmButton: false,
+                    timer: 1200
+                });
+            },
+            error: function (xhr) {
+                $select.val(previousValue);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Oops...',
+                    text: xhr.responseJSON?.message || 'Gagal memperbarui kategori!',
+                });
+            },
+            complete: function () {
+                $select.prop('disabled', false);
+            }
+        });
+    });
+
     // Klik tombol submit
     $('#btnSubmit').on('click', function () {
         let allIds = [];

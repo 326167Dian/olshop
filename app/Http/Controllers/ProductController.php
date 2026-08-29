@@ -68,10 +68,20 @@ class ProductController extends Controller
             'image',
         ]);
 
+        $categories = Category::orderBy('name')->get(['id', 'name']);
+
         return DataTables::of($query)
             ->addIndexColumn()
-            ->addColumn('kategori', function ($row) {
-                return $row->category->name ?? '-';
+            ->addColumn('kategori', function ($row) use ($categories) {
+                $options = '<option value="">- Pilih Kategori -</option>';
+                foreach ($categories as $category) {
+                    $selected = (int) $row->category_id === (int) $category->id ? 'selected' : '';
+                    $options .= '<option value="' . $category->id . '" ' . $selected . '>' . e($category->name) . '</option>';
+                }
+
+                return '<select class="form-control form-control-sm select-kategori-inline" data-id="' . $row->id_barang . '">'
+                    . $options
+                    . '</select>';
             })
             ->addColumn('checkbox', function ($row) {
                 $checked = $row->status === 'active' ? 'checked' : '';
@@ -113,7 +123,7 @@ class ProductController extends Controller
             </div>';
                 return $btn;
             })
-            ->rawColumns(['aksi', 'checkbox', 'gambar_status'])
+            ->rawColumns(['aksi', 'checkbox', 'gambar_status', 'kategori'])
             ->make(true);
     }
 
