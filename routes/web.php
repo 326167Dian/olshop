@@ -33,6 +33,7 @@ use App\Http\Controllers\InventoryJenisobatController;
 use App\Http\Controllers\InventoryBarangController;
 use App\Http\Controllers\InventoryKomisiController;
 use App\Http\Controllers\InventoryUjianController;
+use App\Http\Controllers\InventoryPoinController;
 
 Route::get('/', function () {
     return redirect()->route('home-page');
@@ -378,5 +379,11 @@ Route::prefix('inventory')->middleware(['auth:admin', 'admin.active'])->name('in
         Route::put('/{riwayat}', [InventorySwamedikasiController::class, 'update'])->name('update');
         Route::delete('/{riwayat}', [InventorySwamedikasiController::class, 'destroy'])->name('destroy');
         Route::post('/{riwayat}/followup', [InventorySwamedikasiController::class, 'followup'])->name('followup');
+    });
+
+    // Tidak digerbang flag admin manapun di legacy (semua admin yang bisa buka halaman Pelanggan bisa buka modal ini).
+    Route::prefix('poin')->name('poin.')->group(function () {
+        Route::get('/', [InventoryPoinController::class, 'index'])->name('index');
+        Route::put('/', [InventoryPoinController::class, 'update'])->name('update');
     });
 });

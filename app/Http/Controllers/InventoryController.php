@@ -36,6 +36,7 @@ class InventoryController extends Controller
         'cpp' => 'inventory.cpp.index',
         'homecare' => 'inventory.homecare.index',
         'swamedikasi' => 'inventory.swamedikasi.index',
+        'poin' => 'inventory.poin.index',
     ];
 
     /**
@@ -45,9 +46,7 @@ class InventoryController extends Controller
      * yang login bisa buka) dan belum dibuatkan halamannya di Laravel. Modul
      * ini ditampilkan sebagai placeholder, bukan "akses ditolak".
      */
-    private const UNGATED_MODULES = [
-        'poin' => 'Poin Member',
-    ];
+    private const UNGATED_MODULES = [];
 
     /**
      * Dispatcher halaman inventory berbasis ?module=xxx, mengikuti skema

@@ -18,7 +18,7 @@
                 <a class="btn btn-sm btn-info" href="{{ route('inventory.homecare.index') }}" target="_blank">HOME CARE</a>
                 <a class="btn btn-sm btn-info" href="{{ route('inventory.swamedikasi.index') }}" target="_blank">SWAMEDIKASI</a>
                 <a class="btn btn-sm btn-info" href="{{ route('inventory.cekdarah.index') }}" target="_blank">CEK DARAH</a>
-                <a class="btn btn-sm btn-info" href="{{ route('inventory.index', ['module' => 'poin']) }}" target="_blank">POIN MEMBER</a>
+                <a class="btn btn-sm btn-info" href="{{ route('inventory.poin.index') }}" target="_blank">POIN MEMBER</a>
             </div>
             <table id="example1" class="table table-auto table-sm table-bordered table-striped w-100">
                 <thead>
