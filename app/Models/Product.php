@@ -20,14 +20,20 @@ class Product extends Model
         'nm_barang',
         'stok_barang',
         'stok_buffer',
+        'stok_grosir',
         'sat_barang',
+        'sat_grosir',
+        'konversi',
         'jenisobat',
         'hna',
         'diskon',
         'hrgsat_barang',
+        'hrgsat_grosir',
         'hrgjual_barang',
+        'hrgjual_barang1',
         'hrgjual_barang2',
         'komisi',
+        'zataktif',
         'indikasi',
         'ket_barang',
         'petugas',
@@ -38,6 +44,7 @@ class Product extends Model
         'status',
         'image',
         'promosi',
+        'tgl',
         'updated_by'
     ];
 

@@ -30,6 +30,9 @@ use App\Http\Controllers\InventorySwamedikasiController;
 use App\Http\Controllers\InventorySupplierController;
 use App\Http\Controllers\InventorySatuanController;
 use App\Http\Controllers\InventoryJenisobatController;
+use App\Http\Controllers\InventoryBarangController;
+use App\Http\Controllers\InventoryKomisiController;
+use App\Http\Controllers\InventoryUjianController;
 
 Route::get('/', function () {
     return redirect()->route('home-page');
@@ -234,6 +237,56 @@ Route::prefix('inventory')->middleware(['auth:admin', 'admin.active'])->name('in
         Route::get('/{jenisobat}/edit', [InventoryJenisobatController::class, 'edit'])->name('edit');
         Route::put('/{jenisobat}', [InventoryJenisobatController::class, 'update'])->name('update');
         Route::delete('/{jenisobat}', [InventoryJenisobatController::class, 'destroy'])->name('destroy');
+    });
+
+    Route::prefix('barang')->middleware('inventory.module:mbarang')->name('barang.')->group(function () {
+        Route::get('/', [InventoryBarangController::class, 'index'])->name('index');
+        Route::get('/data', [InventoryBarangController::class, 'data'])->name('data');
+        Route::get('/create', [InventoryBarangController::class, 'create'])->name('create');
+        Route::post('/', [InventoryBarangController::class, 'store'])->name('store');
+        Route::get('/{barang}/edit', [InventoryBarangController::class, 'edit'])->name('edit');
+        Route::put('/{barang}', [InventoryBarangController::class, 'update'])->name('update');
+        Route::delete('/{barang}', [InventoryBarangController::class, 'destroy'])->name('destroy');
+        Route::post('/{barang}/indikasi', [InventoryBarangController::class, 'updateIndikasi'])->name('update-indikasi');
+        Route::post('/{barang}/zataktif', [InventoryBarangController::class, 'updateZataktif'])->name('update-zataktif');
+        Route::post('/{barang}/jenisobat', [InventoryBarangController::class, 'updateJenisobat'])->name('update-jenisobat');
+        Route::get('/{barang}/print-barcode', [InventoryBarangController::class, 'printBarcode'])->name('print-barcode');
+        Route::get('/{barang}', [InventoryBarangController::class, 'show'])->name('show');
+    });
+
+    Route::prefix('komisi')->middleware('inventory.module:komisi')->name('komisi.')->group(function () {
+        Route::get('/', [InventoryKomisiController::class, 'index'])->name('index');
+        Route::get('/massal', [InventoryKomisiController::class, 'massal'])->name('massal');
+        Route::post('/massal', [InventoryKomisiController::class, 'massalUpdate'])->name('massal-update');
+        Route::get('/global', [InventoryKomisiController::class, 'global'])->name('global');
+        Route::post('/global', [InventoryKomisiController::class, 'globalStore'])->name('global-store');
+        Route::get('/history', [InventoryKomisiController::class, 'history'])->name('history');
+        Route::post('/history', [InventoryKomisiController::class, 'historyResult'])->name('history-result');
+        Route::delete('/all', [InventoryKomisiController::class, 'destroyAll'])->name('destroy-all');
+        Route::get('/{barang}/edit', [InventoryKomisiController::class, 'edit'])->name('edit');
+        Route::put('/{barang}', [InventoryKomisiController::class, 'update'])->name('update');
+        Route::delete('/{barang}', [InventoryKomisiController::class, 'destroy'])->name('destroy');
+    });
+
+    Route::prefix('ujian')->middleware('inventory.module:ujian')->name('ujian.')->group(function () {
+        Route::get('/', [InventoryUjianController::class, 'index'])->name('index');
+        Route::post('/submit', [InventoryUjianController::class, 'submit'])->name('submit');
+        Route::post('/autosave', [InventoryUjianController::class, 'autosave'])->name('autosave');
+
+        Route::get('/kelola', [InventoryUjianController::class, 'kelola'])->name('kelola');
+        Route::post('/kelola/header', [InventoryUjianController::class, 'headerStore'])->name('header-store');
+        Route::put('/kelola/header/{soalHeader}', [InventoryUjianController::class, 'headerUpdate'])->name('header-update');
+
+        Route::prefix('soal')->name('soal.')->group(function () {
+            Route::get('/create', [InventoryUjianController::class, 'soalCreate'])->name('create');
+            Route::post('/', [InventoryUjianController::class, 'soalStore'])->name('store');
+            Route::get('/{soal}/edit', [InventoryUjianController::class, 'soalEdit'])->name('edit');
+            Route::put('/{soal}', [InventoryUjianController::class, 'soalUpdate'])->name('update');
+            Route::delete('/{soal}', [InventoryUjianController::class, 'soalDestroy'])->name('destroy');
+        });
+
+        Route::get('/hasil', [InventoryUjianController::class, 'hasil'])->name('hasil');
+        Route::get('/hasil/{hasil}', [InventoryUjianController::class, 'hasilDetail'])->name('hasil-detail');
     });
 
     Route::prefix('cekdarah')->middleware('inventory.module:cekdarah')->name('cekdarah.')->group(function () {

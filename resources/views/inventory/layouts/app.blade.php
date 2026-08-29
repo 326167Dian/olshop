@@ -94,6 +94,9 @@
             'msupplier' => 'inventory.supplier.',
             'msatuan' => 'inventory.satuan.',
             'mjenisobat' => 'inventory.jenisobat.',
+            'mbarang' => 'inventory.barang.',
+            'komisi' => 'inventory.komisi.',
+            'ujian' => 'inventory.ujian.',
             'cekdarah' => 'inventory.cekdarah.',
         ];
 
