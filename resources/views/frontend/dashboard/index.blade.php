@@ -5,8 +5,9 @@
         <div class="container" style="margin-top:15px;">
             <div class="alert alert-warning text-center" role="alert" style="font-size: 16px; font-weight: 600;">
                 <i class="fa fa-exclamation-circle"></i>
-                Silahkan Login untuk Transaksi Pembelian Obat dan Alat Kesehatan<br>
-                gratis vitacimin bila 
+                Silahkan Login untuk Transaksi Pembelian Obat dan Alat Kesehatan
+                <br>discount 5% all produk<br>
+                gratis vitacimin bila mendaftar sebagai member<br><hadiah bisa diklaim ke apotek tanpa syarat pembelian obat dan alat kesehatan>
             </div>
         </div>
     @endif

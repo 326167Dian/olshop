@@ -94,8 +94,8 @@
                         <input type="file" name="logo" id="logo"
                             class="form-control @error('logo') is-invalid @enderror">
                         @error('logo') <span class="invalid-feedback">{{ $message }}</span> @enderror
-                        @if ($setheader->logo)
-                            <img src="{{ asset('storage/' . $setheader->logo) }}" alt="Logo Header"
+                        @if ($setheader->logo_url)
+                            <img src="{{ $setheader->logo_url }}" alt="Logo Header"
                                 class="mt-2" style="max-width: 100px; border: 1px solid #ccc;">
                         @endif
                     </div>
@@ -104,8 +104,8 @@
                         <input type="file" name="tandatangan" id="tandatangan"
                             class="form-control @error('tandatangan') is-invalid @enderror">
                         @error('tandatangan') <span class="invalid-feedback">{{ $message }}</span> @enderror
-                        @if ($setheader->tandatangan)
-                            <img src="{{ asset('storage/' . $setheader->tandatangan) }}" alt="Tanda Tangan"
+                        @if ($setheader->tandatangan_url)
+                            <img src="{{ $setheader->tandatangan_url }}" alt="Tanda Tangan"
                                 class="mt-2" style="max-width: 100px; border: 1px solid #ccc;">
                         @endif
                     </div>

@@ -7,7 +7,7 @@
     <title>Dokumentasi Konseling</title>
     <style>
         @page {
-            size: A4;
+            size: 210mm 297mm;
             margin: 1.5cm;
         }
 
@@ -88,8 +88,8 @@
 <body>
     <div class="container">
         <div class="border-box">
-            @if ($setheader && $setheader->logo)
-                <img src="{{ asset('storage/' . $setheader->logo) }}" alt="Logo" class="logo">
+            @if ($setheader && $setheader->logo_url)
+                <img src="{{ $setheader->logo_url }}" alt="Logo" class="logo">
             @endif
             <h1>DOKUMENTASI KONSELING {{ $setheader->satu ?? '' }}</h1>
 

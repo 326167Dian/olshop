@@ -133,8 +133,8 @@
             <div class="title-container">
                 <h2 class="main-title">CATATAN PENGOBATAN PASIEN <br>{{ $setheader->satu ?? '' }}</h2>
             </div>
-            @if ($setheader && $setheader->logo)
-                <img src="{{ asset('storage/' . $setheader->logo) }}" alt="Logo" class="logo">
+            @if ($setheader && $setheader->logo_url)
+                <img src="{{ $setheader->logo_url }}" alt="Logo" class="logo">
             @endif
         </div>
 

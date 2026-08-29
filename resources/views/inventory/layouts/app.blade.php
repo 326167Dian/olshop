@@ -97,6 +97,8 @@
             'mbarang' => 'inventory.barang.',
             'komisi' => 'inventory.komisi.',
             'ujian' => 'inventory.ujian.',
+            'orders' => 'inventory.orders.',
+            'tbm' => 'inventory.trbmasuk.',
             'cekdarah' => 'inventory.cekdarah.',
         ];
 

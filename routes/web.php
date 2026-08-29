@@ -34,6 +34,8 @@ use App\Http\Controllers\InventoryBarangController;
 use App\Http\Controllers\InventoryKomisiController;
 use App\Http\Controllers\InventoryUjianController;
 use App\Http\Controllers\InventoryPoinController;
+use App\Http\Controllers\InventoryOrdersController;
+use App\Http\Controllers\InventoryTrbmasukController;
 
 Route::get('/', function () {
     return redirect()->route('home-page');
@@ -385,5 +387,65 @@ Route::prefix('inventory')->middleware(['auth:admin', 'admin.active'])->name('in
     Route::prefix('poin')->name('poin.')->group(function () {
         Route::get('/', [InventoryPoinController::class, 'index'])->name('index');
         Route::put('/', [InventoryPoinController::class, 'update'])->name('update');
+    });
+
+    Route::prefix('orders')->middleware('inventory.module:orders')->name('orders.')->group(function () {
+        Route::get('/', [InventoryOrdersController::class, 'index'])->name('index');
+        Route::get('/data', [InventoryOrdersController::class, 'data'])->name('data');
+        Route::get('/create', [InventoryOrdersController::class, 'create'])->name('create');
+        Route::post('/', [InventoryOrdersController::class, 'store'])->name('store');
+
+        Route::get('/detail', [InventoryOrdersController::class, 'detailIndex'])->name('detail.index');
+        Route::post('/detail', [InventoryOrdersController::class, 'detailStore'])->name('detail.store');
+        Route::put('/detail/{detail}/qty-grosir', [InventoryOrdersController::class, 'detailUpdateQty'])->name('detail.update-qty');
+        Route::delete('/detail/{detail}', [InventoryOrdersController::class, 'detailDestroy'])->name('detail.destroy');
+
+        Route::post('/item-search', [InventoryOrdersController::class, 'itemSearch'])->name('item-search');
+        Route::post('/item-resolve', [InventoryOrdersController::class, 'itemResolve'])->name('item-resolve');
+        Route::get('/supplier-items', [InventoryOrdersController::class, 'supplierItems'])->name('supplier-items');
+
+        Route::get('/{order}/edit', [InventoryOrdersController::class, 'edit'])->name('edit');
+        Route::put('/{order}', [InventoryOrdersController::class, 'update'])->name('update');
+        Route::delete('/{order}', [InventoryOrdersController::class, 'destroy'])->name('destroy');
+
+        Route::get('/{order}/print/reguler', [InventoryOrdersController::class, 'printReguler'])->name('print.reguler');
+        Route::get('/{order}/print/alkes', [InventoryOrdersController::class, 'printAlkes'])->name('print.alkes');
+        Route::get('/{order}/print/prekursor', [InventoryOrdersController::class, 'printPrekursor'])->name('print.prekursor');
+        Route::get('/{order}/print/oot', [InventoryOrdersController::class, 'printOot'])->name('print.oot');
+    });
+
+    Route::prefix('trbmasuk')->middleware('inventory.module:tbm')->name('trbmasuk.')->group(function () {
+        Route::get('/', [InventoryTrbmasukController::class, 'index'])->name('index');
+        Route::get('/data', [InventoryTrbmasukController::class, 'data'])->name('data');
+        Route::get('/create', [InventoryTrbmasukController::class, 'create'])->name('create');
+        Route::post('/', [InventoryTrbmasukController::class, 'store'])->name('store');
+        Route::post('/store-from-order', [InventoryTrbmasukController::class, 'storeFromOrder'])->name('store-from-order');
+
+        Route::get('/detail', [InventoryTrbmasukController::class, 'detailIndex'])->name('detail.index');
+        Route::post('/detail', [InventoryTrbmasukController::class, 'detailStore'])->name('detail.store');
+        Route::put('/detail/{detail}/qty', [InventoryTrbmasukController::class, 'detailUpdateQty'])->name('detail.update-qty');
+        Route::delete('/detail/{detail}', [InventoryTrbmasukController::class, 'detailDestroy'])->name('detail.destroy');
+
+        Route::get('/orders', [InventoryTrbmasukController::class, 'ordersIndex'])->name('orders.index');
+        Route::get('/orders/data', [InventoryTrbmasukController::class, 'ordersData'])->name('orders.data');
+        Route::get('/orders/detail', [InventoryTrbmasukController::class, 'ordersDetail'])->name('orders-detail');
+
+        Route::get('/receive/detail', [InventoryTrbmasukController::class, 'receiveDetailIndex'])->name('receive.detail.index');
+        Route::put('/receive/detail', [InventoryTrbmasukController::class, 'receiveDetailUpdate'])->name('receive.detail.update');
+        Route::delete('/receive/detail', [InventoryTrbmasukController::class, 'receiveDetailDestroy'])->name('receive.detail.destroy');
+
+        Route::get('/evaluasi', [InventoryTrbmasukController::class, 'evaluasiIndex'])->name('evaluasi.index');
+        Route::get('/evaluasi/data', [InventoryTrbmasukController::class, 'evaluasiData'])->name('evaluasi.data');
+        Route::get('/evaluasi/{trbmasuk}', [InventoryTrbmasukController::class, 'evaluasiShow'])->name('evaluasi.show');
+
+        Route::get('/batch-search', [InventoryTrbmasukController::class, 'batchSearchForm'])->name('batch-search.form');
+        Route::post('/batch-search', [InventoryTrbmasukController::class, 'batchSearchResult'])->name('batch-search.result');
+
+        Route::post('/item-search', [InventoryTrbmasukController::class, 'itemSearch'])->name('item-search');
+        Route::post('/item-resolve', [InventoryTrbmasukController::class, 'itemResolve'])->name('item-resolve');
+        Route::get('/item-picker', [InventoryTrbmasukController::class, 'itemPicker'])->name('item-picker');
+
+        Route::get('/{trbmasuk}', [InventoryTrbmasukController::class, 'show'])->name('show');
+        Route::delete('/{trbmasuk}', [InventoryTrbmasukController::class, 'destroy'])->name('destroy');
     });
 });

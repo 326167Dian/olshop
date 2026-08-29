@@ -132,8 +132,8 @@
                     <div class="col">Waktu: <input type="text" class="input-line" value="{{ $pio->waktu }}" readonly></div>
                     <div class="col">Metode: <input type="text" class="input-line" value="{{ $pio->metode }}" readonly></div>
                 </div>
-                @if ($setheader && $setheader->logo)
-                    <div><img src="{{ asset('storage/' . $setheader->logo) }}" alt="Logo" class="logo"></div>
+                @if ($setheader && $setheader->logo_url)
+                    <div><img src="{{ $setheader->logo_url }}" alt="Logo" class="logo"></div>
                 @endif
             </div>
 

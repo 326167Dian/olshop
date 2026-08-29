@@ -37,6 +37,8 @@ class InventoryController extends Controller
         'homecare' => 'inventory.homecare.index',
         'swamedikasi' => 'inventory.swamedikasi.index',
         'poin' => 'inventory.poin.index',
+        'orders' => 'inventory.orders.index',
+        'trbmasuk' => 'inventory.trbmasuk.index',
     ];
 
     /**

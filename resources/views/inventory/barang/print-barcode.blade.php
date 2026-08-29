@@ -7,7 +7,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/JsBarcode/3.11.6/JsBarcode.all.min.js"></script>
     <style>
         @page {
-            size: A5 portrait;
+            size: 148mm 210mm;
             margin: 6mm;
         }
 
