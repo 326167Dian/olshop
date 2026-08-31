@@ -170,7 +170,9 @@ class InventoryTrbmasukController extends Controller
             'hrgjual_dtrbmasuk' => 'required|numeric|min:0',
             'hrgjual_dtrbmasuk_resep' => 'required|numeric|min:0',
             'hrgjual_dtrbmasuk_nakes' => 'required|numeric|min:0',
-            'no_batch' => 'required|string|max:100',
+            // max:10 mengikuti batas kolom batch.no_batch (varchar(10)) -- lebih ketat dari
+            // trbmasuk_detail.no_batch (varchar(100)) supaya baris batch selalu bisa dibuat.
+            'no_batch' => 'required|string|max:10',
             'exp_date' => 'nullable|date',
         ]);
 
@@ -370,6 +372,14 @@ class InventoryTrbmasukController extends Controller
                 ->where('id_resto', 'pusat')
                 ->where('kd_trbmasuk', $validated['kd_trbmasuk'])
                 ->update(['stt_kdbm' => 'OFF']);
+
+            // Tandai pesanan sebagai sudah masuk barangnya. Legacy non-PBF tidak pernah
+            // melakukan ini (dicek langsung di aksi_trbmasuk.php-nya) -- kolom orders.masuk
+            // di sini disamakan dengan versi PBF yang sudah diperbaiki, supaya kolom ini
+            // tetap akurat untuk siapa pun/apa pun lain yang membacanya dari DB bersama.
+            // Status "Belum/Telah Diproses" yang ditampilkan modul ini sendiri TIDAK
+            // bergantung pada kolom ini -- selalu dihitung langsung dari ordersdetail.masuk.
+            SupplierOrder::where('kd_trbmasuk', $validated['kd_orders'])->update(['masuk' => '0']);
         });
 
         return redirect()->route('inventory.trbmasuk.index')->with('success', 'Transaksi terima barang berhasil disimpan.');
@@ -461,8 +471,14 @@ class InventoryTrbmasukController extends Controller
             'kd_orders' => 'required|string|max:100',
             'kd_barang' => 'required|string|max:50',
             'id_dtrbmasuk' => 'nullable|integer',
-            'value' => 'required|string',
+            // batch.no_batch (varchar(10)) lebih pendek dari trbmasuk_detail.no_batch --
+            // dibatasi juga di sini supaya field 'batch' tidak lolos validasi lalu gagal SQL.
+            'value' => 'required|string|max:100',
         ]);
+
+        if ($validated['field'] === 'batch' && strlen($validated['value']) > 10) {
+            return response()->json(['status' => 'error', 'message' => 'No. Batch maksimal 10 karakter.'], 422);
+        }
 
         $field = $validated['field'];
         $value = $validated['value'];

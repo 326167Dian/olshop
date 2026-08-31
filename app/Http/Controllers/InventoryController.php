@@ -39,6 +39,7 @@ class InventoryController extends Controller
         'poin' => 'inventory.poin.index',
         'orders' => 'inventory.orders.index',
         'trbmasuk' => 'inventory.trbmasuk.index',
+        'trbmasukpbf' => 'inventory.trbmasukpbf.index',
     ];
 
     /**

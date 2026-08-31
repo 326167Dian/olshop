@@ -36,6 +36,7 @@ use App\Http\Controllers\InventoryUjianController;
 use App\Http\Controllers\InventoryPoinController;
 use App\Http\Controllers\InventoryOrdersController;
 use App\Http\Controllers\InventoryTrbmasukController;
+use App\Http\Controllers\InventoryTrbmasukPbfController;
 
 Route::get('/', function () {
     return redirect()->route('home-page');
@@ -447,5 +448,55 @@ Route::prefix('inventory')->middleware(['auth:admin', 'admin.active'])->name('in
 
         Route::get('/{trbmasuk}', [InventoryTrbmasukController::class, 'show'])->name('show');
         Route::delete('/{trbmasuk}', [InventoryTrbmasukController::class, 'destroy'])->name('destroy');
+    });
+
+    Route::prefix('trbmasukpbf')->middleware('inventory.module:tbmpbf')->name('trbmasukpbf.')->group(function () {
+        Route::get('/', [InventoryTrbmasukPbfController::class, 'index'])->name('index');
+        Route::get('/data', [InventoryTrbmasukPbfController::class, 'data'])->name('data');
+        Route::get('/create', [InventoryTrbmasukPbfController::class, 'create'])->name('create');
+        Route::post('/', [InventoryTrbmasukPbfController::class, 'store'])->name('store');
+        Route::post('/store-from-order', [InventoryTrbmasukPbfController::class, 'storeFromOrder'])->name('store-from-order');
+        Route::post('/mark-lunas', [InventoryTrbmasukPbfController::class, 'markLunas'])->name('mark-lunas');
+
+        Route::get('/detail', [InventoryTrbmasukPbfController::class, 'detailIndex'])->name('detail.index');
+        Route::post('/detail', [InventoryTrbmasukPbfController::class, 'detailStore'])->name('detail.store');
+        Route::put('/detail/{detail}/qty', [InventoryTrbmasukPbfController::class, 'detailUpdateQty'])->name('detail.update-qty');
+        Route::delete('/detail/{detail}', [InventoryTrbmasukPbfController::class, 'detailDestroy'])->name('detail.destroy');
+
+        Route::get('/orders', [InventoryTrbmasukPbfController::class, 'ordersIndex'])->name('orders.index');
+        Route::get('/orders/data', [InventoryTrbmasukPbfController::class, 'ordersData'])->name('orders.data');
+        Route::get('/orders/detail', [InventoryTrbmasukPbfController::class, 'ordersDetail'])->name('orders-detail');
+
+        Route::get('/receive/detail', [InventoryTrbmasukPbfController::class, 'receiveDetailIndex'])->name('receive.detail.index');
+        Route::put('/receive/detail', [InventoryTrbmasukPbfController::class, 'receiveDetailUpdate'])->name('receive.detail.update');
+        Route::delete('/receive/detail', [InventoryTrbmasukPbfController::class, 'receiveDetailDestroy'])->name('receive.detail.destroy');
+        Route::post('/receive/detail/cancel', [InventoryTrbmasukPbfController::class, 'orderItemCancel'])->name('receive.detail.cancel');
+
+        Route::get('/evaluasi', [InventoryTrbmasukPbfController::class, 'evaluasiIndex'])->name('evaluasi.index');
+        Route::get('/evaluasi/data', [InventoryTrbmasukPbfController::class, 'evaluasiData'])->name('evaluasi.data');
+        Route::get('/evaluasi/{trbmasuk}', [InventoryTrbmasukPbfController::class, 'evaluasiShow'])->name('evaluasi.show');
+
+        Route::get('/batch-search', [InventoryTrbmasukPbfController::class, 'batchSearchForm'])->name('batch-search.form');
+        Route::post('/batch-search', [InventoryTrbmasukPbfController::class, 'batchSearchResult'])->name('batch-search.result');
+
+        Route::get('/jatuh-tempo', [InventoryTrbmasukPbfController::class, 'jatuhTempoForm'])->name('jatuh-tempo.form');
+        Route::post('/jatuh-tempo', [InventoryTrbmasukPbfController::class, 'jatuhTempoResult'])->name('jatuh-tempo.result');
+        Route::get('/jatuh-tempo/detail', [InventoryTrbmasukPbfController::class, 'jatuhTempoDetail'])->name('jatuh-tempo.detail');
+
+        Route::get('/pembelian', [InventoryTrbmasukPbfController::class, 'pembelianForm'])->name('pembelian.form');
+        Route::post('/pembelian', [InventoryTrbmasukPbfController::class, 'pembelianResult'])->name('pembelian.result');
+
+        Route::get('/distributor', [InventoryTrbmasukPbfController::class, 'distributorForm'])->name('distributor.form');
+        Route::post('/distributor', [InventoryTrbmasukPbfController::class, 'distributorResult'])->name('distributor.result');
+        Route::get('/distributor/detail', [InventoryTrbmasukPbfController::class, 'distributorDetail'])->name('distributor.detail');
+
+        Route::post('/item-search', [InventoryTrbmasukPbfController::class, 'itemSearch'])->name('item-search');
+        Route::post('/item-resolve', [InventoryTrbmasukPbfController::class, 'itemResolve'])->name('item-resolve');
+        Route::get('/item-picker', [InventoryTrbmasukPbfController::class, 'itemPicker'])->name('item-picker');
+
+        Route::get('/{trbmasuk}/edit', [InventoryTrbmasukPbfController::class, 'edit'])->name('edit');
+        Route::put('/{trbmasuk}', [InventoryTrbmasukPbfController::class, 'update'])->name('update');
+        Route::get('/{trbmasuk}', [InventoryTrbmasukPbfController::class, 'show'])->name('show');
+        Route::delete('/{trbmasuk}', [InventoryTrbmasukPbfController::class, 'destroy'])->name('destroy');
     });
 });

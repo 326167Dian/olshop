@@ -73,9 +73,9 @@
         var kd = document.getElementById('kd_trbmasuk').value;
         var kdOrders = document.getElementById('kd_orders').value;
         fetch("{{ route('inventory.trbmasuk.receive.detail.index') }}?kd_trbmasuk=" + encodeURIComponent(kd) +
-                "&kd_orders=" + encodeURIComponent(kdOrders))
+                "&kd_orders=" + encodeURIComponent(kdOrders), { cache: 'no-store' })
             .then(function(res) { return res.text(); })
-            .then(function(html) { document.getElementById('tabeldata').innerHTML = html; });
+            .then(function(html) { $('#tabeldata').html(html); });
     }
 
     document.addEventListener('DOMContentLoaded', loadTabelDetail);

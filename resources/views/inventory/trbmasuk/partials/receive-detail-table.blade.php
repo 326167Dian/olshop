@@ -93,7 +93,7 @@
                         <input type="text" class="form-control form-control-sm edit-field" style="width:100px;"
                             data-field="hrgjual" value="{{ (int) $row->hrgjual_dtrbmasuk }}">
                     </td>
-                    <td class="text-end col-total">-</td>
+                    <td class="text-end col-total">{{ number_format(round($row->hrgsat_dtrbmasuk * $row->konversi * $row->qtygrosir_dtrbmasuk), 0, ',', '.') }}</td>
                     <td class="text-center text-muted small">Belum diterima</td>
                 </tr>
             @endforeach
@@ -125,6 +125,20 @@
             $(this).data('original-value', $(this).val());
         });
 
+        // Hitung ulang kolom Total secara langsung (di browser saja, tanpa AJAX) begitu
+        // Konversi/Qty Grosir/Diskon/Harga Beli diketik, supaya pengguna langsung lihat
+        // perubahannya -- nilai final tetap disimpan lewat AJAX saat blur/Enter seperti biasa.
+        $(document).off('input', '#tabel-receive-detail .edit-field[data-field="konversi"], #tabel-receive-detail .edit-field[data-field="qtygrosir"], #tabel-receive-detail .edit-field[data-field="diskon"], #tabel-receive-detail .edit-field[data-field="hrgbeli"]')
+            .on('input', '#tabel-receive-detail .edit-field[data-field="konversi"], #tabel-receive-detail .edit-field[data-field="qtygrosir"], #tabel-receive-detail .edit-field[data-field="diskon"], #tabel-receive-detail .edit-field[data-field="hrgbeli"]', function() {
+                var $row = $(this).closest('tr');
+                var konversi = parseFloat($row.find('.edit-field[data-field="konversi"]').val()) || 0;
+                var qtyGrosir = parseFloat($row.find('.edit-field[data-field="qtygrosir"]').val()) || 0;
+                var diskon = parseFloat($row.find('.edit-field[data-field="diskon"]').val()) || 0;
+                var hrgbeli = parseFloat($row.find('.edit-field[data-field="hrgbeli"]').val().replace(/\./g, '').replace(',', '.')) || 0;
+                var total = Math.round(hrgbeli * (1 - diskon / 100) * konversi * qtyGrosir);
+                $row.find('.col-total').text(total.toLocaleString('id-ID'));
+            });
+
         $(document).off('keydown', '#tabel-receive-detail .edit-field').on('keydown', '#tabel-receive-detail .edit-field', function(e) {
             if (e.which === 13) { e.preventDefault(); $(this).trigger('blur'); }
         });
@@ -136,7 +150,15 @@
             var val = $input.val();
             var original = $input.data('original-value');
 
-            if (val === '' || (field !== 'batch' && isNaN(val))) {
+            // Input tanggal native kadang memicu 'change' dengan value kosong sesaat saat
+            // masih diketik (misalnya baru sebagian segmen tanggal terisi) -- di sini cukup
+            // dilewati diam-diam (bukan dianggap error) supaya pengguna bisa lanjut mengetik.
+            if (field === 'expdate' && val === '') {
+                return;
+            }
+
+            var numericFields = ['diskon', 'hrgbeli', 'konversi', 'qtygrosir'];
+            if (val === '' || (numericFields.indexOf(field) !== -1 && isNaN(val))) {
                 alert('Nilai tidak valid');
                 $input.val(original);
                 return;

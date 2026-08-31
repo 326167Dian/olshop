@@ -185,9 +185,9 @@
 
     function loadTabelDetail() {
         var kd = document.getElementById('kd_trbmasuk').value;
-        fetch("{{ route('inventory.orders.detail.index') }}?kd_trbmasuk=" + encodeURIComponent(kd))
+        fetch("{{ route('inventory.orders.detail.index') }}?kd_trbmasuk=" + encodeURIComponent(kd), { cache: 'no-store' })
             .then(function(res) { return res.text(); })
-            .then(function(html) { document.getElementById('tabeldata').innerHTML = html; });
+            .then(function(html) { $('#tabeldata').html(html); });
     }
 
     document.addEventListener('DOMContentLoaded', loadTabelDetail);
