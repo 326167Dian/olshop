@@ -37,6 +37,8 @@ use App\Http\Controllers\InventoryPoinController;
 use App\Http\Controllers\InventoryOrdersController;
 use App\Http\Controllers\InventoryTrbmasukController;
 use App\Http\Controllers\InventoryTrbmasukPbfController;
+use App\Http\Controllers\InventoryByrkreditController;
+use App\Http\Controllers\InventoryShiftkerjaController;
 
 Route::get('/', function () {
     return redirect()->route('home-page');
@@ -498,5 +500,46 @@ Route::prefix('inventory')->middleware(['auth:admin', 'admin.active'])->name('in
         Route::put('/{trbmasuk}', [InventoryTrbmasukPbfController::class, 'update'])->name('update');
         Route::get('/{trbmasuk}', [InventoryTrbmasukPbfController::class, 'show'])->name('show');
         Route::delete('/{trbmasuk}', [InventoryTrbmasukPbfController::class, 'destroy'])->name('destroy');
+    });
+
+    // "Edit/Retur/Hapus Pembelian" (module=byrkredit) -- satu-satunya jalan masuk legacy
+    // untuk mengedit transaksi Barang Masuk non-PBF yang sudah tersimpan. Daftar/​data()
+    // ada di InventoryByrkreditController; edit/update/detail-management memakai ULANG
+    // method InventoryTrbmasukController yang sama persis dengan modul trbmasuk (lihat
+    // catatan di InventoryByrkreditController), hanya digerbang flag 'byrkredit' di sini.
+    Route::prefix('byrkredit')->middleware('inventory.module:byrkredit')->name('byrkredit.')->group(function () {
+        Route::get('/', [InventoryByrkreditController::class, 'index'])->name('index');
+        Route::get('/data', [InventoryByrkreditController::class, 'data'])->name('data');
+
+        Route::get('/detail', [InventoryTrbmasukController::class, 'detailIndex'])->name('detail.index');
+        Route::post('/detail', [InventoryTrbmasukController::class, 'detailStore'])->name('detail.store');
+        Route::put('/detail/{detail}/qty', [InventoryTrbmasukController::class, 'detailUpdateQty'])->name('detail.update-qty');
+        Route::delete('/detail/{detail}', [InventoryTrbmasukController::class, 'detailDestroy'])->name('detail.destroy');
+
+        Route::post('/item-search', [InventoryTrbmasukController::class, 'itemSearch'])->name('item-search');
+        Route::post('/item-resolve', [InventoryTrbmasukController::class, 'itemResolve'])->name('item-resolve');
+        Route::get('/item-picker', [InventoryTrbmasukController::class, 'itemPicker'])->name('item-picker');
+
+        Route::get('/{trbmasuk}/edit', [InventoryTrbmasukController::class, 'edit'])->name('edit');
+        Route::put('/{trbmasuk}', [InventoryTrbmasukController::class, 'update'])->name('update');
+        Route::delete('/{trbmasuk}', [InventoryTrbmasukController::class, 'destroy'])->name('destroy');
+    });
+
+    Route::prefix('shiftkerja')->middleware('inventory.module:shiftkerja')->name('shiftkerja.')->group(function () {
+        Route::get('/', [InventoryShiftkerjaController::class, 'index'])->name('index');
+        Route::get('/data', [InventoryShiftkerjaController::class, 'data'])->name('data');
+
+        Route::get('/buka', [InventoryShiftkerjaController::class, 'create'])->name('buka.form');
+        Route::post('/buka', [InventoryShiftkerjaController::class, 'store'])->name('buka.store');
+
+        Route::get('/tutup', [InventoryShiftkerjaController::class, 'closeForm'])->name('tutup.form');
+        Route::post('/tutup', [InventoryShiftkerjaController::class, 'close'])->name('tutup.store');
+
+        Route::get('/{waktuKerja}/koreksi', [InventoryShiftkerjaController::class, 'koreksiForm'])->name('koreksi.form');
+        Route::put('/{waktuKerja}/koreksi', [InventoryShiftkerjaController::class, 'koreksi'])->name('koreksi.store');
+
+        Route::get('/{waktuKerja}/laporan', [InventoryShiftkerjaController::class, 'laporan'])->name('laporan');
+
+        Route::delete('/{waktuKerja}', [InventoryShiftkerjaController::class, 'destroy'])->name('destroy');
     });
 });

@@ -1,3 +1,8 @@
+@php
+    $mode = $mode ?? 'tbm';
+    $baseUrl = $mode === 'byrkredit' ? url('inventory/byrkredit/detail') : url('inventory/trbmasuk/detail');
+    $subtotal = $detail->sum('hrgttl_dtrbmasuk');
+@endphp
 <div class="table-responsive">
     <table id="tabel-detail-trbmasuk" class="table table-sm table-bordered table-striped w-100">
         <thead>
@@ -44,6 +49,39 @@
     </table>
 </div>
 
+<div class="row justify-content-end">
+    <div class="col-md-5">
+        <div class="mb-2">
+            <label class="form-label fw-bold">Sub Total</label>
+            <input type="text" id="ttl_trkasir" class="form-control text-end fw-bold" style="background:#000; color:#fff;"
+                value="{{ number_format($subtotal, 0, ',', '.') }}" readonly>
+        </div>
+        <div class="mb-2">
+            <label class="form-label fw-bold">Diskon Faktur (pilih salah satu, lalu Enter)</label>
+            <div class="input-group">
+                <span class="input-group-text">%</span>
+                <input type="text" id="diskon_faktur_persen" class="form-control text-end" placeholder="Diskon %">
+                <span class="input-group-text">Rp</span>
+                <input type="text" id="diskon_faktur_nominal" class="form-control text-end" placeholder="Nominal">
+                <button type="button" class="btn btn-primary" id="btn-diskon-faktur-enter">Enter</button>
+            </div>
+        </div>
+        <div class="mb-2">
+            <label class="form-label fw-bold">Total Tagihan</label>
+            <input type="text" id="sisa_bayar" class="form-control text-end fw-bold" style="background:#000; color:#fff;"
+                value="{{ number_format($subtotal, 0, ',', '.') }}" readonly>
+        </div>
+        <div class="mb-2">
+            <label class="form-label fw-bold">Cara Bayar</label>
+            <select class="form-control" id="carabayar">
+                <option value="KREDIT">KREDIT</option>
+                <option value="LUNAS">TUNAI</option>
+                <option value="KONSINYASI">KONSINYASI</option>
+            </select>
+        </div>
+    </div>
+</div>
+
 <script>
     (function() {
         var table = $('#tabel-detail-trbmasuk').DataTable();
@@ -68,7 +106,7 @@
                 return;
             }
 
-            fetch('{{ url('inventory/trbmasuk/detail') }}/' + id + '/qty', {
+            fetch('{{ $baseUrl }}/' + id + '/qty', {
                     method: 'PUT',
                     headers: {
                         'X-CSRF-TOKEN': '{{ csrf_token() }}',
@@ -85,6 +123,7 @@
                         return;
                     }
                     $input.data('original-value', val);
+                    if (typeof loadTabelDetail === 'function') loadTabelDetail();
                 });
         });
 
@@ -92,7 +131,7 @@
             var $btn = $(this);
             var id = $btn.data('id-dtrbmasuk');
 
-            fetch('{{ url('inventory/trbmasuk/detail') }}/' + id, {
+            fetch('{{ $baseUrl }}/' + id, {
                     method: 'DELETE',
                     headers: {
                         'X-CSRF-TOKEN': '{{ csrf_token() }}',
@@ -105,8 +144,42 @@
                         alert(resp.message || 'Gagal menghapus data');
                         return;
                     }
-                    table.row($btn.closest('tr')).remove().draw(false);
+                    if (typeof loadTabelDetail === 'function') loadTabelDetail();
                 });
+        });
+
+        // Cara Bayar (footer) mengendalikan tampilnya Jatuh Tempo di form header --
+        // elemen #groupJatuhTempo ada di halaman induk (create/byrkredit-edit), bukan di partial ini.
+        document.getElementById('carabayar').addEventListener('change', function() {
+            var groupJatuhTempo = document.getElementById('groupJatuhTempo');
+            if (groupJatuhTempo) {
+                groupJatuhTempo.style.display = this.value === 'LUNAS' ? 'none' : '';
+            }
+        });
+        document.getElementById('carabayar').dispatchEvent(new Event('change'));
+
+        // Diskon Faktur: HANYA salah satu (persen ATAU nominal) boleh diisi -- begitu
+        // di-Enter, dua field dikunci supaya tidak dobel (mengikuti legacy's #diskon_enter).
+        document.getElementById('btn-diskon-faktur-enter').addEventListener('click', function() {
+            var subTotal = parseFloat(document.getElementById('ttl_trkasir').value.replace(/\./g, '')) || 0;
+            var persen = parseFloat(document.getElementById('diskon_faktur_persen').value) || 0;
+            var nominal = parseFloat(document.getElementById('diskon_faktur_nominal').value.replace(/\./g, '')) || 0;
+
+            if (persen > 0 && nominal > 0) {
+                alert('Hanya dibolehkan 1 opsi diskon faktur !!!');
+                return;
+            }
+
+            var totalTagihan = subTotal;
+            if (persen > 0) {
+                totalTagihan = Math.ceil(subTotal * (1 - persen / 100));
+            } else if (nominal > 0) {
+                totalTagihan = subTotal - nominal;
+            }
+
+            document.getElementById('sisa_bayar').value = totalTagihan.toLocaleString('id-ID');
+            document.getElementById('diskon_faktur_persen').disabled = true;
+            document.getElementById('diskon_faktur_nominal').disabled = true;
         });
     })();
 </script>

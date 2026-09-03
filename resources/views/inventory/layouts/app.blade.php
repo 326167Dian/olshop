@@ -100,6 +100,8 @@
             'orders' => 'inventory.orders.',
             'tbm' => 'inventory.trbmasuk.',
             'tbmpbf' => 'inventory.trbmasukpbf.',
+            'byrkredit' => 'inventory.byrkredit.',
+            'shiftkerja' => 'inventory.shiftkerja.',
             'cekdarah' => 'inventory.cekdarah.',
         ];
 

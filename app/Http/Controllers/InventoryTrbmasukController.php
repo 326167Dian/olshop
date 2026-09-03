@@ -87,9 +87,12 @@ class InventoryTrbmasukController extends Controller
     }
 
     /**
-     * Review baca-saja satu transaksi barang masuk, mengikuti case 'ubah'. Tombol
-     * "Simpan Transaksi" di legacy sengaja dikomentari (staf tidak boleh edit setelah
-     * tersimpan) -- jadi di sini murni tampilan, tidak ada form submit.
+     * Review baca-saja satu transaksi barang masuk, mengikuti case 'ubah' pada modul
+     * trbmasuk itu sendiri. Tombol "Simpan Transaksi" di legacy DI SINI sengaja
+     * dikomentari -- staf biasa (flag 'tbm') hanya boleh melihat, tidak mengedit. Edit
+     * transaksi tersimpan (termasuk tambah/hapus item) hanya tersedia lewat modul
+     * terpisah "Edit/Retur/Hapus Pembelian" (lihat edit()/update() di bawah, dipakai
+     * dari route yang digerbang flag 'byrkredit', BUKAN dari sini).
      */
     public function show(Trbmasuk $trbmasuk)
     {
@@ -99,6 +102,43 @@ class InventoryTrbmasukController extends Controller
             'judul' => 'Inventory',
             'trbmasuk' => $trbmasuk,
         ]);
+    }
+
+    /**
+     * Form ubah transaksi tersimpan, mengikuti mod_trbmasuk/byrkredit.php's case 'ubah'
+     * (module=byrkredit) -- BUKAN trbmasuk's sendiri case 'ubah' yang mati/baca-saja.
+     * Dipanggil lewat route yang digerbang flag 'byrkredit' (lihat routes/web.php),
+     * bukan 'tbm' -- byrkredit adalah modul TERPISAH khusus untuk mengedit/retur/hapus
+     * pembelian yang sudah tersimpan, tanpa pengecekan level pemilik (legacy juga tidak
+     * membatasi berdasar level di sini, beda dari trbmasukpbf yang sengaja diperketat).
+     */
+    public function edit(Trbmasuk $trbmasuk)
+    {
+        abort_unless($trbmasuk->jenis === 'nonpbf', 404);
+
+        return view('inventory.byrkredit.edit', [
+            'judul' => 'Inventory',
+            'trbmasuk' => $trbmasuk,
+            'supplierList' => Supplier::orderBy('nm_supplier')->get(['id_supplier', 'nm_supplier', 'tlp_supplier', 'alamat_supplier']),
+        ]);
+    }
+
+    /**
+     * Simpan perubahan header transaksi tersimpan, mengikuti act=ubah_trbmasuk.
+     */
+    public function update(Request $request, Trbmasuk $trbmasuk)
+    {
+        abort_unless($trbmasuk->jenis === 'nonpbf', 404);
+
+        $validated = $this->validateHeader($request);
+        // kd_orders TIDAK boleh ikut diupdate di sini -- validateHeader() men-default-kan
+        // ke '' untuk alur input langsung yang baru, tapi form ubah ini tidak pernah
+        // mengirim kd_orders sama sekali, jadi kalau ikut disimpan akan diam-diam
+        // menghapus tautan ke pesanan asal transaksi yang berasal dari alur terima pesanan.
+        unset($validated['kd_orders']);
+        $trbmasuk->update($validated);
+
+        return redirect()->route('inventory.byrkredit.index')->with('success', 'Transaksi barang masuk berhasil diperbarui.');
     }
 
     /**
@@ -150,6 +190,10 @@ class InventoryTrbmasukController extends Controller
             'kdTrbmasuk' => $kdTrbmasuk,
             'detail' => TrbmasukDetail::where('kd_trbmasuk', $kdTrbmasuk)->orderBy('id_dtrbmasuk')->get(),
             'header' => Trbmasuk::where('kd_trbmasuk', $kdTrbmasuk)->first(),
+            // 'byrkredit' saat partial ini dimuat dari layar Edit/Retur/Hapus Pembelian --
+            // supaya tombol qty/hapus di partial memakai rute yang digerbang flag 'byrkredit',
+            // bukan 'tbm' (partial ini dipakai bersama oleh kedua modul).
+            'mode' => $request->query('mode', 'tbm'),
         ]);
     }
 

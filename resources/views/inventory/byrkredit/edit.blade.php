@@ -1,54 +1,55 @@
 @extends('inventory.layouts.app')
 
-@section('header', 'Input Barang Masuk (Manual)')
+@section('header', 'Edit/Retur/Hapus Pembelian')
 
 @section('content')
     <div class="card card-primary">
         <div class="card-header">
-            <h3 class="card-title">Input Barang Masuk (Manual)</h3>
+            <h3 class="card-title">Ubah Transaksi Barang Masuk — {{ $trbmasuk->kd_trbmasuk }}</h3>
         </div>
         <div class="card-body">
-            <input type="hidden" id="kd_trbmasuk" value="{{ $kdTransaksi }}">
-            <input type="hidden" id="petugas" value="{{ $petugas }}">
-            <input type="hidden" id="id_supplier">
+            <input type="hidden" id="id_trbmasuk" value="{{ $trbmasuk->id_trbmasuk }}">
+            <input type="hidden" id="kd_trbmasuk" value="{{ $trbmasuk->kd_trbmasuk }}">
+            <input type="hidden" id="petugas" value="{{ Auth::guard('admin')->user()->nama_lengkap }}">
+            <input type="hidden" id="id_supplier" value="{{ $trbmasuk->id_supplier }}">
 
             <div class="row">
                 <div class="col-lg-6">
                     <div class="form-group">
                         <label>Tanggal</label>
-                        <input type="date" class="form-control" id="tgl_trbmasuk" required value="{{ now()->format('Y-m-d') }}">
+                        <input type="date" class="form-control" id="tgl_trbmasuk" required value="{{ $trbmasuk->tgl_trbmasuk?->format('Y-m-d') }}">
                     </div>
                     <div class="form-group">
                         <label>Kode Transaksi</label>
-                        <input type="text" class="form-control" value="{{ $kdTransaksi }}" disabled>
+                        <input type="text" class="form-control" value="{{ $trbmasuk->kd_trbmasuk }}" disabled>
                     </div>
                     <div class="form-group">
                         <label>Supplier</label>
                         <div class="input-group">
-                            <input type="text" class="form-control" id="nm_supplier" required disabled>
+                            <input type="text" class="form-control" id="nm_supplier" required disabled value="{{ $trbmasuk->nm_supplier }}">
                             <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal"
                                 data-bs-target="#modalSupplier"><i class="fa fa-search"></i></button>
                         </div>
                     </div>
                     <div class="form-group">
                         <label>Telepon</label>
-                        <input type="text" class="form-control" id="tlp_supplier">
+                        <input type="text" class="form-control" id="tlp_supplier" value="{{ $trbmasuk->tlp_supplier }}">
                     </div>
                     <div class="form-group">
                         <label>Alamat</label>
-                        <textarea class="form-control" id="alamat_trbmasuk" rows="2"></textarea>
+                        <textarea class="form-control" id="alamat_trbmasuk" rows="2">{{ $trbmasuk->alamat_trbmasuk }}</textarea>
                     </div>
                     <div class="form-group">
-                        <label>Keterangan</label>
-                        <input type="text" class="form-control" id="ket_trbmasuk">
+                        <label>Keterangan / No Faktur</label>
+                        <input type="text" class="form-control" id="ket_trbmasuk" value="{{ $trbmasuk->ket_trbmasuk }}">
                     </div>
                     <div class="form-group" id="groupJatuhTempo">
                         <label>Jatuh Tempo</label>
-                        <input type="date" class="form-control" id="jatuhtempo">
+                        <input type="date" class="form-control" id="jatuhtempo" value="{{ $trbmasuk->jatuhtempo }}">
                     </div>
                     <div class="mt-3">
                         <button type="button" class="btn btn-primary" onclick="simpanTransaksi()">Simpan Transaksi</button>
-                        <a href="{{ route('inventory.trbmasuk.index') }}" class="btn btn-secondary">Batal</a>
+                        <a href="{{ route('inventory.byrkredit.index') }}" class="btn btn-secondary">Batal</a>
                     </div>
                 </div>
 
@@ -110,6 +111,8 @@
             </div>
 
             <hr>
+            <p class="text-muted">Untuk retur/pengembalian barang ke supplier: kurangi Qty langsung di tabel, atau hapus
+                baris item sepenuhnya kalau seluruh item pada baris tersebut dikembalikan.</p>
             <div id="tabeldata"></div>
         </div>
     </div>
@@ -175,7 +178,7 @@
 
     function loadTabelDetail() {
         var kd = document.getElementById('kd_trbmasuk').value;
-        fetch("{{ route('inventory.trbmasuk.detail.index') }}?kd_trbmasuk=" + encodeURIComponent(kd), { cache: 'no-store' })
+        fetch("{{ route('inventory.byrkredit.detail.index') }}?kd_trbmasuk=" + encodeURIComponent(kd) + "&mode=byrkredit", { cache: 'no-store' })
             .then(function(res) { return res.text(); })
             .then(function(html) { $('#tabeldata').html(html); });
     }
@@ -215,7 +218,7 @@
         itemPickerTable = $('#tabel-item-picker').DataTable({
             processing: true,
             serverSide: true,
-            ajax: "{{ route('inventory.trbmasuk.item-picker') }}",
+            ajax: "{{ route('inventory.byrkredit.item-picker') }}",
             columns: [
                 { data: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'kd_barang' },
@@ -249,7 +252,7 @@
     function resolveItemByName(nama) {
         var form = new FormData();
         form.append('nm_barang', nama);
-        fetch("{{ route('inventory.trbmasuk.item-resolve') }}", {
+        fetch("{{ route('inventory.byrkredit.item-resolve') }}", {
                 method: 'POST',
                 headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
                 body: form,
@@ -264,7 +267,7 @@
     function resolveItemByCode(kode) {
         var form = new FormData();
         form.append('kd_barang', kode);
-        fetch("{{ route('inventory.trbmasuk.item-resolve') }}", {
+        fetch("{{ route('inventory.byrkredit.item-resolve') }}", {
                 method: 'POST',
                 headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
                 body: form,
@@ -298,7 +301,7 @@
         searchDelay = setTimeout(function() {
             var form = new FormData();
             form.append('query', keyword);
-            fetch("{{ route('inventory.trbmasuk.item-search') }}", {
+            fetch("{{ route('inventory.byrkredit.item-search') }}", {
                     method: 'POST',
                     headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
                     body: form,
@@ -355,7 +358,7 @@
         form.append('no_batch', noBatch);
         form.append('exp_date', document.getElementById('exp_date').value);
 
-        fetch("{{ route('inventory.trbmasuk.detail.store') }}", {
+        fetch("{{ route('inventory.byrkredit.detail.store') }}", {
                 method: 'POST',
                 headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
                 body: form,
@@ -379,6 +382,7 @@
 
         var form = new FormData();
         form.append('_token', '{{ csrf_token() }}');
+        form.append('_method', 'PUT');
         form.append('kd_trbmasuk', document.getElementById('kd_trbmasuk').value);
         form.append('tgl_trbmasuk', document.getElementById('tgl_trbmasuk').value);
         form.append('id_supplier', document.getElementById('id_supplier').value);
@@ -392,10 +396,10 @@
         form.append('dp_bayar', (document.getElementById('diskon_faktur_nominal').value || '0').replace(/\./g, ''));
         form.append('sisa_bayar', (document.getElementById('sisa_bayar').value || '0').replace(/\./g, ''));
 
-        fetch("{{ route('inventory.trbmasuk.store') }}", { method: 'POST', body: form })
+        fetch("{{ route('inventory.byrkredit.update', $trbmasuk->id_trbmasuk) }}", { method: 'POST', body: form })
             .then(function(res) {
                 if (!res.ok) throw new Error('Gagal menyimpan transaksi');
-                window.location = "{{ route('inventory.trbmasuk.index') }}";
+                window.location = "{{ route('inventory.byrkredit.index') }}";
             })
             .catch(function() { alert('Proses gagal, periksa kembali data yang diisi.'); });
     }

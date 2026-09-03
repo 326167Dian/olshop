@@ -40,6 +40,8 @@ class InventoryController extends Controller
         'orders' => 'inventory.orders.index',
         'trbmasuk' => 'inventory.trbmasuk.index',
         'trbmasukpbf' => 'inventory.trbmasukpbf.index',
+        'byrkredit' => 'inventory.byrkredit.index',
+        'shiftkerja' => 'inventory.shiftkerja.index',
     ];
 
     /**

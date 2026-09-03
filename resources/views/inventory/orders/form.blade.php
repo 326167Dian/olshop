@@ -129,7 +129,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body table-responsive">
-                    <table class="table table-sm table-bordered table-striped">
+                    <table id="tabel-pilih-supplier" class="table table-sm table-bordered table-striped w-100">
                         <thead>
                             <tr>
                                 <th>No</th>
@@ -212,6 +212,11 @@
                 bootstrap.Modal.getInstance(document.getElementById('modalSupplier')).hide();
             });
             body.appendChild(tr);
+        });
+        $('#tabel-pilih-supplier').DataTable({
+            responsive: true,
+            autoWidth: false,
+            columnDefs: [{ orderable: false, searchable: false, targets: -1 }],
         });
     })();
 
