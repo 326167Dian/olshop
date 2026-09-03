@@ -312,22 +312,24 @@ class InventoryTrbmasukController extends Controller
             'qty_dtrbmasuk' => 'required|numeric|gt:0',
         ]);
 
-        $selisih = $validated['qty_dtrbmasuk'] - $detail->qty_dtrbmasuk;
+        DB::transaction(function () use ($detail, $validated) {
+            $selisih = $validated['qty_dtrbmasuk'] - $detail->qty_dtrbmasuk;
 
-        $detail->update([
-            'qty_dtrbmasuk' => $validated['qty_dtrbmasuk'],
-            'hrgttl_dtrbmasuk' => round($validated['qty_dtrbmasuk'] * $detail->hrgsat_dtrbmasuk),
-        ]);
+            $detail->update([
+                'qty_dtrbmasuk' => $validated['qty_dtrbmasuk'],
+                'hrgttl_dtrbmasuk' => round($validated['qty_dtrbmasuk'] * $detail->hrgsat_dtrbmasuk),
+            ]);
 
-        Product::where('id_barang', $detail->id_barang)->update(['stok_barang' => DB::raw('stok_barang + (' . (float) $selisih . ')')]);
+            Product::where('id_barang', $detail->id_barang)->update(['stok_barang' => DB::raw('stok_barang + (' . (float) $selisih . ')')]);
 
-        if ($detail->no_batch) {
-            Batch::where('kd_transaksi', $detail->kd_trbmasuk)
-                ->where('kd_barang', $detail->kd_barang)
-                ->where('no_batch', $detail->no_batch)
-                ->where('status', 'masuk')
-                ->update(['qty' => $validated['qty_dtrbmasuk']]);
-        }
+            if ($detail->no_batch) {
+                Batch::where('kd_transaksi', $detail->kd_trbmasuk)
+                    ->where('kd_barang', $detail->kd_barang)
+                    ->where('no_batch', $detail->no_batch)
+                    ->where('status', 'masuk')
+                    ->update(['qty' => $validated['qty_dtrbmasuk']]);
+            }
+        });
 
         return response()->json(['status' => 'ok']);
     }

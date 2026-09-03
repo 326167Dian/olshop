@@ -366,26 +366,28 @@ class InventoryTrbmasukPbfController extends Controller
             'qty_dtrbmasuk' => 'required|numeric|gt:0',
         ]);
 
-        $qtyLama = $detail->qty_dtrbmasuk;
-        $qtyBaru = $validated['qty_dtrbmasuk'];
-        $qtyGrosir = $detail->konversi > 0 ? $qtyBaru / $detail->konversi : $qtyBaru;
-        $hrgttl = round($qtyGrosir * $detail->hnasat_dtrbmasuk * (1 - $detail->diskon / 100) * 1.11);
+        DB::transaction(function () use ($detail, $validated) {
+            $qtyLama = $detail->qty_dtrbmasuk;
+            $qtyBaru = $validated['qty_dtrbmasuk'];
+            $qtyGrosir = $detail->konversi > 0 ? $qtyBaru / $detail->konversi : $qtyBaru;
+            $hrgttl = round($qtyGrosir * $detail->hnasat_dtrbmasuk * (1 - $detail->diskon / 100) * 1.11);
 
-        $detail->update([
-            'qty_dtrbmasuk' => $qtyBaru,
-            'qty_grosir' => $qtyGrosir,
-            'hrgttl_dtrbmasuk' => $hrgttl,
-        ]);
+            $detail->update([
+                'qty_dtrbmasuk' => $qtyBaru,
+                'qty_grosir' => $qtyGrosir,
+                'hrgttl_dtrbmasuk' => $hrgttl,
+            ]);
 
-        Product::where('id_barang', $detail->id_barang)->update(['stok_barang' => DB::raw('stok_barang + (' . (float) ($qtyBaru - $qtyLama) . ')')]);
+            Product::where('id_barang', $detail->id_barang)->update(['stok_barang' => DB::raw('stok_barang + (' . (float) ($qtyBaru - $qtyLama) . ')')]);
 
-        if ($detail->no_batch) {
-            Batch::where('kd_transaksi', $detail->kd_trbmasuk)
-                ->where('kd_barang', $detail->kd_barang)
-                ->where('no_batch', $detail->no_batch)
-                ->where('status', 'masuk')
-                ->update(['qty' => $qtyBaru]);
-        }
+            if ($detail->no_batch) {
+                Batch::where('kd_transaksi', $detail->kd_trbmasuk)
+                    ->where('kd_barang', $detail->kd_barang)
+                    ->where('no_batch', $detail->no_batch)
+                    ->where('status', 'masuk')
+                    ->update(['qty' => $qtyBaru]);
+            }
+        });
 
         return response()->json(['status' => 'ok']);
     }
