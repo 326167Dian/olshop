@@ -550,6 +550,12 @@ Route::prefix('inventory')->middleware(['auth:admin', 'admin.active'])->name('in
         Route::get('/create', [InventoryTrkasirController::class, 'create'])->name('create');
         Route::post('/', [InventoryTrkasirController::class, 'store'])->name('store');
         Route::get('/{trkasir}/struk', [InventoryTrkasirController::class, 'struk'])->name('struk');
+        Route::get('/{trkasir}/kwitansi', [InventoryTrkasirController::class, 'kwitansi'])->name('kwitansi');
+        Route::get('/{trkasir}/invoice', [InventoryTrkasirController::class, 'invoice'])->name('invoice');
+        Route::get('/{trkasir}/etiket', [InventoryTrkasirController::class, 'etiket'])->name('etiket');
+        Route::get('/{trkasir}/edit', [InventoryTrkasirController::class, 'edit'])->name('edit');
+        Route::put('/{trkasir}', [InventoryTrkasirController::class, 'update'])->name('update');
+        Route::delete('/{trkasir}', [InventoryTrkasirController::class, 'destroy'])->name('destroy');
 
         Route::get('/detail', [InventoryTrkasirController::class, 'detailIndex'])->name('detail.index');
         Route::post('/detail', [InventoryTrkasirController::class, 'detailStore'])->name('detail.store');

@@ -18,7 +18,9 @@ use App\Models\Trkasir;
 use App\Models\TrkasirDetail;
 use App\Models\TrkasirDetailHist;
 use App\Models\TrkasirDetailUbahQty;
+use App\Models\TrkasirRestore;
 use App\Models\WaktuKerja;
+use App\Support\Pdf\RPdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -109,18 +111,85 @@ class InventoryTrkasirController extends Controller
         return view('inventory.trkasir.index', ['judul' => 'Inventory']);
     }
 
+    /**
+     * Kolom Aksi mengikuti dropdown penjualanhariini_serverside.php legacy: EDIT & HAPUS
+     * hanya untuk pemilik (dicek server-side juga di edit()/update()/destroy(), bukan
+     * cuma disembunyikan di sini), PRINT/KWITANSI/INVOICE/ETIKET untuk semua role.
+     *
+     * Field totalKasir/totalTunai.../totalTempo... (lewat ->with(), fitur bawaan Yajra
+     * untuk menambah key level-atas di luar `data`) mengikuti "Ringkasan Transaksi" milik
+     * penjualanhariini_serverside.php -- SUM(ttl_trkasir) per id_carabayar (1=Tunai,
+     * 2=Transfer, 3=Tempo, dikonfirmasi cocok dengan tabel carabayar produksi) x shift
+     * (1=Pagi, 2=Sore), untuk transaksi HARI INI. Beda dari legacy: di sana ringkasan ini
+     * ikut menyempit kalau kotak pencarian DataTables dipakai (query SUM-nya memakai WHERE
+     * yang sama dengan daftar yang sedang difilter) -- di sini SENGAJA selalu total
+     * seluruh hari ini apa adanya, tidak ikut mengecil saat mencari satu transaksi
+     * tertentu, supaya ringkasan shift tidak membingungkan kasir yang sedang mencari
+     * sesuatu di kotak pencarian.
+     */
     public function data()
     {
-        $query = Trkasir::query()->where('tgl_trkasir', now()->toDateString())->orderByDesc('id_trkasir');
+        $admin = Auth::guard('admin')->user();
+        $isPemilik = $admin && $admin->isPemilik();
+        $tanggal = now()->toDateString();
+
+        $query = Trkasir::query()->where('tgl_trkasir', $tanggal)->orderByDesc('id_trkasir');
+
+        $summary = Trkasir::query()->where('tgl_trkasir', $tanggal)->selectRaw("
+                COALESCE(SUM(ttl_trkasir), 0) as total_kasir,
+                COALESCE(SUM(CASE WHEN id_carabayar = 1 THEN ttl_trkasir ELSE 0 END), 0) as total_tunai,
+                COALESCE(SUM(CASE WHEN id_carabayar = 1 AND shift = 1 THEN ttl_trkasir ELSE 0 END), 0) as total_tunai_pagi,
+                COALESCE(SUM(CASE WHEN id_carabayar = 1 AND shift = 2 THEN ttl_trkasir ELSE 0 END), 0) as total_tunai_sore,
+                COALESCE(SUM(CASE WHEN id_carabayar = 2 THEN ttl_trkasir ELSE 0 END), 0) as total_transfer,
+                COALESCE(SUM(CASE WHEN id_carabayar = 2 AND shift = 1 THEN ttl_trkasir ELSE 0 END), 0) as total_transfer_pagi,
+                COALESCE(SUM(CASE WHEN id_carabayar = 2 AND shift = 2 THEN ttl_trkasir ELSE 0 END), 0) as total_transfer_sore,
+                COALESCE(SUM(CASE WHEN id_carabayar = 3 THEN ttl_trkasir ELSE 0 END), 0) as total_tempo,
+                COALESCE(SUM(CASE WHEN id_carabayar = 3 AND shift = 1 THEN ttl_trkasir ELSE 0 END), 0) as total_tempo_pagi,
+                COALESCE(SUM(CASE WHEN id_carabayar = 3 AND shift = 2 THEN ttl_trkasir ELSE 0 END), 0) as total_tempo_sore
+            ")->first();
 
         return DataTables::of($query)
             ->addIndexColumn()
             ->editColumn('ttl_trkasir', fn ($row) => number_format($row->ttl_trkasir, 0, ',', '.'))
             ->addColumn('shift_label', fn ($row) => ['1' => 'Pagi', '2' => 'Siang', '3' => 'Malam'][(string) $row->shift] ?? $row->shift)
             ->addColumn('nm_carabayar', fn ($row) => optional(CaraBayar::find($row->id_carabayar))->nm_carabayar)
-            ->addColumn('aksi', function ($row) {
-                return '<a href="' . route('inventory.trkasir.struk', $row->id_trkasir) . '" target="_blank" class="btn btn-info btn-xs">Struk</a>';
+            ->addColumn('aksi', function ($row) use ($isPemilik) {
+                $html = '<div class="dropdown">
+                    <button class="btn btn-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">Aksi</button>
+                    <div class="dropdown-menu p-2 shadow" style="min-width:170px;">';
+
+                if ($isPemilik) {
+                    $html .= '<a href="' . route('inventory.trkasir.edit', $row->id_trkasir) . '" class="btn btn-warning btn-sm w-100 mb-1">Edit</a>';
+                }
+
+                $html .= '<a href="' . route('inventory.trkasir.struk', $row->id_trkasir) . '" target="_blank" class="btn btn-info btn-sm w-100 mb-1">Print</a>
+                    <a href="' . route('inventory.trkasir.kwitansi', $row->id_trkasir) . '" target="_blank" class="btn btn-primary btn-sm w-100 mb-1">Kwitansi</a>
+                    <a href="' . route('inventory.trkasir.invoice', $row->id_trkasir) . '" target="_blank" class="btn btn-primary btn-sm w-100 mb-1">Invoice</a>
+                    <a href="' . route('inventory.trkasir.etiket', $row->id_trkasir) . '" target="_blank" class="btn btn-secondary btn-sm w-100 mb-1">Etiket</a>';
+
+                if ($isPemilik) {
+                    $html .= '<form action="' . route('inventory.trkasir.destroy', $row->id_trkasir) . '" method="POST" id="delete-trkasir-' . $row->id_trkasir . '">
+                        ' . csrf_field() . method_field('DELETE') . '
+                        <button type="button" onclick="confirmDelete(\'delete-trkasir-' . $row->id_trkasir . '\', \'transaksi ' . e($row->kd_trkasir) . '\')" class="btn btn-danger btn-sm w-100">Hapus</button>
+                    </form>';
+                }
+
+                $html .= '</div></div>';
+
+                return $html;
             })
+            ->with([
+                'totalKasir' => (int) $summary->total_kasir,
+                'totalTunai' => (int) $summary->total_tunai,
+                'totalTunaiPagi' => (int) $summary->total_tunai_pagi,
+                'totalTunaiSore' => (int) $summary->total_tunai_sore,
+                'totalTransfer' => (int) $summary->total_transfer,
+                'totalTransferPagi' => (int) $summary->total_transfer_pagi,
+                'totalTransferSore' => (int) $summary->total_transfer_sore,
+                'totalTempo' => (int) $summary->total_tempo,
+                'totalTempoPagi' => (int) $summary->total_tempo_pagi,
+                'totalTempoSore' => (int) $summary->total_tempo_sore,
+            ])
             ->rawColumns(['aksi'])
             ->make(true);
     }
@@ -478,7 +547,16 @@ class InventoryTrkasirController extends Controller
         return response()->json(['status' => 'ok']);
     }
 
-    private function reverseDetailRow(TrkasirDetail $row, Admin $admin): void
+    /**
+     * $trkasirUntukRestore: kalau diisi, ini bagian dari HAPUS transaksi TERFINALISASI
+     * secara utuh (destroy()) -- header transaksi itu masih ada saat helper ini dipanggil
+     * (baru dihapus belakangan oleh destroy() sendiri, setelah semua barisnya diproses),
+     * jadi sekalian ditulis snapshot ke trkasir_restore (kd_trkasir + tipetx dari sana,
+     * bukan dari $row, karena tipetx ada di header bukan di detail). Kalau null (dipanggil
+     * dari detailDestroy() -- hapus satu baris keranjang, baik masih draft maupun sudah
+     * final), tidak ada snapshot trkasir_restore yang ditulis, persis perilaku Fase 1.
+     */
+    private function reverseDetailRow(TrkasirDetail $row, Admin $admin, ?Trkasir $trkasirUntukRestore = null): void
     {
         DB::table('barang')->where('id_barang', $row->id_barang)->increment('stok_barang', $row->qty_dtrkasir);
 
@@ -507,6 +585,55 @@ class InventoryTrkasirController extends Controller
             'nm_bundle' => $row->nm_bundle ?? '',
         ]);
 
+        if ($trkasirUntukRestore) {
+            TrkasirRestore::create([
+                'kd_trkasir' => $trkasirUntukRestore->kd_trkasir,
+                'petugas' => $trkasirUntukRestore->petugas,
+                'shift' => $trkasirUntukRestore->shift,
+                'tgl_trkasir' => $trkasirUntukRestore->tgl_trkasir,
+                'nm_pelanggan' => $trkasirUntukRestore->nm_pelanggan,
+                'tlp_pelanggan' => $trkasirUntukRestore->tlp_pelanggan,
+                'alamat_pelanggan' => $trkasirUntukRestore->alamat_pelanggan,
+                'ttl_trkasir' => $trkasirUntukRestore->ttl_trkasir,
+                'dp_bayar' => $trkasirUntukRestore->dp_bayar,
+                'diskon1' => $trkasirUntukRestore->diskon1,
+                'diskon2' => $trkasirUntukRestore->diskon2,
+                'sisa_bayar' => $trkasirUntukRestore->sisa_bayar,
+                'ket_trkasir' => $trkasirUntukRestore->ket_trkasir,
+                'id_carabayar' => $trkasirUntukRestore->id_carabayar,
+                'id_dtrkasir' => $row->id_dtrkasir,
+                'id_barang' => $row->id_barang,
+                'kd_barang' => $row->kd_barang,
+                'nmbrg_dtrkasir' => $row->nmbrg_dtrkasir,
+                'qty_dtrkasir' => $row->qty_dtrkasir,
+                'sat_dtrkasir' => $row->sat_dtrkasir,
+                'hrgjual_dtrkasir' => $row->hrgjual_dtrkasir,
+                'hrgttl_dtrkasir' => $row->hrgttl_dtrkasir,
+                'disc' => $row->disc,
+                'resep' => $row->resep,
+                'modal' => $row->modal,
+                'profit' => $row->profit,
+                'no_batch' => $row->no_batch,
+                'exp_date' => $row->exp_date,
+                'waktu' => $row->waktu,
+                'tipe' => $row->tipe,
+                'komisi' => $row->komisi,
+                'idadmin' => $row->idadmin,
+                'kd_bundle' => $row->kd_bundle,
+                'nm_bundle' => $row->nm_bundle,
+                'tipetx' => $trkasirUntukRestore->tipetx ?? 1,
+                'id_admin_hapus' => $admin->id_admin,
+                'id_user' => $trkasirUntukRestore->id_user,
+                'id_pelanggan' => $trkasirUntukRestore->id_pelanggan,
+                'kodetx' => $trkasirUntukRestore->kodetx,
+                'jenistx' => $trkasirUntukRestore->jenistx,
+                'waktu_trx' => $trkasirUntukRestore->waktu_trx,
+                'poin_awal' => $trkasirUntukRestore->poin_awal,
+                'tambahan_poin' => $trkasirUntukRestore->tambahan_poin,
+                'redeem_poin' => $trkasirUntukRestore->redeem_poin,
+            ]);
+        }
+
         // Baris barang biasa SELALU tepat satu no_batch (tambahBarang() memberi baris
         // tersendiri per batch yang dipakai) -- filter presisi per no_batch supaya hapus
         // satu baris tidak ikut menghapus ledger batch milik baris lain punya barang yang
@@ -524,6 +651,170 @@ class InventoryTrkasirController extends Controller
         KomisiPegawai::where('id_dtrkasir', $row->id_dtrkasir)->delete();
 
         $row->delete();
+    }
+
+    // ==================== UBAH/HAPUS TRANSAKSI TERSIMPAN (FASE 2) ====================
+
+    /**
+     * Form ubah header transaksi yang sudah difinalisasi, mengikuti case "ubah" di
+     * trkasir.php. Item keranjang tetap diedit lewat endpoint yang sama persis dengan
+     * layar Tambah Penjualan (detailIndex/detailStore/detailUpdateQty/detailDestroy --
+     * semuanya generik terhadap kd_trkasir, tidak peduli transaksinya draft atau sudah
+     * final), jadi tidak ada endpoint baru untuk itu di sini.
+     *
+     * Perbaikan atas legacy: dropdown Aksi legacy hanya MENYEMBUNYIKAN tombol EDIT/HAPUS
+     * dari non-pemilik di UI -- endpoint ubah/ubah_trkasir aslinya bisa diakses siapa saja
+     * yang login (tidak ada cek $_SESSION['level'] sama sekali di sana), jadi staf non-
+     * pemilik yang tahu URL-nya tetap bisa mengubah transaksi manapun. Di sini ditegakkan
+     * juga di server, konsisten dengan HAPUS (yang di legacy memang sudah dicek pemilik).
+     */
+    public function edit(Trkasir $trkasir)
+    {
+        $admin = Auth::guard('admin')->user();
+        abort_unless($admin->isPemilik(), 403, 'Hanya akun pemilik yang dapat mengubah transaksi penjualan yang sudah tersimpan.');
+
+        return view('inventory.trkasir.edit', [
+            'judul' => 'Inventory',
+            'trkasir' => $trkasir,
+            'admin' => $admin,
+            'petugasList' => Admin::where('id_admin', '!=', $admin->id_admin)->orderBy('nama_lengkap')->get(['id_admin', 'nama_lengkap']),
+            'carabayarList' => CaraBayar::orderBy('urutan')->get(),
+        ]);
+    }
+
+    /**
+     * Simpan ubah header, mengikuti act=ubah_trkasir -- HANYA field header (tanggal,
+     * petugas pelayanan, data pelanggan, kode order/keterangan, cara bayar, diskon
+     * faktur, jumlah bayar). Total akhir SELALU dihitung ulang di server dari subtotal
+     * murni trkasir_detail (sama seperti store(), bukan dipercaya dari client) --
+     * redeem_poin transaksi ini SENGAJA tidak ikut diedit di sini (legacy juga tidak
+     * pernah menyentuh pelanggan.total_poin saat ubah_trkasir -- membatalkan/menghitung
+     * ulang poin dari transaksi yang sudah lama final butuh alur tersendiri, di luar
+     * cakupan perbaikan header sederhana ini).
+     *
+     * Perbaikan atas legacy: ubah_trkasir legacy menimpa trkasir_detail.idadmin SEMUA
+     * baris ke id_user yang dipilih di form ini -- persis bug yang sama yang sudah
+     * diperbaiki di store() (lihat aturan atribusi komisi 2026-09-04 di doc-block kelas
+     * ini): setiap baris keranjang sudah membawa Petugas Pelayanan-nya sendiri sejak
+     * ditambahkan, jadi TIDAK ditimpa lagi di sini.
+     */
+    public function update(Request $request, Trkasir $trkasir)
+    {
+        $admin = Auth::guard('admin')->user();
+        abort_unless($admin->isPemilik(), 403, 'Hanya akun pemilik yang dapat mengubah transaksi penjualan yang sudah tersimpan.');
+
+        $validated = $request->validate([
+            'id_user' => 'required|integer|exists:admin,id_admin',
+            'tgl_trkasir' => 'required|date',
+            'id_pelanggan' => 'nullable|integer',
+            'nm_pelanggan' => 'nullable|string|max:100',
+            'tlp_pelanggan' => 'nullable|string|max:50',
+            'alamat_pelanggan' => 'nullable|string',
+            'kodetx' => 'nullable|string|max:20',
+            'ket_trkasir' => 'nullable|string',
+            'id_carabayar' => 'required|integer|exists:carabayar,id_carabayar',
+            'diskon1' => 'nullable|numeric|min:0|max:100',
+            'diskon2' => 'nullable|numeric|min:0',
+            'dp_bayar' => 'required|numeric|min:0',
+        ]);
+
+        DB::transaction(function () use ($trkasir, $validated, $admin) {
+            $subtotal = (float) TrkasirDetail::where('kd_trkasir', $trkasir->kd_trkasir)->sum('hrgttl_dtrkasir');
+            $diskon1 = $validated['diskon1'] ?? 0;
+            $diskon2 = $validated['diskon2'] ?? 0;
+
+            $totalAkhir = round($subtotal * (1 - $diskon1 / 100) - $diskon2);
+            $totalAkhir = max(0, $totalAkhir - (float) $trkasir->redeem_poin);
+
+            $trkasir->update([
+                'tgl_trkasir' => $validated['tgl_trkasir'],
+                'id_user' => $validated['id_user'],
+                'petugas' => $admin->nama_lengkap,
+                'id_pelanggan' => $validated['id_pelanggan'] ?? $trkasir->id_pelanggan,
+                'nm_pelanggan' => $validated['nm_pelanggan'] ?? '',
+                'tlp_pelanggan' => $validated['tlp_pelanggan'] ?? '',
+                'alamat_pelanggan' => $validated['alamat_pelanggan'] ?? '',
+                'kodetx' => $validated['kodetx'] ?? '',
+                'ket_trkasir' => $validated['ket_trkasir'] ?? '',
+                'id_carabayar' => $validated['id_carabayar'],
+                'diskon1' => $diskon1,
+                'diskon2' => $diskon2,
+                'dp_bayar' => $validated['dp_bayar'],
+                'ttl_trkasir' => $totalAkhir,
+                'sisa_bayar' => $validated['dp_bayar'] - $totalAkhir,
+            ]);
+        });
+
+        return response()->json(['status' => 'success']);
+    }
+
+    /**
+     * Hapus total transaksi yang sudah difinalisasi (bukan hapus satu baris keranjang --
+     * itu detailDestroy()), mengikuti act=hapus di aksi_trkasir.php: kembalikan stok tiap
+     * baris (+ stok bundle), catat ke trkasir_detail_hist DAN trkasir_restore (snapshot
+     * lengkap header+baris, dipakai fitur "UNDO TRANSAKSI TERHAPUS" legacy -- tabelnya
+     * sudah ada di DB produksi, tidak perlu migration baru), rollback poin pelanggan,
+     * hapus header trkasir + kartu_stok, dan ikut hapus order_online/order_online_item
+     * kalau transaksi ini berasal dari Market Place (kode_pesanan = kd_trkasir) supaya
+     * tidak ada pesanan online yang jadi yatim.
+     *
+     * Menggunakan ulang reverseDetailRow() (helper yang sama dipakai detailDestroy() di
+     * Fase 1) untuk restore stok + insert trkasir_detail_hist + hapus batch/komisi per
+     * baris -- reverseDetailRow() sekarang menerima $trkasirUntukRestore opsional yang,
+     * kalau diisi, SEKALIAN menulis snapshot trkasir_restore untuk baris itu.
+     */
+    public function destroy(Trkasir $trkasir)
+    {
+        $admin = Auth::guard('admin')->user();
+        abort_unless($admin->isPemilik(), 403, 'Hanya akun pemilik yang dapat menghapus transaksi penjualan.');
+
+        DB::transaction(function () use ($trkasir, $admin) {
+            $kdTrkasir = $trkasir->kd_trkasir;
+            $detailRows = TrkasirDetail::where('kd_trkasir', $kdTrkasir)->get();
+
+            $bundleRestore = [];
+
+            foreach ($detailRows as $row) {
+                $kdBundle = trim((string) $row->kd_bundle);
+                if (str_starts_with($kdBundle, 'BUND')) {
+                    $bd = BundleDetail::where('kd_bundle', $kdBundle)->where('kd_barang', $row->kd_barang)->first();
+                    if ($bd && $bd->qty_barang > 0) {
+                        $bundleRestore[$kdBundle] = $row->qty_dtrkasir / $bd->qty_barang;
+                    }
+                }
+
+                $this->reverseDetailRow($row, $admin, $trkasir);
+            }
+
+            foreach ($bundleRestore as $kdBundle => $qtyBundleRestore) {
+                Bundle::where('kd_bundle', $kdBundle)->increment('qty_bundle', $qtyBundleRestore);
+            }
+
+            if (!empty($trkasir->id_pelanggan)) {
+                $pelanggan = Pelanggan::find($trkasir->id_pelanggan);
+                if ($pelanggan) {
+                    $pelanggan->update([
+                        'total_poin' => ($pelanggan->total_poin - (int) ($trkasir->tambahan_poin ?? 0)) + (int) ($trkasir->redeem_poin ?? 0),
+                    ]);
+                }
+            }
+
+            KartuStok::where('kode_transaksi', $kdTrkasir)->delete();
+
+            // Transaksi Market Place berasal dari order_online (kd_trkasir =
+            // order_online.kode_pesanan). Ikut dihapus dalam transaction yang sama
+            // supaya tidak ada pesanan online yang nyangkut/yatim. Untuk transaksi
+            // reguler (bukan Market Place) query ini tidak menemukan apa-apa, aman.
+            $orderOnline = DB::table('order_online')->where('kode_pesanan', $kdTrkasir)->first();
+            if ($orderOnline) {
+                DB::table('order_online_item')->where('order_id', $orderOnline->id)->delete();
+                DB::table('order_online')->where('id', $orderOnline->id)->delete();
+            }
+
+            $trkasir->delete();
+        });
+
+        return redirect()->route('inventory.trkasir.index')->with('success', 'Transaksi penjualan berhasil dihapus.');
     }
 
     // ==================== FINALISASI (SIMPAN TRANSAKSI) ====================
@@ -901,6 +1192,458 @@ class InventoryTrkasirController extends Controller
         }
 
         return number_format((float) $angka, 0, ',', '.');
+    }
+
+    /**
+     * Kwitansi (bukti pembayaran lump-sum, BUKAN faktur berisi rincian item -- itu
+     * invoice()), mengikuti public/apotekberlian/masuk/modul/mod_laporan/kwitansi.php
+     * SEDEKAT mungkin, termasuk strip nama apotek vertikal di sisi kiri + logo diputar
+     * 270 derajat (RPdf::TextWithDirection()/RotatedImage()) sesuai keputusan pengguna
+     * 2026-09-04 untuk mereproduksi persis, bukan menyederhanakan.
+     */
+    public function kwitansi(Trkasir $trkasir)
+    {
+        $setheader = Setheader::first();
+        $pdf = $this->buildKwitansiPdf($trkasir, $setheader);
+
+        return response($pdf->Output('S'), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="kwitansi-' . $trkasir->kd_trkasir . '.pdf"',
+        ]);
+    }
+
+    private function buildKwitansiPdf(Trkasir $trkasir, ?Setheader $rh): RPdf
+    {
+        $panjang = $this->terbilang((float) $trkasir->ttl_trkasir);
+        $text1 = mb_substr($panjang, 0, 50);
+        $text2 = mb_substr($panjang, 50, 100);
+        $text3 = mb_strlen($panjang);
+
+        $pdf = new RPdf('P', 'cm', 'A4');
+        $pdf->AddPage();
+
+        $satu = (string) ($rh->satu ?? '');
+        $text = mb_substr($satu, 7);
+
+        $pdf->SetFont('Arial', 'B', 10);
+        $pdf->TextWithDirection(1.5, 5.7, 'APOTEK', 'U');
+        $pdf->TextWithDirection(2, 5.7, $text, 'U');
+        $pdf->SetFont('Arial', '', 7);
+        $pdf->TextWithDirection(2.5, 5.7, (string) ($rh->dua ?? ''), 'U');
+        $pdf->TextWithDirection(2.8, 5.7, (string) ($rh->tiga ?? ''), 'U');
+        $pdf->TextWithDirection(3.1, 5.7, (string) ($rh->tujuh ?? ''), 'U');
+
+        $logoPath = $this->logoFilePath($rh);
+        if ($logoPath) {
+            $pdf->RotatedImage($logoPath, 1.2, 7.8, 2.0, 2.0, -270);
+        }
+
+        $pdf->SetLineWidth(0.1);
+        $pdf->Line(0.8, 0.7, 0.8, 8);
+        $pdf->Line(4, 0.7, 4, 8);
+        $pdf->Line(20, 0.7, 20, 8);
+        $pdf->Line(0.8, 0.7, 20, 0.7);
+        $pdf->Line(0.8, 8, 20, 8);
+
+        $pdf->Ln(0.5);
+        $pdf->SetFont('Arial', '', 12);
+        $pdf->Cell(3.5, 0.5, '', 0, 0, 'R');
+        $pdf->Cell(4.2, 0.5, 'No Transaksi', 0, 0, 'L');
+        $pdf->Cell(0.1, 0.5, ':', 0, 0, 'C');
+        $pdf->Cell(3, 0.5, $trkasir->kd_trkasir, 0, 1, 'L');
+        $pdf->Cell(3.5, 0.5, '', 0, 0, 'R');
+        $pdf->Cell(4.2, 0.5, 'Telah Terima dari', 0, 0, 'L');
+        $pdf->Cell(0.1, 0.5, ':', 0, 0, 'C');
+        $pdf->Cell(3, 0.5, (string) $trkasir->nm_pelanggan, 0, 1, 'L');
+
+        if ($text3 < 51) {
+            $pdf->Cell(3.5, 0.5, '', 0, 0, 'R');
+            $pdf->Cell(4.2, 0.5, 'Uang Sejumlah', 0, 0, 'L');
+            $pdf->Cell(0.1, 0.5, ':', 0, 0, 'C');
+            $pdf->SetFillColor(220, 220, 220);
+            $pdf->Cell(11, 0.5, $text1 . ' Rupiah', 0, 1, 'L', true);
+        } else {
+            $pdf->Cell(3.5, 0.5, '', 0, 0, 'R');
+            $pdf->Cell(4.2, 0.5, 'Uang Sejumlah', 0, 0, 'L');
+            $pdf->Cell(0.1, 0.5, ':', 0, 0, 'C');
+            $pdf->SetFillColor(220, 220, 220);
+            $pdf->Cell(11, 0.5, $text1, 0, 1, 'L', true);
+            $pdf->Cell(3.5, 0.5, '', 0, 0, 'R');
+            $pdf->Cell(4.2, 0.5, '', 0, 0, 'L');
+            $pdf->Cell(0.1, 0.5, '', 0, 0, 'C');
+            $pdf->SetFillColor(220, 220, 220);
+            $pdf->Cell(11, 0.5, $text2 . ' Rupiah', 0, 1, 'L', true);
+        }
+
+        $pdf->Ln(0.5);
+        $pdf->SetFont('Arial', '', 12);
+        $pdf->Cell(3.5, 0.5, '', 0, 0, 'R');
+        $pdf->Cell(4.2, 0.5, 'Untuk Pembayaran', 0, 0, 'L');
+        $pdf->Cell(0.1, 0.5, ':', 0, 0, 'C');
+        $pdf->Cell(11, 0.5, 'Pembelian obat - obatan', 0, 1, 'L');
+
+        $pdf->Ln(0.5);
+        $pdf->SetFont('Arial', '', 12);
+        $pdf->Cell(3.5, 0.5, '', 0, 0, 'R');
+        $pdf->Cell(7, 0.5, '', 0, 0, 'L');
+        $pdf->Cell(7, 0.5, ((string) ($rh->tigabelas ?? '')) . ', ' . $this->tglIndo((string) $trkasir->tgl_trkasir), 0, 1, 'C');
+
+        $pdf->Ln(2);
+        $pdf->SetFont('Arial', '', 12);
+        $pdf->Cell(3.5, 0.5, '', 0, 0, 'R');
+        $pdf->SetFillColor(220, 220, 220);
+        $pdf->SetFont('Arial', '', 20);
+        $pdf->Cell(7, 0.5, 'Rp. ' . $this->formatRupiah($trkasir->ttl_trkasir) . ',-', 0, 0, 'L', true);
+        $pdf->SetFont('Arial', '', 12);
+        $pdf->Cell(7, 0.5, (string) $trkasir->petugas, 0, 1, 'C');
+
+        return $pdf;
+    }
+
+    /**
+     * Invoice (faktur berisi rincian item + blok tanda tangan Penerima/Apoteker),
+     * mengikuti public/apotekberlian/masuk/modul/mod_laporan/invoice.php.
+     *
+     * Perbaikan atas legacy (disetujui pengguna 2026-09-04, "perbaiki"): cabang nama
+     * barang panjang (>37 karakter) di legacy memakai variabel $wp/$disc yang TIDAK
+     * PERNAH didefinisikan (sisa dari blok kalkulasi diskon yang dikomentari di atasnya)
+     * -- kolom Harga & Disc diam-diam kosong/null kalau ada nama barang panjang. Di sini
+     * kedua kolom itu memakai rumus yang sama persis dengan cabang nama pendek (harga
+     * jual & % diskon baris ini apa adanya), bukan meniru bug-nya. Kolom Batch di cabang
+     * yang sama juga salah baca key ($r2['batch'], padahal kolomnya 'no_batch') --
+     * diperbaiki sekalian karena akar masalahnya sama persis (cabang ini jelas tidak
+     * pernah benar-benar diuji di legacy).
+     */
+    public function invoice(Trkasir $trkasir)
+    {
+        $setheader = Setheader::first();
+        $pdf = $this->buildInvoicePdf($trkasir, $setheader);
+
+        return response($pdf->Output('S'), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="invoice-' . $trkasir->kd_trkasir . '.pdf"',
+        ]);
+    }
+
+    private function buildInvoicePdf(Trkasir $trkasir, ?Setheader $rh): RPdf
+    {
+        $detailRows = $trkasir->detail()->orderBy('nmbrg_dtrkasir')->get();
+
+        $pdf = new RPdf('P', 'cm', 'A4');
+        $pdf->SetMargins(0, 0.5, 0);
+        $pdf->AliasNbPages();
+        $pdf->AddPage();
+
+        $logoPath = $this->logoFilePath($rh);
+        if ($logoPath) {
+            $pdf->Image($logoPath, 1, 1, 1.5, 1.4);
+        }
+
+        $pdf->SetLineWidth(0.1);
+        $pdf->Line(0.7, 3.5, 20.5, 3.5);
+
+        $pdf->SetLineWidth(0.05);
+        $pdf->Line(0.7, 5.2, 20.5, 5.2);
+        $pdf->Line(0.7, 5.8, 20.5, 5.8);
+        $pdf->Line(0.7, 9.5, 20.5, 9.5);
+        $pdf->Line(0.7, 5.2, 0.7, 9.5);
+        $pdf->Line(1.5, 5.2, 1.5, 9.5);
+        $pdf->Line(8, 5.2, 8, 9.5);
+        $pdf->Line(10.7, 5.2, 10.7, 9.5);
+        $pdf->Line(9.3, 5.2, 9.3, 9.5);
+        $pdf->Line(12.8, 5.2, 12.8, 9.5);
+        $pdf->Line(14.5, 5.2, 14.5, 9.5);
+        $pdf->Line(16.7, 5.2, 16.7, 9.5);
+        $pdf->Line(18.5, 5.2, 18.5, 9.5);
+        $pdf->Line(20.5, 5.2, 20.5, 9.5);
+
+        $pdf->Ln(0.1);
+        $pdf->SetX(0.5);
+        $pdf->SetFont('Arial', 'B', 18);
+        $pdf->Cell(20.5, 0.5, 'I N V O I CE', 0, 1, 'C');
+
+        $pdf->Ln(0.1);
+        $pdf->SetX(3);
+        $pdf->SetFont('Arial', 'B', 13);
+        $pdf->Cell(16.5, 0.5, (string) ($rh->satu ?? ''), 0, 1, 'L');
+
+        $pdf->Ln(0.1);
+        $pdf->SetX(3);
+        $pdf->SetFont('Arial', '', 9);
+        $pdf->Cell(8, 0.2, (string) ($rh->dua ?? ''), 0, 1, 'L');
+
+        $pdf->Ln(0.1);
+        $pdf->SetX(3);
+        $pdf->SetFont('Arial', '', 9);
+        $pdf->Cell(8, 0.2, (string) ($rh->tiga ?? ''), 0, 1, 'L');
+
+        $pdf->Ln(0.4);
+        $pdf->SetX(0.6);
+        $pdf->SetFont('Arial', '', 9);
+        $pdf->Cell(2, 0.1, 'SIA', 0, 0, 'L');
+        $pdf->Cell(0.3, 0.1, ':', 0, 0, 'L');
+        $pdf->Cell(10, 0.1, (string) ($rh->lima ?? ''), 0, 0, 'L');
+        $pdf->Cell(2, 0.2, 'No. Faktur', 0, 0, 'L');
+        $pdf->Cell(0.3, 0.2, ':', 0, 0, 'R');
+        $pdf->Cell(6, 0.2, $trkasir->kd_trkasir, 0, 1, 'L');
+
+        $pdf->Ln(0.2);
+        $pdf->SetX(0.6);
+        $pdf->SetFont('Arial', '', 9);
+        $pdf->Cell(2, 0.1, 'No. Telp/Wa', 0, 0, 'L');
+        $pdf->Cell(0.3, 0.1, ':', 0, 0, 'L');
+        $pdf->Cell(10, 0.1, (string) ($rh->enam ?? ''), 0, 0, 'L');
+        $pdf->Cell(2, 0.2, 'Tgl Faktur', 0, 0, 'L');
+        $pdf->Cell(0.3, 0.2, ':', 0, 0, 'R');
+        $pdf->Cell(6, 0.2, $this->tglIndo((string) $trkasir->tgl_trkasir), 0, 1, 'L');
+
+        $pdf->Ln(0.6);
+        $pdf->SetX(0.6);
+        $pdf->SetFont('Arial', '', 9);
+        $pdf->Cell(2, 0.1, 'Kepada Yth', 0, 1, 'L');
+
+        $pdf->Ln(0.2);
+        $pdf->SetX(0.6);
+        $pdf->SetFont('Arial', '', 9);
+        $pdf->Cell(20, 0.2, (string) $trkasir->nm_pelanggan, 0, 1, 'L');
+
+        $pdf->Ln(0.2);
+        $pdf->SetX(0.6);
+        $pdf->SetFont('Arial', '', 9);
+        $pdf->Cell(20, 0.2, ((string) $trkasir->alamat_pelanggan) . ' Telp : ' . ((string) $trkasir->tlp_pelanggan), 0, 1, 'L');
+
+        $pdf->Ln(0.2);
+        $pdf->SetX(0.6);
+        $pdf->SetFont('Arial', '', 9);
+        $pdf->Cell(3.3, 0.2, '', 0, 1, 'L');
+
+        $pdf->Ln(0.1);
+        $pdf->SetX(0.6);
+        $pdf->SetFont('Arial', '', 9);
+        $pdf->Cell(1, 0.4, 'No.', 0, 0, 'C');
+        $pdf->Cell(6, 0.4, 'Nama Barang', 0, 0, 'C');
+        $pdf->Cell(2, 0.4, 'Jml', 0, 0, 'C');
+        $pdf->Cell(1, 0.4, 'Sat', 0, 0, 'C');
+        $pdf->Cell(2, 0.4, 'Batch', 0, 0, 'C');
+        $pdf->Cell(2, 0.4, 'Exp', 0, 0, 'C');
+        $pdf->Cell(2, 0.4, 'Harga', 0, 0, 'C');
+        $pdf->Cell(2, 0.4, 'Disc (%)', 0, 0, 'C');
+        $pdf->Cell(1.8, 0.4, 'Sub Total', 0, 1, 'C');
+
+        $pdf->Ln(0.3);
+        $pdf->SetX(0.6);
+        $pdf->SetFont('Arial', '', 9);
+
+        $no = 1;
+        foreach ($detailRows as $row) {
+            $edt = $row->exp_date ? $row->exp_date->format('m-Y') : '-';
+            $pdf->SetX(0.6);
+
+            $nama = (string) $row->nmbrg_dtrkasir;
+            $text1 = mb_substr($nama, 0, 37);
+            $text2 = mb_substr($nama, 37, 72);
+            $panjangNama = mb_strlen($nama);
+
+            if ($panjangNama > 37) {
+                $pdf->Cell(1, 0.4, $no . '.', 0, 0, 'C');
+                $pdf->Cell(6, 0.4, $text1, 0, 0, 'L');
+                $pdf->Cell(2, 0.4, (string) $row->qty_dtrkasir, 0, 0, 'R');
+                $pdf->Cell(1, 0.4, (string) $row->sat_dtrkasir, 0, 0, 'L');
+                $pdf->Cell(2, 0.4, (string) $row->no_batch, 0, 0, 'C');
+                $pdf->Cell(2, 0.4, $edt, 0, 0, 'C');
+                $pdf->Cell(2, 0.4, $this->formatRupiah($row->hrgjual_dtrkasir), 0, 0, 'R');
+                $pdf->Cell(2, 0.4, (string) $row->disc, 0, 0, 'C');
+                $pdf->Cell(1.8, 0.4, $this->formatRupiah($row->hrgttl_dtrkasir), 0, 1, 'R');
+
+                $pdf->SetX(0.6);
+                $pdf->Cell(1, 0.4, '', 0, 0, 'C');
+                $pdf->Cell(6, 0.4, $text2, 0, 0, 'L');
+                $pdf->Cell(2, 0.4, '', 0, 0, 'R');
+                $pdf->Cell(1, 0.4, '', 0, 0, 'L');
+                $pdf->Cell(2, 0.4, '', 0, 0, 'L');
+                $pdf->Cell(2, 0.4, '', 0, 0, 'L');
+                $pdf->Cell(2, 0.4, '', 0, 0, 'R');
+                $pdf->Cell(2, 0.4, '', 0, 0, 'C');
+                $pdf->Cell(1.8, 0.4, '', 0, 1, 'R');
+            } else {
+                $pdf->Cell(1, 0.4, $no . '.', 0, 0, 'C');
+                $pdf->Cell(6, 0.4, $text1, 0, 0, 'L');
+                $pdf->Cell(2, 0.4, (string) $row->qty_dtrkasir, 0, 0, 'C');
+                $pdf->Cell(1, 0.4, (string) $row->sat_dtrkasir, 0, 0, 'C');
+                $pdf->Cell(2, 0.4, (string) $row->no_batch, 0, 0, 'C');
+                $pdf->Cell(2, 0.4, $edt, 0, 0, 'C');
+                $pdf->Cell(2, 0.4, $this->formatRupiah($row->hrgjual_dtrkasir), 0, 0, 'R');
+                $pdf->Cell(2, 0.4, (string) $row->disc, 0, 0, 'C');
+                $pdf->Cell(1.8, 0.4, $this->formatRupiah($row->hrgttl_dtrkasir), 0, 1, 'R');
+            }
+
+            $no++;
+        }
+
+        $gt = (float) $detailRows->sum('hrgttl_dtrkasir');
+        $subtotal = $this->formatRupiah($gt);
+
+        $pdf->SetY(9.6);
+        $pdf->SetX(0.6);
+        $pdf->SetFont('Arial', '', 9);
+        $pdf->Cell(8, 0.3, 'Terbilang :', 0, 0, 'L');
+        $pdf->Cell(9.8, 0.3, '', 0, 0, 'R');
+        $pdf->Cell(2.2, 0.3, '', 0, 1, 'R');
+
+        $terbilangText = trim($this->terbilang($gt));
+        $terbilang1 = mb_substr($terbilangText, 0, 66);
+        $terbilang2 = trim(mb_substr($terbilangText, 66, 130));
+
+        if (mb_strlen($terbilangText) > 66) {
+            $pdf->SetX(0.6);
+            $pdf->SetFont('Arial', 'I', 9);
+            $pdf->Cell(8, 0.4, $terbilang1, 0, 0, 'L');
+
+            $pdf->SetX(0.6);
+            $pdf->SetFont('Arial', 'I', 9);
+            $pdf->Cell(8, 0.4, $terbilang2 . ' Rupiah.', 0, 0, 'L');
+
+            $pdf->SetFont('Arial', 'B', 9);
+            $pdf->Cell(9.8, 0.4, 'Harus Dibayar : ', 0, 0, 'R');
+            $pdf->Cell(2.2, 0.4, $subtotal, 0, 1, 'R');
+        } else {
+            $pdf->SetX(0.6);
+            $pdf->SetFont('Arial', 'IB', 11);
+            $pdf->Cell(8, 0.4, $terbilangText . ' Rupiah.', 0, 0, 'L');
+
+            $pdf->SetFont('Arial', 'B', 9);
+            $pdf->Cell(9.8, 0.4, 'Total Pembayaran : ', 0, 0, 'R');
+            $pdf->Cell(2, 0.4, $subtotal, 0, 1, 'R');
+        }
+
+        $pdf->Ln(0.4);
+        $pdf->SetX(0.6);
+        $pdf->SetFont('Arial', '', 9);
+        $pdf->Cell(10, 0.4, 'Catatan/Ketentuan :', 'LTR', 0, 'C');
+        $pdf->Cell(5, 0.4, 'Penerima', 0, 0, 'C');
+        $pdf->Cell(5, 0.4, 'Apoteker', 0, 0, 'C');
+
+        $pdf->Ln(0.4);
+        $pdf->SetX(0.6);
+        $pdf->SetFont('Arial', '', 9);
+        $pdf->Cell(2, 0.4, 'Pembayaran', 'L', 0, 'L');
+        $pdf->Cell(0.3, 0.4, ':', 0, 0, 'L');
+        $pdf->Cell(7.7, 0.4, 'Cash On Delivery', 'R', 1, 'L');
+
+        $pdf->Ln(0.1);
+        $pdf->SetX(0.6);
+        $pdf->SetFont('Arial', '', 9);
+        $pdf->Cell(2, 0.1, '', 'L', 0, 'L');
+        $pdf->Cell(0.3, 0.1, '', 0, 0, 'L');
+        $pdf->Cell(7.7, 0.1, '', 'R', 1, 'L');
+
+        $pdf->Ln(0.1);
+        $pdf->SetX(0.6);
+        $pdf->SetFont('Arial', '', 9);
+        $pdf->Cell(10, 0.1, '', 'LBR', 0, 'L');
+        $pdf->Cell(10, 0.1, '', 0, 1, 'L');
+
+        $pdf->Ln(0.1);
+        $pdf->SetX(0.6);
+        $pdf->SetFont('Arial', '', 9);
+        $pdf->Cell(10, 0.3, '', 0, 0, 'L');
+        $pdf->Cell(5, 0.3, '( ____________________ )', 0, 0, 'C');
+
+        $apjText = mb_substr((string) ($rh->empat ?? ''), 0, 31);
+        $pdf->SetFont('Arial', 'U', 9);
+        $pdf->Cell(5, 0.3, $apjText, '', 1, 'C');
+
+        $pdf->Ln(0.1);
+        $pdf->SetX(0.6);
+        $pdf->SetFont('Arial', '', 7);
+        $pdf->Cell(15, 0.3, '', 0, 0, 'L');
+        $pdf->Cell(5, 0.3, (string) ($rh->tujuh ?? ''), 0, 1, 'C');
+
+        return $pdf;
+    }
+
+    /**
+     * Etiket obat (label 70x38mm untuk pasien), mengikuti mod_etiket/etiket.php --
+     * halaman HTML/CSS browser-print biasa (BUKAN FPDF, beda dari struk/kwitansi/invoice
+     * -- legacy sendiri juga sudah begitu untuk etiket). Aturan pakai/dosis SENGAJA input
+     * manual per cetak (bukan dibaca dari trkasir_detail) -- persis legacy, karena resep
+     * per baris keranjang tidak menyimpan field dosis terstruktur sama sekali.
+     */
+    public function etiket(Request $request, Trkasir $trkasir)
+    {
+        $jumlahEtiket = (int) $request->query('jumlah_etiket', 1);
+        $jumlahEtiket = max(1, min(200, $jumlahEtiket));
+
+        return view('inventory.trkasir.etiket', [
+            'trkasir' => $trkasir,
+            'setheader' => Setheader::first(),
+            'aturanDosis' => (string) $request->query('aturan_dosis', ''),
+            'aturanKali' => (string) $request->query('aturan_kali', ''),
+            'obatLuar' => $request->boolean('obat_luar'),
+            'jumlahEtiket' => $jumlahEtiket,
+        ]);
+    }
+
+    /**
+     * Path FILESYSTEM lokal ke logo (bukan URL -- FPDF butuh path fisik untuk Image()),
+     * versi Setheader::getLogoUrlAttribute() ini juga membedakan file baru (diunggah
+     * lewat form Header Struk Laravel, ada '/') vs nama file polos peninggalan legacy.
+     * null kalau kolomnya kosong ATAU filenya ternyata tidak ada di disk (mis. kwitansi's
+     * tandatangan yang sudah dikonfirmasi jadi dead link di produksi -- lihat catatan
+     * modul ini) -- supaya FPDF::Image() tidak fatal error, logo cukup dilewati.
+     */
+    private function logoFilePath(?Setheader $rh): ?string
+    {
+        $logo = $rh->logo ?? null;
+        if (!$logo) {
+            return null;
+        }
+
+        $path = str_contains($logo, '/')
+            ? storage_path('app/public/' . $logo)
+            : public_path('apotekberlian/masuk/images/' . $logo);
+
+        return is_file($path) ? $path : null;
+    }
+
+    /**
+     * Port langsung dari teks()/terbilang() di configurasi/fungsi_rupiah.php (angka ke
+     * teks terbilang Bahasa Indonesia), dipakai kwitansi & invoice.
+     */
+    private function teksAngka(float $nilai): string
+    {
+        $nilai = abs($nilai);
+        $huruf = ['', 'Satu', 'Dua', 'Tiga', 'Empat', 'Lima', 'Enam', 'Tujuh', 'Delapan', 'Sembilan', 'Sepuluh', 'Sebelas'];
+        $temp = '';
+
+        if ($nilai < 12) {
+            $temp = ' ' . $huruf[(int) $nilai];
+        } elseif ($nilai < 20) {
+            $temp = $this->teksAngka($nilai - 10) . ' Belas';
+        } elseif ($nilai < 100) {
+            $temp = $this->teksAngka($nilai / 10) . ' Puluh' . $this->teksAngka((float) ((int) $nilai % 10));
+        } elseif ($nilai < 200) {
+            $temp = ' Seratus' . $this->teksAngka($nilai - 100);
+        } elseif ($nilai < 1000) {
+            $temp = $this->teksAngka($nilai / 100) . ' Ratus' . $this->teksAngka((float) ((int) $nilai % 100));
+        } elseif ($nilai < 2000) {
+            $temp = ' Seribu' . $this->teksAngka($nilai - 1000);
+        } elseif ($nilai < 1000000) {
+            $temp = $this->teksAngka($nilai / 1000) . ' Ribu' . $this->teksAngka((float) ((int) $nilai % 1000));
+        } elseif ($nilai < 1000000000) {
+            $temp = $this->teksAngka($nilai / 1000000) . ' Juta' . $this->teksAngka((float) ((int) $nilai % 1000000));
+        } elseif ($nilai < 1000000000000) {
+            $temp = $this->teksAngka($nilai / 1000000000) . ' Milyar' . $this->teksAngka(fmod($nilai, 1000000000));
+        } elseif ($nilai < 1000000000000000) {
+            $temp = $this->teksAngka($nilai / 1000000000000) . ' Trilyun' . $this->teksAngka(fmod($nilai, 1000000000000));
+        }
+
+        return $temp;
+    }
+
+    private function terbilang(float $nilai): string
+    {
+        return $nilai < 0 ? 'minus ' . trim($this->teksAngka($nilai)) : trim($this->teksAngka($nilai));
     }
 
     // ==================== PENCARIAN/PEMILIHAN BARANG, BUNDLE, MEMBER ====================
