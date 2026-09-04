@@ -103,6 +103,7 @@
             'byrkredit' => 'inventory.byrkredit.',
             'shiftkerja' => 'inventory.shiftkerja.',
             'cekdarah' => 'inventory.cekdarah.',
+            'tpk' => 'inventory.trkasir.',
         ];
 
         $activeModule = 'home';
@@ -367,6 +368,22 @@
             });
         }
     </script>
+
+    @if (request()->routeIs('inventory.trkasir.*'))
+        {{-- Modul Penjualan/Kasir butuh lebar layar penuh (banyak kolom form/tabel) --
+             sidebar otomatis diciutkan begitu modul ini dibuka, meniru persis apa yang
+             dilakukan klik tombol collapse (.desktop-toggle) di app.min.js (Core.headerNav()),
+             tapi pakai addClass (bukan toggleClass) supaya hasilnya selalu ciut terlepas dari
+             state sebelumnya. Halaman modul lain tidak terpengaruh -- ini bukan preferensi
+             tersimpan, murni per-kunjungan ke rute inventory.trkasir.*. --}}
+        <script>
+            $(function() {
+                $('.side-nav').addClass('nav-menu-collapse');
+                $('.header-nav').addClass('is-collapse');
+                $('.content').addClass('is-collapse');
+            });
+        </script>
+    @endif
 
     @stack('scripts')
 </body>

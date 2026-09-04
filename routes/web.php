@@ -39,6 +39,7 @@ use App\Http\Controllers\InventoryTrbmasukController;
 use App\Http\Controllers\InventoryTrbmasukPbfController;
 use App\Http\Controllers\InventoryByrkreditController;
 use App\Http\Controllers\InventoryShiftkerjaController;
+use App\Http\Controllers\InventoryTrkasirController;
 
 Route::get('/', function () {
     return redirect()->route('home-page');
@@ -541,5 +542,26 @@ Route::prefix('inventory')->middleware(['auth:admin', 'admin.active'])->name('in
         Route::get('/{waktuKerja}/laporan', [InventoryShiftkerjaController::class, 'laporan'])->name('laporan');
 
         Route::delete('/{waktuKerja}', [InventoryShiftkerjaController::class, 'destroy'])->name('destroy');
+    });
+
+    Route::prefix('trkasir')->middleware('inventory.module:tpk')->name('trkasir.')->group(function () {
+        Route::get('/', [InventoryTrkasirController::class, 'index'])->name('index');
+        Route::get('/data', [InventoryTrkasirController::class, 'data'])->name('data');
+        Route::get('/create', [InventoryTrkasirController::class, 'create'])->name('create');
+        Route::post('/', [InventoryTrkasirController::class, 'store'])->name('store');
+        Route::get('/{trkasir}/struk', [InventoryTrkasirController::class, 'struk'])->name('struk');
+
+        Route::get('/detail', [InventoryTrkasirController::class, 'detailIndex'])->name('detail.index');
+        Route::post('/detail', [InventoryTrkasirController::class, 'detailStore'])->name('detail.store');
+        Route::put('/detail/{detail}/qty', [InventoryTrkasirController::class, 'detailUpdateQty'])->name('detail.update-qty');
+        Route::delete('/detail/{detail}', [InventoryTrkasirController::class, 'detailDestroy'])->name('detail.destroy');
+
+        Route::post('/item-search', [InventoryTrkasirController::class, 'itemSearch'])->name('item-search');
+        Route::post('/item-resolve', [InventoryTrkasirController::class, 'itemResolve'])->name('item-resolve');
+        Route::get('/item-picker', [InventoryTrkasirController::class, 'itemPicker'])->name('item-picker');
+        Route::get('/bundle-picker', [InventoryTrkasirController::class, 'bundlePicker'])->name('bundle-picker');
+        Route::post('/bundle-resolve', [InventoryTrkasirController::class, 'bundleResolve'])->name('bundle-resolve');
+        Route::get('/batch-picker', [InventoryTrkasirController::class, 'batchPicker'])->name('batch-picker');
+        Route::get('/pelanggan-picker', [InventoryTrkasirController::class, 'pelangganPicker'])->name('pelanggan-picker');
     });
 });
