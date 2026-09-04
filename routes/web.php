@@ -39,6 +39,7 @@ use App\Http\Controllers\InventoryTrbmasukController;
 use App\Http\Controllers\InventoryTrbmasukPbfController;
 use App\Http\Controllers\InventoryByrkreditController;
 use App\Http\Controllers\InventoryShiftkerjaController;
+use App\Http\Controllers\InventoryPenjualansebelumController;
 use App\Http\Controllers\InventoryTrkasirController;
 
 Route::get('/', function () {
@@ -553,6 +554,39 @@ Route::prefix('inventory')->middleware(['auth:admin', 'admin.active'])->name('in
         Route::get('/{trkasir}/kwitansi', [InventoryTrkasirController::class, 'kwitansi'])->name('kwitansi');
         Route::get('/{trkasir}/invoice', [InventoryTrkasirController::class, 'invoice'])->name('invoice');
         Route::get('/{trkasir}/etiket', [InventoryTrkasirController::class, 'etiket'])->name('etiket');
+        Route::get('/{trkasir}/edit', [InventoryTrkasirController::class, 'edit'])->name('edit');
+        Route::put('/{trkasir}', [InventoryTrkasirController::class, 'update'])->name('update');
+        Route::delete('/{trkasir}', [InventoryTrkasirController::class, 'destroy'])->name('destroy');
+
+        Route::get('/detail', [InventoryTrkasirController::class, 'detailIndex'])->name('detail.index');
+        Route::post('/detail', [InventoryTrkasirController::class, 'detailStore'])->name('detail.store');
+        Route::put('/detail/{detail}/qty', [InventoryTrkasirController::class, 'detailUpdateQty'])->name('detail.update-qty');
+        Route::delete('/detail/{detail}', [InventoryTrkasirController::class, 'detailDestroy'])->name('detail.destroy');
+
+        Route::post('/item-search', [InventoryTrkasirController::class, 'itemSearch'])->name('item-search');
+        Route::post('/item-resolve', [InventoryTrkasirController::class, 'itemResolve'])->name('item-resolve');
+        Route::get('/item-picker', [InventoryTrkasirController::class, 'itemPicker'])->name('item-picker');
+        Route::get('/bundle-picker', [InventoryTrkasirController::class, 'bundlePicker'])->name('bundle-picker');
+        Route::post('/bundle-resolve', [InventoryTrkasirController::class, 'bundleResolve'])->name('bundle-resolve');
+        Route::get('/batch-picker', [InventoryTrkasirController::class, 'batchPicker'])->name('batch-picker');
+        Route::get('/pelanggan-picker', [InventoryTrkasirController::class, 'pelangganPicker'])->name('pelanggan-picker');
+    });
+
+    // "Edit/Retur/Hapus Penjualan" (module=penjualansebelumnya) -- satu-satunya beda nyata
+    // dari modul Penjualan/Kasir utama di atas adalah rentang tanggal yang ditampilkan
+    // (kemarin s.d. 360 hari lalu) dan gerbang izinnya. Daftar/data() ada di
+    // InventoryPenjualansebelumController; edit/update/destroy/cetak DAN semua endpoint
+    // pendukung layar edit memakai ULANG method InventoryTrkasirController yang sama
+    // persis (lihat catatan $routePrefix di InventoryTrkasirController::edit()), hanya
+    // digerbang flag 'penjualansebelum' di sini -- bukan 'tpk'. Etiket sengaja tidak
+    // dialiaskan (legacy sendiri tidak menyediakannya di modul ini).
+    Route::prefix('penjualansebelum')->middleware('inventory.module:penjualansebelum')->name('penjualansebelum.')->group(function () {
+        Route::get('/', [InventoryPenjualansebelumController::class, 'index'])->name('index');
+        Route::get('/data', [InventoryPenjualansebelumController::class, 'data'])->name('data');
+
+        Route::get('/{trkasir}/struk', [InventoryTrkasirController::class, 'struk'])->name('struk');
+        Route::get('/{trkasir}/kwitansi', [InventoryTrkasirController::class, 'kwitansi'])->name('kwitansi');
+        Route::get('/{trkasir}/invoice', [InventoryTrkasirController::class, 'invoice'])->name('invoice');
         Route::get('/{trkasir}/edit', [InventoryTrkasirController::class, 'edit'])->name('edit');
         Route::put('/{trkasir}', [InventoryTrkasirController::class, 'update'])->name('update');
         Route::delete('/{trkasir}', [InventoryTrkasirController::class, 'destroy'])->name('destroy');

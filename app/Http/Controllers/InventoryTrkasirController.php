@@ -667,6 +667,17 @@ class InventoryTrkasirController extends Controller
      * yang login (tidak ada cek $_SESSION['level'] sama sekali di sana), jadi staf non-
      * pemilik yang tahu URL-nya tetap bisa mengubah transaksi manapun. Di sini ditegakkan
      * juga di server, konsisten dengan HAPUS (yang di legacy memang sudah dicek pemilik).
+     *
+     * Dipakai dari DUA gerbang berbeda (persis pola byrkredit -> InventoryTrbmasukController):
+     * langsung lewat modul Penjualan/Kasir sendiri (route inventory.trkasir.*, flag 'tpk')
+     * ATAU lewat modul "Edit/Retur/Hapus Penjualan" (route inventory.penjualansebelum.*,
+     * flag 'penjualansebelum' -- lihat InventoryPenjualansebelumController) -- staf yang
+     * hanya diberi salah satu flag tetap harus bisa memakai layar edit ini sepenuhnya
+     * (termasuk semua AJAX-nya: item/bundle/batch/pelanggan picker, tambah/hapus/ubah-qty
+     * baris), bukan cuma membuka halamannya lalu 403 begitu mencoba menambah item. $routePrefix
+     * dideteksi dari nama rute yang benar-benar dipakai untuk mencapai method ini, dan
+     * dikirim ke view supaya SEMUA pemanggilan route() di dalamnya (termasuk yang punya
+     * parameter dinamis seperti detail.update-qty/detail.destroy) ikut ke gerbang yang sama.
      */
     public function edit(Trkasir $trkasir)
     {
@@ -679,6 +690,7 @@ class InventoryTrkasirController extends Controller
             'admin' => $admin,
             'petugasList' => Admin::where('id_admin', '!=', $admin->id_admin)->orderBy('nama_lengkap')->get(['id_admin', 'nama_lengkap']),
             'carabayarList' => CaraBayar::orderBy('urutan')->get(),
+            'routePrefix' => $this->resolveRoutePrefix(),
         ]);
     }
 
@@ -1827,6 +1839,19 @@ class InventoryTrkasirController extends Controller
         abort_if(!$petugas, 422, 'Petugas pelayanan tidak ditemukan.');
 
         return $petugas;
+    }
+
+    /**
+     * "inventory.trkasir." atau "inventory.penjualansebelum." tergantung rute mana yang
+     * benar-benar dipakai untuk mencapai edit() -- lihat catatan di edit().
+     */
+    private function resolveRoutePrefix(): string
+    {
+        $routeName = request()->route()?->getName() ?? '';
+
+        return str_starts_with($routeName, 'inventory.penjualansebelum.')
+            ? 'inventory.penjualansebelum.'
+            : 'inventory.trkasir.';
     }
 
     private function resolveKdtk(int $idAdmin): string

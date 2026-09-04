@@ -42,6 +42,13 @@ class InventoryController extends Controller
         'trbmasukpbf' => 'inventory.trbmasukpbf.index',
         'byrkredit' => 'inventory.byrkredit.index',
         'shiftkerja' => 'inventory.shiftkerja.index',
+        'trkasir' => 'inventory.trkasir.index',
+        // Nilai ?module= legacy untuk modul ini genap "penjualansebelumnya" (dengan
+        // akhiran "nya") -- BEDA dari nama kolom flag admin-nya sendiri, 'penjualansebelum'
+        // (tanpa akhiran) -- inkonsistensi yang sama persis ada di legacy sendiri
+        // (bandingkan admin.penjualansebelum di database vs href="?module=penjualansebelumnya"
+        // di media_admin.php), bukan salah ketik di port ini.
+        'penjualansebelumnya' => 'inventory.penjualansebelum.index',
     ];
 
     /**

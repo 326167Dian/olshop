@@ -132,7 +132,7 @@
 
             <div class="mt-3">
                 <button type="button" class="btn btn-primary" id="btnSimpanPerubahan">Simpan Perubahan</button>
-                <a href="{{ route('inventory.trkasir.index') }}" class="btn btn-secondary">Batal</a>
+                <a href="{{ route($routePrefix . 'index') }}" class="btn btn-secondary">Batal</a>
             </div>
         </div>
     </div>
@@ -263,8 +263,16 @@
         id_carabayar: {{ (int) ($trkasir->id_carabayar ?? 0) }},
     };
 
+    // Rute dinamis (butuh id baris saat runtime) dibangun dari template dengan placeholder
+    // "DETAIL_ID" yang diganti nanti -- supaya tetap ikut $routePrefix (bisa
+    // inventory.trkasir.* ATAU inventory.penjualansebelum.* tergantung dari mana layar
+    // ini dibuka, lihat catatan di InventoryTrkasirController::edit()) tanpa menebak-nebak
+    // bentuk URL secara manual.
+    var detailQtyUrlTemplate = "{{ route($routePrefix . 'detail.update-qty', ['detail' => 'DETAIL_ID']) }}";
+    var detailDestroyUrlTemplate = "{{ route($routePrefix . 'detail.destroy', ['detail' => 'DETAIL_ID']) }}";
+
     function loadTabelDetail() {
-        fetch("{{ route('inventory.trkasir.detail.index') }}?kd_trkasir=" + encodeURIComponent(kdTrkasir()), { cache: 'no-store' })
+        fetch("{{ route($routePrefix . 'detail.index') }}?kd_trkasir=" + encodeURIComponent(kdTrkasir()), { cache: 'no-store' })
             .then(function(res) { return res.text(); })
             .then(function(html) {
                 document.getElementById('tabeldata').innerHTML = html;
@@ -307,7 +315,7 @@
     document.getElementById('modalItem').addEventListener('show.bs.modal', function() {
         if (itemPickerTable) { itemPickerTable.destroy(); $('#tabel-item-picker').empty(); }
         itemPickerTable = $('#tabel-item-picker').DataTable({
-            processing: true, serverSide: true, ajax: "{{ route('inventory.trkasir.item-picker') }}",
+            processing: true, serverSide: true, ajax: "{{ route($routePrefix . 'item-picker') }}",
             columns: [
                 { data: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'kd_barang' }, { data: 'nm_barang' },
@@ -322,7 +330,7 @@
     document.getElementById('tabBundleLink').addEventListener('shown.bs.tab', function() {
         if (bundlePickerTable) { bundlePickerTable.destroy(); $('#tabel-bundle-picker').empty(); }
         bundlePickerTable = $('#tabel-bundle-picker').DataTable({
-            processing: true, serverSide: true, ajax: "{{ route('inventory.trkasir.bundle-picker') }}",
+            processing: true, serverSide: true, ajax: "{{ route($routePrefix . 'bundle-picker') }}",
             columns: [
                 { data: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'kd_bundle' }, { data: 'nm_bundle' },
@@ -365,7 +373,7 @@
         if (batchPickerTable) { batchPickerTable.destroy(); $('#tabel-batch-picker').empty(); }
         batchPickerTable = $('#tabel-batch-picker').DataTable({
             processing: true, serverSide: true,
-            ajax: "{{ route('inventory.trkasir.batch-picker') }}?kd_barang=" + encodeURIComponent(kdBarang),
+            ajax: "{{ route($routePrefix . 'batch-picker') }}?kd_barang=" + encodeURIComponent(kdBarang),
             columns: [
                 { data: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'no_batch' }, { data: 'exp_date', className: 'text-center' },
@@ -386,7 +394,7 @@
         var form = new FormData();
         form.append('nm_barang', nama);
         form.append('jenistx', document.getElementById('jenistx').value);
-        fetch("{{ route('inventory.trkasir.item-resolve') }}", { method: 'POST', headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }, body: form })
+        fetch("{{ route($routePrefix . 'item-resolve') }}", { method: 'POST', headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }, body: form })
             .then(function(res) { return res.json(); })
             .then(function(d) { if (d.id_barang) fillItemForm(d); else alert(d.message || 'Barang tidak ditemukan'); });
     }
@@ -394,14 +402,14 @@
         var form = new FormData();
         form.append('kd_barang', kode);
         form.append('jenistx', document.getElementById('jenistx').value);
-        fetch("{{ route('inventory.trkasir.item-resolve') }}", { method: 'POST', headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }, body: form })
+        fetch("{{ route($routePrefix . 'item-resolve') }}", { method: 'POST', headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }, body: form })
             .then(function(res) { return res.json(); })
             .then(function(d) { if (d.id_barang) { document.getElementById('is_bundle').value = '0'; fillItemForm(d); } else alert(d.message || 'Barang tidak ditemukan'); });
     }
     function resolveBundle(kode) {
         var form = new FormData();
         form.append('kd_bundle', kode);
-        fetch("{{ route('inventory.trkasir.bundle-resolve') }}", { method: 'POST', headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }, body: form })
+        fetch("{{ route($routePrefix . 'bundle-resolve') }}", { method: 'POST', headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }, body: form })
             .then(function(res) { return res.json(); })
             .then(function(d) { if (d.kd_barang) fillItemForm(d); else alert(d.message || 'Bundle tidak ditemukan'); });
     }
@@ -420,7 +428,7 @@
         searchDelay = setTimeout(function() {
             var form = new FormData();
             form.append('query', keyword);
-            fetch("{{ route('inventory.trkasir.item-search') }}", { method: 'POST', headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }, body: form })
+            fetch("{{ route($routePrefix . 'item-search') }}", { method: 'POST', headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }, body: form })
                 .then(function(res) { return res.json(); })
                 .then(function(data) {
                     panel.innerHTML = '';
@@ -467,7 +475,7 @@
         form.append('id_user', document.getElementById('id_user').value || '');
         form.append('id_admin', idAdmin());
 
-        fetch("{{ route('inventory.trkasir.detail.store') }}", { method: 'POST', headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }, body: form })
+        fetch("{{ route($routePrefix . 'detail.store') }}", { method: 'POST', headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }, body: form })
             .then(function(res) { return res.json().then(function(d) { return { ok: res.ok, d: d }; }); })
             .then(function(r) {
                 if (!r.ok) { alert(r.d.message || 'Gagal menambah item.'); return; }
@@ -498,7 +506,7 @@
         var resep = tr.querySelector('.inline-resep').value;
         if (!qty || parseFloat(qty) <= 0) return;
 
-        fetch("{{ url('inventory/trkasir/detail') }}/" + id + "/qty", {
+        fetch(detailQtyUrlTemplate.replace('DETAIL_ID', id), {
                 method: 'PUT',
                 headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Content-Type': 'application/json', 'Accept': 'application/json' },
                 body: JSON.stringify({ qty_dtrkasir: qty, resep: resep, id_admin: idAdmin() }),
@@ -511,7 +519,7 @@
         if (!e.target.classList.contains('btn-hapus-detail')) return;
         if (!confirm('Hapus item ini dari keranjang?')) return;
         var id = e.target.closest('tr').getAttribute('data-id');
-        fetch("{{ url('inventory/trkasir/detail') }}/" + id + "?id_admin=" + encodeURIComponent(idAdmin()), {
+        fetch(detailDestroyUrlTemplate.replace('DETAIL_ID', id) + "?id_admin=" + encodeURIComponent(idAdmin()), {
                 method: 'DELETE',
                 headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
             })
@@ -522,7 +530,7 @@
     document.getElementById('modalPelanggan').addEventListener('show.bs.modal', function() {
         if (pelangganPickerTable) { pelangganPickerTable.destroy(); $('#tabel-pelanggan-picker').empty(); }
         pelangganPickerTable = $('#tabel-pelanggan-picker').DataTable({
-            processing: true, serverSide: true, ajax: "{{ route('inventory.trkasir.pelanggan-picker') }}",
+            processing: true, serverSide: true, ajax: "{{ route($routePrefix . 'pelanggan-picker') }}",
             columns: [
                 { data: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'nm_pelanggan' }, { data: 'tlp_pelanggan' }, { data: 'alamat_pelanggan' },
@@ -566,11 +574,11 @@
         form.append('diskon2', parseAngka(document.getElementById('diskon2').value));
         form.append('dp_bayar', parseAngka(document.getElementById('dp_bayar').value));
 
-        fetch("{{ route('inventory.trkasir.update', $trkasir) }}", { method: 'POST', headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }, body: form })
+        fetch("{{ route($routePrefix . 'update', $trkasir) }}", { method: 'POST', headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }, body: form })
             .then(function(res) { return res.json().then(function(d) { return { ok: res.ok, d: d }; }).catch(function() { return { ok: res.ok, d: {} }; }); })
             .then(function(r) {
                 if (!r.ok) { alert((r.d && r.d.message) || 'Proses gagal, periksa kembali data yang diisi.'); return; }
-                window.location = "{{ route('inventory.trkasir.index') }}";
+                window.location = "{{ route($routePrefix . 'index') }}";
             });
     }
     document.getElementById('btnSimpanPerubahan').addEventListener('click', simpanPerubahan);

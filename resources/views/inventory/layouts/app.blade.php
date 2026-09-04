@@ -104,6 +104,7 @@
             'shiftkerja' => 'inventory.shiftkerja.',
             'cekdarah' => 'inventory.cekdarah.',
             'tpk' => 'inventory.trkasir.',
+            'penjualansebelum' => 'inventory.penjualansebelum.',
         ];
 
         $activeModule = 'home';
@@ -369,13 +370,16 @@
         }
     </script>
 
-    @if (request()->routeIs('inventory.trkasir.*'))
+    @if (request()->routeIs('inventory.trkasir.*') || request()->routeIs('inventory.penjualansebelum.*'))
         {{-- Modul Penjualan/Kasir butuh lebar layar penuh (banyak kolom form/tabel) --
              sidebar otomatis diciutkan begitu modul ini dibuka, meniru persis apa yang
              dilakukan klik tombol collapse (.desktop-toggle) di app.min.js (Core.headerNav()),
              tapi pakai addClass (bukan toggleClass) supaya hasilnya selalu ciut terlepas dari
              state sebelumnya. Halaman modul lain tidak terpengaruh -- ini bukan preferensi
-             tersimpan, murni per-kunjungan ke rute inventory.trkasir.*. --}}
+             tersimpan, murni per-kunjungan ke rute inventory.trkasir.* ATAU
+             inventory.penjualansebelum.* (layar edit.blade.php yang sama, dipakai bersama
+             lewat dua gerbang -- lihat catatan $routePrefix di
+             InventoryTrkasirController::edit()). --}}
         <script>
             $(function() {
                 $('.side-nav').addClass('nav-menu-collapse');
