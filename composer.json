@@ -13,6 +13,7 @@
         "laravel/socialite": "^5.21",
         "laravel/tinker": "^2.10.1",
         "midtrans/midtrans-php": "^2.6",
+        "setasign/fpdf": "^1.9",
         "yajra/laravel-datatables-oracle": "12.x-dev"
     },
     "require-dev": {

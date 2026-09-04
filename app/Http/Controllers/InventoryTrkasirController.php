@@ -643,15 +643,264 @@ class InventoryTrkasirController extends Controller
         return [$poinAwal, $tambahanPoin];
     }
 
+    /**
+     * Cetak struk (FPDF, bukan HTML/CSS browser-print seperti halaman cetak lain di port
+     * ini) -- mengikuti public/apotekberlian/masuk/modul/mod_laporan/struk.php SEDEKAT
+     * mungkin (koordinat/ukuran cm, kertas thermal tinggi dinamis, pengelompokan baris
+     * bundle jadi satu baris per kd_bundle, baris resep digabung jadi satu baris "Resep
+     * <kd_trkasir>"), atas permintaan pengguna 2026-09-04 supaya lebih mudah didesain
+     * ulang lewat kode FPDF yang sudah familiar dari aplikasi lama. Berlaku untuk struk
+     * ini SAJA -- halaman cetak lain di seluruh port tetap HTML/CSS `@page` + tombol
+     * Cetak browser, tidak diretrofit.
+     */
     public function struk(Trkasir $trkasir)
     {
         $trkasir->load('detail');
+        $setheader = Setheader::first();
+        $carabayar = CaraBayar::find($trkasir->id_carabayar);
+        $pelanggan = $trkasir->id_pelanggan ? Pelanggan::find($trkasir->id_pelanggan) : null;
 
-        return view('inventory.trkasir.struk', [
-            'trkasir' => $trkasir,
-            'setheader' => Setheader::first(),
-            'carabayar' => CaraBayar::find($trkasir->id_carabayar),
+        $pdf = $this->buildStrukPdf($trkasir, $setheader, $carabayar, $pelanggan);
+
+        return response($pdf->Output('S'), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="struk-' . $trkasir->kd_trkasir . '.pdf"',
         ]);
+    }
+
+    private function buildStrukPdf(Trkasir $trkasir, ?Setheader $rh, ?CaraBayar $carabayar, ?Pelanggan $pelanggan): \FPDF
+    {
+        $detailRows = $trkasir->detail()->orderBy('id_dtrkasir')->get();
+
+        // Susun baris cetak: bundle digabung jadi satu baris per kd_bundle, baris resep
+        // (resep='YA') dikumpulkan jadi satu baris "Resep <kd_trkasir>" -- persis pola
+        // legacy struk.php.
+        $printRows = [];
+        $bundleMap = [];
+        $totalResep = 0;
+        $adaResep = false;
+
+        foreach ($detailRows as $row) {
+            if (strtoupper((string) $row->resep) === 'YA') {
+                $adaResep = true;
+                $totalResep += (float) $row->hrgttl_dtrkasir;
+                continue;
+            }
+
+            $kdBundle = trim((string) $row->kd_bundle);
+            $nmBundle = trim((string) $row->nm_bundle);
+
+            if ($kdBundle !== '' && $nmBundle !== '') {
+                if (!isset($bundleMap[$kdBundle])) {
+                    $bundleMap[$kdBundle] = ['nm' => $nmBundle, 'qty' => 1, 'harga' => 0, 'disc' => '-', 'jumlah' => 0, 'sat' => ''];
+                }
+                $bundleMap[$kdBundle]['harga'] += (float) $row->hrgttl_dtrkasir;
+                $bundleMap[$kdBundle]['jumlah'] += (float) $row->hrgttl_dtrkasir;
+                continue;
+            }
+
+            $printRows[] = [
+                'nm' => $row->nmbrg_dtrkasir,
+                'qty' => $row->qty_dtrkasir,
+                'sat' => $row->sat_dtrkasir,
+                'harga' => $row->hrgjual_dtrkasir,
+                'disc' => $row->disc,
+                'jumlah' => $row->hrgttl_dtrkasir,
+            ];
+        }
+        foreach ($bundleMap as $bundleRow) {
+            $printRows[] = $bundleRow;
+        }
+
+        // Tinggi kertas thermal dihitung dinamis dari jumlah baris + wrap nama barang.
+        $ukuran1 = 20.7;
+        $tambahUkuran = 0;
+        foreach ($printRows as $row) {
+            $wrapped = $this->wrapReceiptText($row['nm'], 32);
+            $lineCount = max(1, substr_count($wrapped, "\n") + 1);
+            $tambahUkuran += ($lineCount * 0.24) + 0.52;
+        }
+        if ($adaResep) {
+            $tambahUkuran += 0.6;
+        }
+        $tinggiKertas = $ukuran1 + $tambahUkuran;
+
+        $pdf = new \FPDF('P', 'cm', [$tinggiKertas, 5.2]);
+        $pdf->SetMargins(0.2, -1, 0.2);
+        $pdf->AliasNbPages();
+        $pdf->AddPage();
+
+        $pdf->Line(0.2, 2.9, 4.8, 2.9);
+        $pdf->Line(0.2, 4.9, 4.8, 4.9);
+
+        $satu = (string) ($rh->satu ?? '');
+        $text = mb_substr($satu, 7);
+
+        $pdf->Ln(1.3);
+        $pdf->SetFont('Arial', 'B', 10);
+        $pdf->Cell(5, 0.4, 'APOTEK', 0, 1, 'C');
+        $pdf->Cell(5, 0.4, $text, 0, 1, 'C');
+        $pdf->SetFont('Arial', 'B', 8);
+        $pdf->Cell(5, 0.4, (string) ($rh->dua ?? ''), 0, 1, 'C');
+        $pdf->Cell(5, 0.4, (string) ($rh->tiga ?? ''), 0, 1, 'C');
+        $pdf->Cell(5, 0.3, (string) ($rh->empat ?? ''), 0, 1, 'C');
+        $pdf->Cell(5, 0.3, 'SIA : ' . ($rh->lima ?? ''), 0, 1, 'C');
+        $pdf->Cell(5, 0.3, 'Telp : ' . ($rh->enam ?? ''), 0, 1, 'C');
+        $pdf->Cell(5, 0.5, '', 0, 1, 'C');
+
+        $pdf->Ln(0.2);
+        $pdf->SetX(0.2);
+        $pdf->SetFont('Arial', 'B', 8);
+        $pdf->Cell(1.7, 0, 'No Nota', 0, 0, 'L');
+        $pdf->Cell(0.2, 0, ':', 0, 0, 'L');
+        $pdf->Cell(1.8, 0, $trkasir->kd_trkasir, 0, 0, 'L');
+
+        $pdf->Ln(0.4);
+        $pdf->SetX(0.2);
+        $pdf->Cell(1.7, 0, 'Tanggal', 0, 0, 'L');
+        $pdf->Cell(0.2, 0, ':', 0, 0, 'L');
+        $pdf->Cell(1.8, 0, $this->tglIndo((string) $trkasir->tgl_trkasir), 0, 0, 'L');
+
+        $pdf->Ln(0.4);
+        $pdf->SetX(0.2);
+        $pdf->Cell(1.7, 0, 'Pelanggan', 0, 0, 'L');
+        $pdf->Cell(0.2, 0, ':', 0, 0, 'L');
+        $pdf->Cell(1.8, 0, (string) $trkasir->nm_pelanggan, 0, 0, 'L');
+
+        $pdf->Ln(0.4);
+        $pdf->SetX(0.2);
+        $pdf->Cell(1.7, 0, 'No Telp/HP', 0, 0, 'L');
+        $pdf->Cell(0.2, 0, ':', 0, 0, 'L');
+        $pdf->Cell(1.8, 0, (string) $trkasir->tlp_pelanggan, 0, 0, 'L');
+
+        $pdf->Ln(0.3);
+        $pdf->SetX(0.2);
+        $pdf->Cell(1, 0.5, 'Item', 0, 0, 'L');
+        $pdf->Cell(0.7, 0.5, 'Qty', 0, 0, 'C');
+        $pdf->Cell(1, 0.5, 'Harga', 0, 0, 'R');
+        $pdf->Cell(1.2, 0.5, 'Disc(%)', 0, 0, 'R');
+        $pdf->Cell(0.7, 0.5, 'Jml', 0, 1, 'R');
+
+        foreach ($printRows as $pr) {
+            $pdf->SetX(0.2);
+            $pdf->MultiCell(4.6, 0.24, $this->wrapReceiptText($pr['nm'], 32), 0, 'L');
+
+            $pdf->SetX(0.2);
+            $pdf->Cell(1, 0.34, (string) $pr['qty'], 0, 0, 'R');
+            $pdf->Cell(0.7, 0.34, (string) $pr['sat'], 0, 0, 'C');
+            $pdf->Cell(1.1, 0.34, $this->formatRupiah($pr['harga']), 0, 0, 'R');
+            $discTampil = ($pr['disc'] === '-' || $pr['disc'] === '' || $pr['disc'] === null) ? '-' : $pr['disc'];
+            $pdf->Cell(0.7, 0.34, (string) $discTampil, 0, 0, 'R');
+            $pdf->Cell(1.1, 0.34, $this->formatRupiah($pr['jumlah']), 0, 1, 'R');
+            $pdf->Ln(0.12);
+        }
+
+        if ($adaResep) {
+            $pdf->SetX(0.2);
+            $pdf->Cell(5.7, 0.4, 'Resep ' . $trkasir->kd_trkasir, 0, 1, 'L');
+            $pdf->Cell(1, 0.4, '1', 0, 0, 'R');
+            $pdf->Cell(1, 0.4, '', 0, 0, 'C');
+            $pdf->Cell(1, 0.4, $this->formatRupiah($totalResep), 0, 0, 'R');
+            $pdf->Cell(1.5, 0.4, $this->formatRupiah($totalResep), 0, 1, 'R');
+            $pdf->Ln(0.1);
+        }
+
+        $subtotal = $detailRows->sum('hrgttl_dtrkasir');
+        $disc = $subtotal > 0 ? (($subtotal - $trkasir->ttl_trkasir) / $subtotal) * 100 : 0;
+        $discTampil = number_format($disc, 1, ',', '.') . '%';
+
+        $lineY = $pdf->GetY() + 0.06;
+        $pdf->Line(0.2, $lineY, 4.8, $lineY);
+        $pdf->SetY($lineY);
+
+        $pdf->Ln(0.25);
+        $pdf->SetX(0.2);
+        $pdf->SetFont('Arial', 'B', 8);
+        $pdf->Cell(2, 0.4, 'Met byr : ', 0, 0, 'L');
+        $pdf->Cell(1.5, 0.4, 'Sub Total : ', 0, 0, 'R');
+        $pdf->Cell(1.2, 0.4, $this->formatRupiah($subtotal), 0, 1, 'R');
+
+        $namaCarabayar = (string) ($carabayar->nm_carabayar ?? '');
+        $pdf->SetX(0.2);
+        $pdf->Cell(2, 0.4, $namaCarabayar, 0, 0, 'L');
+        $pdf->Cell(1.5, 0.4, 'Diskon : ', 0, 0, 'R');
+        $pdf->Cell(1.2, 0.4, $discTampil, 0, 1, 'R');
+
+        $pdf->SetX(0.2);
+        $pdf->Cell(3.5, 0.4, 'Total : ', 0, 0, 'R');
+        $pdf->Cell(1.2, 0.4, $this->formatRupiah($trkasir->ttl_trkasir), 0, 1, 'R');
+
+        $pdf->SetX(0.2);
+        $pdf->Cell(3.5, 0.4, 'Pembayaran Pasien : ', 0, 0, 'R');
+        $pdf->Cell(1.2, 0.4, $this->formatRupiah($trkasir->dp_bayar), 0, 1, 'R');
+
+        $pdf->SetX(0.2);
+        $pdf->Cell(3.5, 0.4, 'Kembalian : ', 0, 0, 'R');
+        $pdf->Cell(1.2, 0.4, $this->formatRupiah($trkasir->sisa_bayar), 0, 1, 'R');
+
+        $lineY2 = $pdf->GetY() + 0.08;
+        $pdf->Line(0.2, $lineY2, 4.8, $lineY2);
+        $pdf->SetY($lineY2);
+
+        $pdf->Ln(0.4);
+        if ($trkasir->poin_awal != 0) {
+            $totalPoin = $pelanggan->total_poin ?? 0;
+
+            $pdf->SetX(0.2);
+            $pdf->Cell(2, 0.4, 'Poin Awal : ', 0, 0, 'L');
+            $pdf->Cell(2.7, 0.4, $this->formatRupiah($trkasir->poin_awal), 0, 1, 'R');
+
+            $pdf->SetX(0.2);
+            $pdf->Cell(2, 0.4, 'Tambahan Poin : ', 0, 0, 'L');
+            $pdf->Cell(2.7, 0.4, $this->formatRupiah($trkasir->tambahan_poin), 0, 1, 'R');
+
+            $pdf->SetX(0.2);
+            $pdf->Cell(2, 0.4, 'Redeem Poin : ', 0, 0, 'L');
+            $pdf->Cell(2.7, 0.4, $this->formatRupiah($trkasir->redeem_poin * -1), 0, 1, 'R');
+
+            $pdf->SetX(0.2);
+            $pdf->Cell(2, 0.4, 'Sisa Poin : ', 0, 0, 'L');
+            $pdf->Cell(2.7, 0.4, $this->formatRupiah($totalPoin), 0, 1, 'R');
+        }
+
+        $pdf->Ln(0.6);
+        $pdf->SetFont('Arial', 'B', 8);
+        $pdf->Cell(4.6, 0.3, (string) ($rh->delapan ?? ''), 0, 1, 'C');
+        $pdf->MultiCell(4.6, 0.2, (string) ($rh->sembilan ?? ''), 0, 'C');
+        $pdf->Cell(4.6, 0.3, (string) ($rh->sepuluh ?? ''), 0, 1, 'C');
+        $pdf->Cell(4.6, 0.3, (string) ($rh->sebelas ?? ''), 0, 1, 'C');
+        $pdf->Cell(4.6, 0.3, 'Kasir : ' . $trkasir->petugas, 0, 1, 'C');
+
+        return $pdf;
+    }
+
+    private function wrapReceiptText(?string $text, int $maxChars = 30): string
+    {
+        $clean = trim((string) $text);
+        if ($clean === '') {
+            return '-';
+        }
+
+        return wordwrap($clean, $maxChars, "\n", true);
+    }
+
+    private function tglIndo(string $tanggal): string
+    {
+        $bulan = [
+            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April', 5 => 'Mei', 6 => 'Juni',
+            7 => 'Juli', 8 => 'Agustus', 9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember',
+        ];
+
+        return substr($tanggal, 8, 2) . ' ' . ($bulan[(int) substr($tanggal, 5, 2)] ?? '') . ' ' . substr($tanggal, 0, 4);
+    }
+
+    private function formatRupiah($angka): string
+    {
+        if ($angka === null || $angka === '') {
+            return '0';
+        }
+
+        return number_format((float) $angka, 0, ',', '.');
     }
 
     // ==================== PENCARIAN/PEMILIHAN BARANG, BUNDLE, MEMBER ====================
