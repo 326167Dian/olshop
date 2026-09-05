@@ -45,4 +45,9 @@ class Trkasir extends Model
     {
         return $this->hasMany(TrkasirDetail::class, 'kd_trkasir', 'kd_trkasir');
     }
+
+    public function caraBayar()
+    {
+        return $this->belongsTo(CaraBayar::class, 'id_carabayar', 'id_carabayar');
+    }
 }

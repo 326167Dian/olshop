@@ -107,6 +107,8 @@
             'penjualansebelum' => 'inventory.penjualansebelum.',
             'lpitem' => 'inventory.lpitem.',
             'lpbrgmasuk' => 'inventory.lpbrgmasuk.',
+            'lpkasir' => 'inventory.lpkasir.',
+            'labapenjualan' => 'inventory.labapenjualan.',
         ];
 
         $activeModule = 'home';

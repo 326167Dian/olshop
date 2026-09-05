@@ -41,6 +41,8 @@ use App\Http\Controllers\InventoryByrkreditController;
 use App\Http\Controllers\InventoryShiftkerjaController;
 use App\Http\Controllers\InventoryPenjualansebelumController;
 use App\Http\Controllers\InventoryTrkasirController;
+use App\Http\Controllers\InventoryLpkasirController;
+use App\Http\Controllers\InventoryLabapenjualanController;
 use App\Http\Controllers\InventoryLpitemController;
 use App\Http\Controllers\InventoryLpbrgmasukController;
 
@@ -626,5 +628,22 @@ Route::prefix('inventory')->middleware(['auth:admin', 'admin.active'])->name('in
         Route::get('/', [InventoryLpbrgmasukController::class, 'index'])->name('index');
         Route::get('/cetak', [InventoryLpbrgmasukController::class, 'cetak'])->name('cetak');
         Route::get('/excel', [InventoryLpbrgmasukController::class, 'excel'])->name('excel');
+    });
+
+    // Laporan > Penjualan (flag lpkasir) -- laporan baca-saja atas trkasir/trkasir_detail,
+    // terpisah dari modul transaksi Penjualan/Kasir (tpk).
+    Route::prefix('lpkasir')->middleware('inventory.module:lpkasir')->name('lpkasir.')->group(function () {
+        Route::get('/', [InventoryLpkasirController::class, 'index'])->name('index');
+        Route::get('/tampil', [InventoryLpkasirController::class, 'tampil'])->name('tampil');
+        Route::get('/excel', [InventoryLpkasirController::class, 'excel'])->name('excel');
+    });
+
+    // Laporan > Laba Penjualan (flag labapenjualan) -- laporan baca-saja atas
+    // trkasir/trkasir_detail, laba dibaca dari trkasir_detail.profit yang sudah
+    // dihitung saat barang ditambahkan ke keranjang di modul tpk.
+    Route::prefix('labapenjualan')->middleware('inventory.module:labapenjualan')->name('labapenjualan.')->group(function () {
+        Route::get('/', [InventoryLabapenjualanController::class, 'index'])->name('index');
+        Route::get('/cetak', [InventoryLabapenjualanController::class, 'cetak'])->name('cetak');
+        Route::get('/excel', [InventoryLabapenjualanController::class, 'excel'])->name('excel');
     });
 });
