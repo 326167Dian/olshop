@@ -53,6 +53,7 @@ class InventoryController extends Controller
         'lpbrgmasuk' => 'inventory.lpbrgmasuk.index',
         'lpkasir' => 'inventory.lpkasir.index',
         'labapenjualan' => 'inventory.labapenjualan.index',
+        'neraca' => 'inventory.neraca.index',
     ];
 
     /**

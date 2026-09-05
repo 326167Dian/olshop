@@ -43,6 +43,7 @@ use App\Http\Controllers\InventoryPenjualansebelumController;
 use App\Http\Controllers\InventoryTrkasirController;
 use App\Http\Controllers\InventoryLpkasirController;
 use App\Http\Controllers\InventoryLabapenjualanController;
+use App\Http\Controllers\InventoryNeracaController;
 use App\Http\Controllers\InventoryLpitemController;
 use App\Http\Controllers\InventoryLpbrgmasukController;
 
@@ -645,5 +646,12 @@ Route::prefix('inventory')->middleware(['auth:admin', 'admin.active'])->name('in
         Route::get('/', [InventoryLabapenjualanController::class, 'index'])->name('index');
         Route::get('/cetak', [InventoryLabapenjualanController::class, 'cetak'])->name('cetak');
         Route::get('/excel', [InventoryLabapenjualanController::class, 'excel'])->name('excel');
+    });
+
+    // Laporan > Neraca Laba Rugi (flag neraca) -- satu halaman, form + hasil inline
+    // (act=tes legacy) + cetak PDF (FPDF asli). Tidak ada export Excel di legacy.
+    Route::prefix('neraca')->middleware('inventory.module:neraca')->name('neraca.')->group(function () {
+        Route::get('/', [InventoryNeracaController::class, 'index'])->name('index');
+        Route::get('/cetak', [InventoryNeracaController::class, 'cetak'])->name('cetak');
     });
 });

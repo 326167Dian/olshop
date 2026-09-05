@@ -109,6 +109,7 @@
             'lpbrgmasuk' => 'inventory.lpbrgmasuk.',
             'lpkasir' => 'inventory.lpkasir.',
             'labapenjualan' => 'inventory.labapenjualan.',
+            'neraca' => 'inventory.neraca.',
         ];
 
         $activeModule = 'home';
