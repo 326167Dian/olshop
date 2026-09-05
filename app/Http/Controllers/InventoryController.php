@@ -49,6 +49,8 @@ class InventoryController extends Controller
         // (bandingkan admin.penjualansebelum di database vs href="?module=penjualansebelumnya"
         // di media_admin.php), bukan salah ketik di port ini.
         'penjualansebelumnya' => 'inventory.penjualansebelum.index',
+        'lpitem' => 'inventory.lpitem.index',
+        'lpbrgmasuk' => 'inventory.lpbrgmasuk.index',
     ];
 
     /**

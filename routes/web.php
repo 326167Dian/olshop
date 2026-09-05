@@ -41,6 +41,8 @@ use App\Http\Controllers\InventoryByrkreditController;
 use App\Http\Controllers\InventoryShiftkerjaController;
 use App\Http\Controllers\InventoryPenjualansebelumController;
 use App\Http\Controllers\InventoryTrkasirController;
+use App\Http\Controllers\InventoryLpitemController;
+use App\Http\Controllers\InventoryLpbrgmasukController;
 
 Route::get('/', function () {
     return redirect()->route('home-page');
@@ -608,5 +610,21 @@ Route::prefix('inventory')->middleware(['auth:admin', 'admin.active'])->name('in
         Route::post('/bundle-resolve', [InventoryTrkasirController::class, 'bundleResolve'])->name('bundle-resolve');
         Route::get('/batch-picker', [InventoryTrkasirController::class, 'batchPicker'])->name('batch-picker');
         Route::get('/pelanggan-picker', [InventoryTrkasirController::class, 'pelangganPicker'])->name('pelanggan-picker');
+    });
+
+    // Laporan > Item Barang (flag lpitem) -- laporan baca-saja atas tabel barang,
+    // terpisah dari modul CRUD Item Barang (mbarang).
+    Route::prefix('lpitem')->middleware('inventory.module:lpitem')->name('lpitem.')->group(function () {
+        Route::get('/', [InventoryLpitemController::class, 'index'])->name('index');
+        Route::get('/cetak', [InventoryLpitemController::class, 'cetak'])->name('cetak');
+        Route::get('/excel', [InventoryLpitemController::class, 'excel'])->name('excel');
+    });
+
+    // Laporan > Barang Masuk (flag lpbrgmasuk) -- laporan baca-saja atas
+    // trbmasuk/trbmasuk_detail, terpisah dari modul transaksi tbm/tbmpbf.
+    Route::prefix('lpbrgmasuk')->middleware('inventory.module:lpbrgmasuk')->name('lpbrgmasuk.')->group(function () {
+        Route::get('/', [InventoryLpbrgmasukController::class, 'index'])->name('index');
+        Route::get('/cetak', [InventoryLpbrgmasukController::class, 'cetak'])->name('cetak');
+        Route::get('/excel', [InventoryLpbrgmasukController::class, 'excel'])->name('excel');
     });
 });

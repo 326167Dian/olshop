@@ -105,6 +105,8 @@
             'cekdarah' => 'inventory.cekdarah.',
             'tpk' => 'inventory.trkasir.',
             'penjualansebelum' => 'inventory.penjualansebelum.',
+            'lpitem' => 'inventory.lpitem.',
+            'lpbrgmasuk' => 'inventory.lpbrgmasuk.',
         ];
 
         $activeModule = 'home';

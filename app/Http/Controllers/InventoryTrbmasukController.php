@@ -913,12 +913,24 @@ class InventoryTrbmasukController extends Controller
         $odt->update(['masuk' => '0']);
 
         if ($noBatch !== '') {
+            // Bug diperbaiki 2026-09-05: sebelumnya memakai $qtyGrosir (qty dalam satuan
+            // grosir/box) sebagai qty ledger batch, padahal ledger batch selalu dalam
+            // satuan RETAIL (sama seperti barang.stok_barang) -- kalau konversi != 1,
+            // ledger jadi understated (mis. beli 1 box isi 10 strip tercatat qty=1),
+            // membuat sisa batch tampak lebih cepat habis dari stok sungguhan sehingga
+            // FEFO/tambahBarang() di kasir jatuh ke baris "tanpa batch" padahal batch itu
+            // sebenarnya masih ada sisa. $qtyDtrbmasuk (sudah dihitung di atas, = konversi
+            // x qtyGrosir) adalah nilai yang benar, konsisten dengan yang dipakai untuk
+            // menambah barang.stok_barang.
             Batch::create([
                 'tgl_transaksi' => now(),
                 'no_batch' => $noBatch,
                 'exp_date' => $expDate,
-                'qty' => $qtyGrosir,
-                'satuan' => $odt->satgrosir_dtrbmasuk,
+                'qty' => $qtyDtrbmasuk,
+                // Satuan ikut disamakan ke satuan RETAIL (sat_dtrbmasuk), bukan
+                // satgrosir_dtrbmasuk -- qty di baris ini sekarang selalu dalam satuan
+                // retail, sama seperti setiap Batch::create() lain di controller ini.
+                'satuan' => $odt->sat_dtrbmasuk,
                 'kd_transaksi' => $validated['kd_trbmasuk'],
                 'kd_barang' => $odt->kd_barang,
                 'status' => 'masuk',
@@ -942,9 +954,12 @@ class InventoryTrbmasukController extends Controller
                     ->where('no_batch', $detail->no_batch)->where('status', 'masuk')->delete();
                 $detail->no_batch = $value;
                 if ($value !== '') {
+                    // Bug diperbaiki 2026-09-05: qty_grosir (satuan box) dipakai sebagai
+                    // qty ledger batch -- harusnya qty_dtrbmasuk (satuan retail, konsisten
+                    // dengan barang.stok_barang dan setiap Batch::create() lain di sini).
                     Batch::create([
                         'tgl_transaksi' => now(), 'no_batch' => $value, 'exp_date' => $detail->exp_date,
-                        'qty' => $detail->qty_grosir, 'satuan' => $detail->satgrosir_dtrbmasuk,
+                        'qty' => $detail->qty_dtrbmasuk, 'satuan' => $detail->sat_dtrbmasuk,
                         'kd_transaksi' => $detail->kd_trbmasuk, 'kd_barang' => $detail->kd_barang, 'status' => 'masuk',
                     ]);
                 }
@@ -991,9 +1006,12 @@ class InventoryTrbmasukController extends Controller
                 $detail->qty_grosir = (float) $value;
                 $detail->qty_dtrbmasuk = $detail->konversi * $detail->qty_grosir;
                 if ($detail->no_batch) {
+                    // Bug diperbaiki 2026-09-05: qty_grosir (satuan box) dipakai sebagai
+                    // qty ledger batch -- harusnya qty_dtrbmasuk (sudah dihitung ulang
+                    // barusan di atas, satuan retail).
                     Batch::where('kd_transaksi', $detail->kd_trbmasuk)->where('kd_barang', $detail->kd_barang)
                         ->where('no_batch', $detail->no_batch)->where('status', 'masuk')
-                        ->update(['qty' => $detail->qty_grosir]);
+                        ->update(['qty' => $detail->qty_dtrbmasuk]);
                 }
                 break;
         }
