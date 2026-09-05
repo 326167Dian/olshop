@@ -194,6 +194,434 @@ class InventoryTrkasirController extends Controller
             ->make(true);
     }
 
+    // ==================== PERUBAHAN TRANSAKSI (RIWAYAT REVISI/HAPUS) ====================
+
+    /**
+     * Mengikuti public/apotekberlian/masuk/modul/mod_trkasir/perubahantrkasir.php --
+     * satu endpoint dua mode persis seperti legacy: tanpa ?kd_trkasir= menampilkan daftar
+     * semua transaksi yang pernah direvisi (tipetx > 1) atau dihapus total (ada di
+     * trkasir_restore); dengan ?kd_trkasir= menampilkan detail perbandingan kondisi awal
+     * (tipetx=1) vs kondisi sekarang, daftar perbedaan per item, dan garis waktu
+     * perubahan (ubah qty/tambah/hapus item). Murni laporan baca-saja, tidak menulis
+     * apa pun ke DB -- semua tabel sumbernya (trkasir_restore, trkasir_detail_hist,
+     * trkasir_detail_ubah_qty) sudah ada dari kerja edit/hapus transaksi sebelumnya,
+     * tidak ada tabel/kolom baru.
+     *
+     * Pemilik-only, sama seperti legacy ($_SESSION['level'] !== 'pemilik' -> pesan
+     * error) -- BEDA dari legacy: tombol "PERUBAHAN TRANSAKSI" di dashboard tetap
+     * ditampilkan ke semua role (legacy juga begitu, tidak disembunyikan seperti tombol
+     * EDIT/HAPUS/UNDO), tapi di sini kalau staf non-pemilik nekat membuka linknya
+     * langsung dapat 403 yang konsisten dengan gerbang pemilik lain di controller ini,
+     * bukan halaman HTML kustom terpisah seperti legacy.
+     *
+     * Perbaikan kecil atas legacy: kolom "Admin" ditambahkan di tabel Riwayat Perubahan
+     * (nama admin yang melakukan tiap perubahan) -- legacy sudah MENGUMPULKAN id_admin
+     * untuk tiap baris timeline tapi tidak pernah benar-benar menampilkannya di tabel,
+     * padahal siapa yang melakukan perubahan jelas relevan untuk laporan audit semacam
+     * ini.
+     */
+    public function perubahan(Request $request)
+    {
+        $admin = Auth::guard('admin')->user();
+        abort_unless($admin->isPemilik(), 403, 'Fitur ini hanya untuk pemilik.');
+
+        $kdTrkasir = trim((string) $request->query('kd_trkasir', ''));
+
+        if ($kdTrkasir === '') {
+            return view('inventory.trkasir.perubahan-list', [
+                'judul' => 'Inventory',
+                'daftar' => $this->daftarPerubahanTransaksi(),
+            ]);
+        }
+
+        return view('inventory.trkasir.perubahan-detail', $this->detailPerubahanTransaksi($kdTrkasir));
+    }
+
+    private function daftarPerubahanTransaksi(): array
+    {
+        $daftar = [];
+
+        foreach (Trkasir::where('tipetx', '>', 1)->orderByDesc('tgl_trkasir')->get() as $row) {
+            $daftar[] = [
+                'kd_trkasir' => $row->kd_trkasir,
+                'tgl_trkasir' => $row->tgl_trkasir,
+                'nm_pelanggan' => $row->nm_pelanggan,
+                'status' => 'AKTIF',
+                'tipetx' => $row->tipetx,
+                'ttl_trkasir' => $row->ttl_trkasir,
+            ];
+        }
+
+        $dihapus = TrkasirRestore::selectRaw('
+                kd_trkasir,
+                MAX(tgl_trkasir) as tgl_trkasir,
+                MAX(nm_pelanggan) as nm_pelanggan,
+                MAX(tipetx) as tipetx,
+                SUM(hrgttl_dtrkasir) as ttl_trkasir,
+                MAX(waktu_hapus) as waktu_hapus
+            ')
+            ->groupBy('kd_trkasir')
+            ->orderByDesc('waktu_hapus')
+            ->get();
+
+        foreach ($dihapus as $row) {
+            $daftar[] = [
+                'kd_trkasir' => $row->kd_trkasir,
+                'tgl_trkasir' => $row->tgl_trkasir,
+                'nm_pelanggan' => $row->nm_pelanggan,
+                'status' => 'DIHAPUS',
+                'tipetx' => $row->tipetx,
+                'ttl_trkasir' => $row->ttl_trkasir,
+            ];
+        }
+
+        return $daftar;
+    }
+
+    private function detailPerubahanTransaksi(string $kdTrkasir): array
+    {
+        $header = Trkasir::where('kd_trkasir', $kdTrkasir)->first();
+        $statusTransaksi = $header ? 'AKTIF' : 'DIHAPUS';
+        $headerRestore = null;
+
+        if (!$header) {
+            $headerRestore = TrkasirRestore::where('kd_trkasir', $kdTrkasir)->orderBy('id_butrkasir')->first();
+        }
+
+        $kondisiAwal = [];
+        foreach (TrkasirDetail::where('kd_trkasir', $kdTrkasir)->where('tipetx', 1)->get() as $row) {
+            $kondisiAwal[$row->id_dtrkasir] = $row;
+        }
+        foreach (TrkasirDetailHist::where('kd_trkasir', $kdTrkasir)->where('tipetx_asal', 1)->get() as $row) {
+            $kondisiAwal[$row->id_dtrkasir] = $row;
+        }
+
+        $kondisiAkhir = [];
+        if ($header) {
+            foreach (TrkasirDetail::where('kd_trkasir', $kdTrkasir)->get() as $row) {
+                $kondisiAkhir[$row->id_dtrkasir] = $row;
+            }
+        } else {
+            foreach (TrkasirRestore::where('kd_trkasir', $kdTrkasir)->get() as $row) {
+                $kondisiAkhir[$row->id_dtrkasir] = $row;
+            }
+        }
+
+        $diff = [];
+        foreach ($kondisiAwal as $idDtrkasir => $rowAwal) {
+            if (isset($kondisiAkhir[$idDtrkasir])) {
+                $rowAkhir = $kondisiAkhir[$idDtrkasir];
+                $berubah = (float) $rowAwal->qty_dtrkasir !== (float) $rowAkhir->qty_dtrkasir
+                    || (float) $rowAwal->hrgttl_dtrkasir !== (float) $rowAkhir->hrgttl_dtrkasir;
+                $diff[] = ['status' => $berubah ? 'DIUBAH' : 'TETAP', 'awal' => $rowAwal, 'akhir' => $rowAkhir];
+            } else {
+                $diff[] = ['status' => 'DIHAPUS', 'awal' => $rowAwal, 'akhir' => null];
+            }
+        }
+        if ($header) {
+            foreach ($kondisiAkhir as $idDtrkasir => $rowAkhir) {
+                if (!isset($kondisiAwal[$idDtrkasir])) {
+                    $diff[] = ['status' => 'DITAMBAHKAN', 'awal' => null, 'akhir' => $rowAkhir];
+                }
+            }
+        }
+
+        $timeline = [];
+        $idsWithQtyLog = [];
+
+        foreach (TrkasirDetailUbahQty::where('kd_trkasir', $kdTrkasir)->orderBy('waktu')->get() as $row) {
+            $idsWithQtyLog[] = $row->id_dtrkasir;
+            $timeline[] = [
+                'waktu' => $row->waktu,
+                'tipetx' => $row->tipetx,
+                'aksi' => 'UBAH QTY',
+                'keterangan' => $row->nmbrg_dtrkasir . ': qty ' . $row->qty_sebelum . ' → ' . $row->qty_sesudah,
+                'id_admin' => $row->id_admin,
+            ];
+        }
+
+        foreach (TrkasirDetailHist::where('kd_trkasir', $kdTrkasir)->where('tipetx_hapus', '>', 1)->orderBy('waktu_hapus')->get() as $row) {
+            $timeline[] = [
+                'waktu' => $row->waktu_hapus,
+                'tipetx' => $row->tipetx_hapus,
+                'aksi' => 'HAPUS ITEM',
+                'keterangan' => $row->nmbrg_dtrkasir . ' (qty ' . $row->qty_dtrkasir . ') dihapus',
+                'id_admin' => $row->id_admin_hapus,
+            ];
+        }
+
+        foreach (TrkasirDetail::where('kd_trkasir', $kdTrkasir)->where('tipetx', '>', 1)->get() as $row) {
+            if (in_array($row->id_dtrkasir, $idsWithQtyLog, true)) {
+                continue;
+            }
+            $timeline[] = [
+                'waktu' => $row->waktu,
+                'tipetx' => $row->tipetx,
+                'aksi' => 'TAMBAH ITEM',
+                'keterangan' => $row->nmbrg_dtrkasir . ' (qty ' . $row->qty_dtrkasir . ') ditambahkan',
+                'id_admin' => $row->idadmin,
+            ];
+        }
+
+        usort($timeline, fn ($a, $b) => strcmp((string) $a['waktu'], (string) $b['waktu']));
+
+        $adminNames = Admin::whereIn('id_admin', array_unique(array_filter(array_column($timeline, 'id_admin'))))
+            ->pluck('nama_lengkap', 'id_admin');
+
+        return [
+            'judul' => 'Inventory',
+            'kdTrkasir' => $kdTrkasir,
+            'header' => $header,
+            'headerRestore' => $headerRestore,
+            'statusTransaksi' => $statusTransaksi,
+            'kondisiAwal' => $kondisiAwal,
+            'kondisiAkhir' => $kondisiAkhir,
+            'diff' => $diff,
+            'timeline' => $timeline,
+            'adminNames' => $adminNames,
+            'totalAwal' => collect($kondisiAwal)->sum(fn ($r) => (float) $r->hrgttl_dtrkasir),
+            'totalAkhir' => collect($kondisiAkhir)->sum(fn ($r) => (float) $r->hrgttl_dtrkasir),
+        ];
+    }
+
+    // ==================== ITEM PENJUALAN TERHAPUS ====================
+
+    /**
+     * Log semua baris item yang pernah dihapus, lintas transaksi (BUKAN dikelompokkan
+     * per transaksi seperti Undo Transaksi Terhapus, dan tanpa aksi restore -- murni
+     * catatan baca-saja), mengikuti case "terhapus" di trkasir.php.
+     *
+     * Perbaikan atas legacy: tombol menu ini di legacy digerbang
+     * `$_SESSION['username'] == 'ernawati'` -- nama akun spesifik yang di-hardcode,
+     * bukan pengecekan role (beda dari tombol lain di dashboard yang semuanya memakai
+     * `$_SESSION['level']`). Ini jelas sisa akses uji coba/pengembangan untuk satu akun
+     * tertentu, bukan desain akses yang disengaja -- halaman tujuannya sendiri (case
+     * "terhapus") justru SUDAH benar mengecek `$_SESSION['level'] != 'pemilik'`. Di sini
+     * tombolnya ditampilkan untuk pemilik (gerbang yang sebenarnya sudah ditegakkan di
+     * server), bukan direplikasi ke satu username tertentu.
+     *
+     * Beda lain atas legacy: paginasi server-side (Yajra DataTables, konvensi baku di
+     * seluruh port ini) dipakai di sini -- legacy me-render SEMUA baris trkasir_detail_hist
+     * sekaligus ke satu tabel HTML tanpa batas, yang akan makin berat seiring waktu karena
+     * tabel ini murni akumulatif (tidak pernah dibersihkan). Kolom "Dihapus Oleh" juga
+     * ditambahkan (trkasir_detail_hist.id_admin_hapus SUDAH ada di kolom tabel legacy tapi
+     * tidak pernah ditampilkan) -- untuk laporan "item terhapus", siapa yang menghapusnya
+     * jelas informasi audit yang relevan. Kolom waktu memakai waktu_hapus (kapan item itu
+     * BENAR-BENAR dihapus), bukan `waktu` (kapan item itu awalnya DITAMBAHKAN) seperti
+     * legacy -- legacy memakai `h.waktu` baik untuk kolom "Waktu Histori" maupun urutan
+     * ORDER BY, yang tidak masuk akal untuk laporan yang judulnya sendiri "item terhapus".
+     */
+    public function itemTerhapusIndex()
+    {
+        $admin = Auth::guard('admin')->user();
+        abort_unless($admin->isPemilik(), 403, 'Menu ini hanya untuk pemilik.');
+
+        return view('inventory.trkasir.item-terhapus', ['judul' => 'Inventory']);
+    }
+
+    public function itemTerhapusData()
+    {
+        $admin = Auth::guard('admin')->user();
+        abort_unless($admin->isPemilik(), 403, 'Menu ini hanya untuk pemilik.');
+
+        $query = TrkasirDetailHist::query()
+            ->leftJoin('admin as a_asal', 'trkasir_detail_hist.idadmin', '=', 'a_asal.id_admin')
+            ->leftJoin('admin as a_hapus', 'trkasir_detail_hist.id_admin_hapus', '=', 'a_hapus.id_admin')
+            ->leftJoin('trkasir as t', 'trkasir_detail_hist.kd_trkasir', '=', 't.kd_trkasir')
+            ->orderByDesc('trkasir_detail_hist.id_dtrkasir')
+            ->orderByDesc('trkasir_detail_hist.waktu_hapus')
+            ->select([
+                'trkasir_detail_hist.*',
+                'a_asal.nama_lengkap as nama_admin',
+                'a_hapus.nama_lengkap as nama_admin_hapus',
+                't.tgl_trkasir',
+                't.nm_pelanggan',
+            ]);
+
+        return DataTables::of($query)
+            ->addIndexColumn()
+            ->editColumn('waktu_hapus', fn ($row) => $row->waktu_hapus ? \Illuminate\Support\Carbon::parse($row->waktu_hapus)->format('d-m-Y H:i:s') : '-')
+            ->editColumn('tgl_trkasir', fn ($row) => $row->tgl_trkasir ?? '-')
+            ->editColumn('nm_pelanggan', fn ($row) => $row->nm_pelanggan ?? '-')
+            ->editColumn('hrgjual_dtrkasir', fn ($row) => number_format($row->hrgjual_dtrkasir, 0, ',', '.'))
+            ->editColumn('hrgttl_dtrkasir', fn ($row) => number_format($row->hrgttl_dtrkasir, 0, ',', '.'))
+            ->editColumn('disc', fn ($row) => $row->disc . ' %')
+            ->editColumn('nama_admin', fn ($row) => $row->nama_admin ?? '-')
+            ->editColumn('nama_admin_hapus', fn ($row) => $row->nama_admin_hapus ?? '-')
+            ->make(true);
+    }
+
+    // ==================== UNDO TRANSAKSI TERHAPUS ====================
+
+    /**
+     * Daftar transaksi yang sudah dihapus total (satu baris per kd_trkasir, dikelompokkan
+     * dari trkasir_restore), mengikuti case "undo_deleted" di trkasir.php.
+     */
+    public function undoDeletedIndex()
+    {
+        $admin = Auth::guard('admin')->user();
+        abort_unless($admin->isPemilik(), 403, 'Menu ini hanya untuk pemilik.');
+
+        $daftar = TrkasirRestore::selectRaw('
+                kd_trkasir,
+                COUNT(*) as jumlah_item,
+                MAX(waktu_hapus) as tgl_delete,
+                MAX(waktu_trx) as waktu_trx,
+                SUM(hrgttl_dtrkasir) as nilai_transaksi,
+                MAX(id_admin_hapus) as id_admin_hapus
+            ')
+            ->groupBy('kd_trkasir')
+            ->orderByDesc('tgl_delete')
+            ->get();
+
+        return view('inventory.trkasir.undo-deleted', [
+            'judul' => 'Inventory',
+            'daftar' => $daftar,
+            'adminNames' => Admin::pluck('nama_lengkap', 'id_admin'),
+        ]);
+    }
+
+    /**
+     * Kebalikan dari destroy(): tulis ulang header+baris dari snapshot trkasir_restore
+     * kembali ke trkasir/trkasir_detail (barang keluar lagi dari rak, komisi & batch
+     * ledger ditulis ulang, poin pelanggan disesuaikan lagi), lalu hapus snapshotnya.
+     * Mengikuti act=restore_hapus di aksi_trkasir.php SEDEKAT mungkin, termasuk validasi
+     * stok all-or-nothing SEBELUM menulis apa pun (kalau ada barang yang stoknya sudah
+     * tidak cukup sejak dihapus -- misal karena kehabisan stok lewat penjualan lain --
+     * seluruh proses restore dibatalkan, bukan sebagian jalan sebagian tidak).
+     */
+    public function restoreHapus(Request $request)
+    {
+        $admin = Auth::guard('admin')->user();
+        abort_unless($admin->isPemilik(), 403, 'Menu ini hanya untuk pemilik.');
+
+        $kdTrkasir = trim((string) $request->input('kd_trkasir', ''));
+        abort_if($kdTrkasir === '', 422, 'Kode transaksi tidak valid.');
+        abort_if(Trkasir::where('kd_trkasir', $kdTrkasir)->exists(), 422, 'Transaksi ini sudah aktif, tidak perlu di-restore lagi.');
+
+        $itemRestore = TrkasirRestore::where('kd_trkasir', $kdTrkasir)->orderBy('id_butrkasir')->get();
+        abort_if($itemRestore->isEmpty(), 404, 'Data transaksi terhapus tidak ditemukan.');
+
+        $totalQtyPerBarang = [];
+        foreach ($itemRestore as $item) {
+            $totalQtyPerBarang[$item->id_barang] = ($totalQtyPerBarang[$item->id_barang] ?? 0) + (float) $item->qty_dtrkasir;
+        }
+
+        $kurangStok = [];
+        foreach ($totalQtyPerBarang as $idBarang => $qtyDibutuhkan) {
+            $barang = Product::find($idBarang);
+            $stokTersedia = (float) ($barang->stok_barang ?? 0);
+            if ($stokTersedia < $qtyDibutuhkan) {
+                $kurangStok[] = ($barang->nm_barang ?? "barang id {$idBarang}") . " (stok {$stokTersedia}, butuh {$qtyDibutuhkan})";
+            }
+        }
+        abort_if(count($kurangStok) > 0, 422, 'Stok tidak cukup untuk: ' . implode(', ', $kurangStok));
+
+        DB::transaction(function () use ($itemRestore, $kdTrkasir, $admin) {
+            $header = $itemRestore->first();
+            $idUser = $header->id_user ?: $admin->id_admin;
+            $idPelanggan = (int) ($header->id_pelanggan ?? 0);
+
+            Trkasir::create([
+                'kd_trkasir' => $header->kd_trkasir,
+                'id_user' => $idUser,
+                'petugas' => $header->petugas,
+                'shift' => $header->shift,
+                'tgl_trkasir' => $header->tgl_trkasir,
+                'id_pelanggan' => $idPelanggan,
+                'nm_pelanggan' => $header->nm_pelanggan,
+                'tlp_pelanggan' => $header->tlp_pelanggan,
+                'alamat_pelanggan' => $header->alamat_pelanggan,
+                'kodetx' => $header->kodetx ?? '',
+                'ttl_trkasir' => $header->ttl_trkasir,
+                'dp_bayar' => $header->dp_bayar,
+                'diskon1' => $header->diskon1,
+                'diskon2' => $header->diskon2,
+                'sisa_bayar' => $header->sisa_bayar,
+                'ket_trkasir' => $header->ket_trkasir,
+                'id_carabayar' => $header->id_carabayar,
+                'jenistx' => $header->jenistx ?: 1,
+                'tipetx' => $header->tipetx,
+                'waktu_trx' => $header->waktu_trx ?: now(),
+                'poin_awal' => $header->poin_awal ?? 0,
+                'tambahan_poin' => $header->tambahan_poin ?? 0,
+                'redeem_poin' => $header->redeem_poin ?? 0,
+            ]);
+
+            foreach ($itemRestore as $item) {
+                $idadmin = $item->idadmin ?: $idUser;
+                $noBatch = $item->no_batch ?? '';
+
+                $detail = TrkasirDetail::create([
+                    'kd_trkasir' => $item->kd_trkasir,
+                    'id_barang' => $item->id_barang,
+                    'kd_barang' => $item->kd_barang,
+                    'nmbrg_dtrkasir' => $item->nmbrg_dtrkasir,
+                    'qty_dtrkasir' => $item->qty_dtrkasir,
+                    'sat_dtrkasir' => $item->sat_dtrkasir,
+                    'hrgjual_dtrkasir' => $item->hrgjual_dtrkasir,
+                    'disc' => $item->disc ?? 0,
+                    'modal' => $item->modal ?? 0,
+                    'profit' => $item->profit ?? 0,
+                    'hrgttl_dtrkasir' => $item->hrgttl_dtrkasir,
+                    'no_batch' => $noBatch,
+                    'exp_date' => $item->exp_date,
+                    'tipe' => $item->tipe ?: 1,
+                    'komisi' => $item->komisi ?? 0,
+                    'idadmin' => $idadmin,
+                    'tipetx' => $item->tipetx,
+                    'resep' => $item->resep ?: 'TIDAK',
+                    'kd_bundle' => $item->kd_bundle ?? '',
+                    'nm_bundle' => $item->nm_bundle ?? '',
+                ]);
+
+                // Barang keluar lagi dari rak -- sudah divalidasi cukup di atas, tapi tetap
+                // lewat UPDATE atomic bersyarat sebagai jaga-jaga race condition, sama
+                // seperti setiap pemotongan stok lain di controller ini.
+                $this->kurangiStokAtauGagal($item->id_barang, (float) $item->qty_dtrkasir);
+
+                if ((float) ($item->komisi ?? 0) != 0) {
+                    KomisiPegawai::create([
+                        'kd_trkasir' => $item->kd_trkasir,
+                        'id_dtrkasir' => $detail->id_dtrkasir,
+                        'id_admin' => $idadmin,
+                        'ttl_komisi' => $item->qty_dtrkasir * $item->komisi,
+                        'tgl_komisi' => now()->toDateString(),
+                        'status_komisi' => 'on',
+                    ]);
+                }
+
+                if ($noBatch !== '') {
+                    Batch::create([
+                        'tgl_transaksi' => now(),
+                        'no_batch' => $noBatch,
+                        'exp_date' => $item->exp_date,
+                        'qty' => $item->qty_dtrkasir,
+                        'satuan' => $item->sat_dtrkasir,
+                        'kd_transaksi' => $item->kd_trkasir,
+                        'kd_barang' => $item->kd_barang,
+                        'status' => 'keluar',
+                    ]);
+                }
+            }
+
+            if ($idPelanggan > 0) {
+                $pelanggan = Pelanggan::find($idPelanggan);
+                if ($pelanggan) {
+                    $pelanggan->update([
+                        'total_poin' => ($pelanggan->total_poin + ($header->tambahan_poin ?? 0)) - ($header->redeem_poin ?? 0),
+                    ]);
+                }
+            }
+
+            KartuStok::create(['kode_transaksi' => $kdTrkasir, 'tgl_sekarang' => now()]);
+
+            TrkasirRestore::where('kd_trkasir', $kdTrkasir)->delete();
+        });
+
+        return redirect()->route('inventory.trkasir.undo-deleted.index')->with('success', 'Transaksi berhasil dikembalikan.');
+    }
+
     // ==================== TAMBAH PENJUALAN ====================
 
     public function create()

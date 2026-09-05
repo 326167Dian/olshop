@@ -368,6 +368,23 @@
                 }
             });
         }
+
+        function confirmRestore(formId, label) {
+            Swal.fire({
+                title: 'Kembalikan Transaksi Ini?',
+                html: "Transaksi <strong>" + label + "</strong> akan aktif lagi dan stok barang akan dikurangi lagi sesuai qty transaksi.",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Ya, kembalikan',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById(formId).submit();
+                }
+            });
+        }
     </script>
 
     @if (request()->routeIs('inventory.trkasir.*') || request()->routeIs('inventory.penjualansebelum.*'))

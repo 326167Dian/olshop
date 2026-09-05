@@ -548,6 +548,11 @@ Route::prefix('inventory')->middleware(['auth:admin', 'admin.active'])->name('in
     Route::prefix('trkasir')->middleware('inventory.module:tpk')->name('trkasir.')->group(function () {
         Route::get('/', [InventoryTrkasirController::class, 'index'])->name('index');
         Route::get('/data', [InventoryTrkasirController::class, 'data'])->name('data');
+        Route::get('/perubahan', [InventoryTrkasirController::class, 'perubahan'])->name('perubahan');
+        Route::get('/item-terhapus', [InventoryTrkasirController::class, 'itemTerhapusIndex'])->name('item-terhapus.index');
+        Route::get('/item-terhapus/data', [InventoryTrkasirController::class, 'itemTerhapusData'])->name('item-terhapus.data');
+        Route::get('/undo-deleted', [InventoryTrkasirController::class, 'undoDeletedIndex'])->name('undo-deleted.index');
+        Route::post('/undo-deleted/restore', [InventoryTrkasirController::class, 'restoreHapus'])->name('undo-deleted.restore');
         Route::get('/create', [InventoryTrkasirController::class, 'create'])->name('create');
         Route::post('/', [InventoryTrkasirController::class, 'store'])->name('store');
         Route::get('/{trkasir}/struk', [InventoryTrkasirController::class, 'struk'])->name('struk');

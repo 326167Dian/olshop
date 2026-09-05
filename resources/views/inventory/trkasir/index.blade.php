@@ -9,6 +9,11 @@
         </div>
         <div class="card-body">
             <a class="btn btn-sm btn-success mb-3" href="{{ route('inventory.trkasir.create') }}">(F4) Tambah Penjualan</a>
+            <a class="btn btn-sm btn-warning mb-3" href="{{ route('inventory.trkasir.perubahan') }}" target="_blank">Perubahan Transaksi</a>
+            @if (Auth::guard('admin')->user()?->isPemilik())
+                <a class="btn btn-sm btn-outline-dark mb-3" href="{{ route('inventory.trkasir.undo-deleted.index') }}">Undo Transaksi Terhapus</a>
+                <a class="btn btn-sm btn-outline-secondary mb-3" href="{{ route('inventory.trkasir.item-terhapus.index') }}">Item Penjualan Terhapus</a>
+            @endif
 
             <div class="table-responsive">
                 <table id="tabel-trkasir" class="table table-auto table-sm table-bordered table-striped w-100">
