@@ -44,6 +44,8 @@ use App\Http\Controllers\InventoryTrkasirController;
 use App\Http\Controllers\InventoryLpkasirController;
 use App\Http\Controllers\InventoryLabapenjualanController;
 use App\Http\Controllers\InventoryNeracaController;
+use App\Http\Controllers\InventoryMstokController;
+use App\Http\Controllers\InventoryStokKritisController;
 use App\Http\Controllers\InventoryLpitemController;
 use App\Http\Controllers\InventoryLpbrgmasukController;
 
@@ -279,6 +281,32 @@ Route::prefix('inventory')->middleware(['auth:admin', 'admin.active'])->name('in
         Route::get('/{barang}/edit', [InventoryKomisiController::class, 'edit'])->name('edit');
         Route::put('/{barang}', [InventoryKomisiController::class, 'update'])->name('update');
         Route::delete('/{barang}', [InventoryKomisiController::class, 'destroy'])->name('destroy');
+    });
+
+    Route::prefix('mstok')->middleware('inventory.module:mstok')->name('mstok.')->group(function () {
+        Route::get('/', [InventoryMstokController::class, 'index'])->name('index');
+        Route::get('/data', [InventoryMstokController::class, 'dataGlobal'])->name('data');
+        Route::get('/laku', [InventoryMstokController::class, 'laku'])->name('laku');
+        Route::get('/laku/data', [InventoryMstokController::class, 'dataLaku'])->name('laku.data');
+        Route::get('/lancar', [InventoryMstokController::class, 'lancar'])->name('lancar');
+        Route::get('/lancar/data', [InventoryMstokController::class, 'dataLancar'])->name('lancar.data');
+        Route::get('/slow', [InventoryMstokController::class, 'slow'])->name('slow');
+        Route::get('/slow/data', [InventoryMstokController::class, 'dataSlow'])->name('slow.data');
+        Route::get('/macet', [InventoryMstokController::class, 'macet'])->name('macet');
+        Route::get('/macet/data', [InventoryMstokController::class, 'dataMacet'])->name('macet.data');
+        Route::get('/macet/excel', [InventoryMstokController::class, 'macetExcel'])->name('macet.excel');
+        Route::get('/riwayat/{kdBarang}', [InventoryMstokController::class, 'riwayat'])->name('riwayat');
+        Route::get('/riwayat-pesanan/{kdBarang}', [InventoryMstokController::class, 'riwayatPesanan'])->name('riwayat-pesanan');
+        Route::post('/recompute', [InventoryMstokController::class, 'recompute'])->name('recompute');
+    });
+
+    Route::prefix('stok-kritis')->middleware('inventory.module:stok_kritis')->name('stok-kritis.')->group(function () {
+        Route::get('/', [InventoryStokKritisController::class, 'index'])->name('index');
+        Route::post('/recompute', [InventoryStokKritisController::class, 'recompute'])->name('recompute');
+        Route::get('/estimasi', [InventoryStokKritisController::class, 'estimasi'])->name('estimasi');
+        Route::get('/estimasi/excel', [InventoryStokKritisController::class, 'estimasiExcel'])->name('estimasi.excel');
+        Route::get('/overstok', [InventoryStokKritisController::class, 'overstok'])->name('overstok');
+        Route::post('/add-to-order', [InventoryStokKritisController::class, 'addToOrder'])->name('add-to-order');
     });
 
     Route::prefix('ujian')->middleware('inventory.module:ujian')->name('ujian.')->group(function () {

@@ -96,6 +96,8 @@
             'mjenisobat' => 'inventory.jenisobat.',
             'mbarang' => 'inventory.barang.',
             'komisi' => 'inventory.komisi.',
+            'mstok' => 'inventory.mstok.',
+            'stok_kritis' => 'inventory.stok-kritis.',
             'ujian' => 'inventory.ujian.',
             'orders' => 'inventory.orders.',
             'tbm' => 'inventory.trbmasuk.',

@@ -27,6 +27,8 @@ class InventoryController extends Controller
         'jenisobat' => 'inventory.jenisobat.index',
         'barang' => 'inventory.barang.index',
         'komisi' => 'inventory.komisi.index',
+        'mstok' => 'inventory.mstok.index',
+        'stok_kritis' => 'inventory.stok-kritis.index',
         'ujian' => 'inventory.ujian.index',
         'cekdarah' => 'inventory.cekdarah.index',
         'konseling' => 'inventory.konseling.index',

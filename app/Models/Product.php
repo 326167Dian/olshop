@@ -40,6 +40,8 @@ class Product extends Model
         'dosis',
         'waktu',
         't30',
+        't60',
+        'gr',
         'q30',
         'status',
         'image',
@@ -58,6 +60,8 @@ class Product extends Model
         'komisi'          => 'double',
         'waktu'           => 'datetime',
         't30'             => 'integer',
+        't60'             => 'integer',
+        'gr'              => 'integer',
         'q30'             => 'integer',
         'status'          => 'string',
     ];
