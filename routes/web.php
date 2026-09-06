@@ -44,8 +44,11 @@ use App\Http\Controllers\InventoryTrkasirController;
 use App\Http\Controllers\InventoryLpkasirController;
 use App\Http\Controllers\InventoryLabapenjualanController;
 use App\Http\Controllers\InventoryNeracaController;
+use App\Http\Controllers\InventoryLapstokopnameController;
 use App\Http\Controllers\InventoryMstokController;
 use App\Http\Controllers\InventoryStokKritisController;
+use App\Http\Controllers\InventoryStokopnameController;
+use App\Http\Controllers\InventoryStokopnameHarianController;
 use App\Http\Controllers\InventoryLpitemController;
 use App\Http\Controllers\InventoryLpbrgmasukController;
 
@@ -307,6 +310,31 @@ Route::prefix('inventory')->middleware(['auth:admin', 'admin.active'])->name('in
         Route::get('/estimasi/excel', [InventoryStokKritisController::class, 'estimasiExcel'])->name('estimasi.excel');
         Route::get('/overstok', [InventoryStokKritisController::class, 'overstok'])->name('overstok');
         Route::post('/add-to-order', [InventoryStokKritisController::class, 'addToOrder'])->name('add-to-order');
+    });
+
+    Route::prefix('stokopname')->middleware('inventory.module:stokopname')->name('stokopname.')->group(function () {
+        Route::get('/', [InventoryStokopnameController::class, 'index'])->name('index');
+        Route::get('/tampil', [InventoryStokopnameController::class, 'tampil'])->name('tampil');
+        Route::get('/grid', [InventoryStokopnameController::class, 'grid'])->name('grid');
+        Route::get('/rekap', [InventoryStokopnameController::class, 'rekap'])->name('rekap');
+        Route::post('/', [InventoryStokopnameController::class, 'store'])->name('store');
+        Route::delete('/{stokOpname}', [InventoryStokopnameController::class, 'destroy'])->name('destroy');
+        Route::get('/excel', [InventoryStokopnameController::class, 'excel'])->name('excel');
+    });
+
+    // Stok Opname Harian (flag soharian) -- destroy() dialiaskan ke controller Bulanan
+    // (tabel & aksi hapus SAMA PERSIS, lihat catatan kelas InventoryStokopnameHarianController)
+    // supaya admin yang hanya punya flag `soharian` (tanpa `stokopname`) tidak 403 saat
+    // menghapus baris dari rekap Harian -- pola cross-gate yang sama seperti byrkredit/
+    // penjualansebelum mengaliaskan endpoint controller lain lewat gerbang sendiri.
+    Route::prefix('soharian')->middleware('inventory.module:soharian')->name('soharian.')->group(function () {
+        Route::get('/', [InventoryStokopnameHarianController::class, 'index'])->name('index');
+        Route::get('/tampil', [InventoryStokopnameHarianController::class, 'tampil'])->name('tampil');
+        Route::get('/grid', [InventoryStokopnameHarianController::class, 'grid'])->name('grid');
+        Route::get('/rekap', [InventoryStokopnameHarianController::class, 'rekap'])->name('rekap');
+        Route::post('/', [InventoryStokopnameHarianController::class, 'store'])->name('store');
+        Route::delete('/{stokOpname}', [InventoryStokopnameController::class, 'destroy'])->name('destroy');
+        Route::get('/excel', [InventoryStokopnameHarianController::class, 'excel'])->name('excel');
     });
 
     Route::prefix('ujian')->middleware('inventory.module:ujian')->name('ujian.')->group(function () {
@@ -681,5 +709,16 @@ Route::prefix('inventory')->middleware(['auth:admin', 'admin.active'])->name('in
     Route::prefix('neraca')->middleware('inventory.module:neraca')->name('neraca.')->group(function () {
         Route::get('/', [InventoryNeracaController::class, 'index'])->name('index');
         Route::get('/cetak', [InventoryNeracaController::class, 'cetak'])->name('cetak');
+    });
+
+    // Laporan > Stok Opname (flag BARU lapstokopname -- legacy tidak menggerbang
+    // halaman ini per-admin sama sekali, lihat catatan kelas InventoryLapstokopnameController).
+    Route::prefix('lapstokopname')->middleware('inventory.module:lapstokopname')->name('lapstokopname.')->group(function () {
+        Route::get('/', [InventoryLapstokopnameController::class, 'index'])->name('index');
+        Route::get('/laporan', [InventoryLapstokopnameController::class, 'laporan'])->name('laporan');
+        Route::get('/detail-belum-dicek', [InventoryLapstokopnameController::class, 'detailBelumDicek'])->name('detail-belum-dicek');
+        Route::get('/excel', [InventoryLapstokopnameController::class, 'excel'])->name('excel');
+        Route::post('/sinkron-minus', [InventoryLapstokopnameController::class, 'sinkronMinus'])->name('sinkron-minus');
+        Route::post('/sinkron-plus', [InventoryLapstokopnameController::class, 'sinkronPlus'])->name('sinkron-plus');
     });
 });

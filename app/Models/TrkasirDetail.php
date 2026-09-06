@@ -31,6 +31,7 @@ class TrkasirDetail extends Model
         'resep',
         'kd_bundle',
         'nm_bundle',
+        'waktu',
     ];
 
     protected $casts = [

@@ -28,6 +28,7 @@ class TrbmasukDetail extends Model
         'hrgttl_dtrbmasuk',
         'no_batch',
         'exp_date',
+        'waktu',
         'tipe',
         'tipe_barang',
     ];

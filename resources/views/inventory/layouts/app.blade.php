@@ -98,6 +98,8 @@
             'komisi' => 'inventory.komisi.',
             'mstok' => 'inventory.mstok.',
             'stok_kritis' => 'inventory.stok-kritis.',
+            'stokopname' => 'inventory.stokopname.',
+            'soharian' => 'inventory.soharian.',
             'ujian' => 'inventory.ujian.',
             'orders' => 'inventory.orders.',
             'tbm' => 'inventory.trbmasuk.',
@@ -112,6 +114,7 @@
             'lpkasir' => 'inventory.lpkasir.',
             'labapenjualan' => 'inventory.labapenjualan.',
             'neraca' => 'inventory.neraca.',
+            'lapstokopname' => 'inventory.lapstokopname.',
         ];
 
         $activeModule = 'home';
@@ -232,7 +235,7 @@
                             'stok_kritis' => 'icon-alert-triangle',
                             'stokopname' => 'icon-clipboard',
                             'soharian' => 'icon-printer',
-                            'kartustok' => 'icon-repeat',
+                            // 'kartustok' => 'icon-repeat', -- modul tidak dipakai, lihat Admin::PERMISSION_GROUPS
                             'jurnalkas' => 'icon-book',
                             'orders' => 'icon-send',
                             'tbm' => 'icon-download',
@@ -251,6 +254,7 @@
                             'lpsupplier' => 'icon-printer',
                             'lppelanggan' => 'icon-printer',
                             'neraca' => 'icon-printer',
+                            'lapstokopname' => 'icon-printer',
                         ];
 
                         $groupIcons = [

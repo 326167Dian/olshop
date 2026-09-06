@@ -37,7 +37,11 @@ class Admin extends Authenticatable
             'stok_kritis' => 'Stok Kritis',
             'stokopname' => 'Stok Opname Bulanan',
             'soharian' => 'Stok Opname Harian',
-            'kartustok' => 'Kartu Stok',
+            // 'kartustok' => 'Kartu Stok', -- dikomentari 2026-09-06 atas permintaan
+            // user: modul ini tidak pernah benar-benar dipakai. Dihapus dari sini
+            // membuatnya otomatis hilang dari sidebar & form centang izin Admin
+            // (keduanya digerbang lewat PERMISSION_GROUPS), tanpa perlu menyentuh
+            // kolom `admin.kartustok` di database.
             'jurnalkas' => 'Jurnal Kas',
         ],
         'Transaksi' => [
@@ -60,6 +64,7 @@ class Admin extends Authenticatable
             'lpsupplier' => 'Data Supplier',
             'lppelanggan' => 'Data Pelanggan',
             'neraca' => 'Neraca Laba Rugi',
+            'lapstokopname' => 'Stok Opname',
         ],
     ];
 
@@ -100,6 +105,7 @@ class Admin extends Authenticatable
         'koreksistok',
         'shiftkerja',
         'neraca',
+        'lapstokopname',
         'komisi',
         'kartustok',
         'catatan',

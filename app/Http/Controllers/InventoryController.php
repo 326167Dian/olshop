@@ -29,6 +29,8 @@ class InventoryController extends Controller
         'komisi' => 'inventory.komisi.index',
         'mstok' => 'inventory.mstok.index',
         'stok_kritis' => 'inventory.stok-kritis.index',
+        'stokopname' => 'inventory.stokopname.index',
+        'soharian' => 'inventory.soharian.index',
         'ujian' => 'inventory.ujian.index',
         'cekdarah' => 'inventory.cekdarah.index',
         'konseling' => 'inventory.konseling.index',
@@ -56,6 +58,7 @@ class InventoryController extends Controller
         'lpkasir' => 'inventory.lpkasir.index',
         'labapenjualan' => 'inventory.labapenjualan.index',
         'neraca' => 'inventory.neraca.index',
+        'lapstokopname' => 'inventory.lapstokopname.index',
     ];
 
     /**
