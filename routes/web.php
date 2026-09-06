@@ -44,6 +44,8 @@ use App\Http\Controllers\InventoryTrkasirController;
 use App\Http\Controllers\InventoryLpkasirController;
 use App\Http\Controllers\InventoryLabapenjualanController;
 use App\Http\Controllers\InventoryNeracaController;
+use App\Http\Controllers\InventoryLapkomisiController;
+use App\Http\Controllers\InventoryEvaluasiController;
 use App\Http\Controllers\InventoryLapstokopnameController;
 use App\Http\Controllers\InventoryMstokController;
 use App\Http\Controllers\InventoryStokKritisController;
@@ -759,5 +761,22 @@ Route::prefix('inventory')->middleware(['auth:admin', 'admin.active'])->name('in
         Route::get('/excel', [InventoryLapstokopnameController::class, 'excel'])->name('excel');
         Route::post('/sinkron-minus', [InventoryLapstokopnameController::class, 'sinkronMinus'])->name('sinkron-minus');
         Route::post('/sinkron-plus', [InventoryLapstokopnameController::class, 'sinkronPlus'])->name('sinkron-plus');
+    });
+
+    // Laporan > Komisi Pegawai & Evaluasi Pegawai -- TIDAK digerbang lewat
+    // middleware inventory.module:x standar (tidak ada 1 kolom flag yang cocok
+    // untuk keduanya, lihat catatan kelas masing-masing controller); setiap
+    // method menegakkan abort_unless() sendiri, dan link sidebar-nya dirender
+    // manual di app.blade.php, bukan lewat Admin::PERMISSION_GROUPS.
+    Route::prefix('lapkomisi')->name('lapkomisi.')->group(function () {
+        Route::get('/', [InventoryLapkomisiController::class, 'index'])->name('index');
+        Route::get('/tampil', [InventoryLapkomisiController::class, 'tampil'])->name('tampil');
+        Route::get('/detail', [InventoryLapkomisiController::class, 'detail'])->name('detail');
+    });
+
+    Route::prefix('evaluasi')->name('evaluasi.')->group(function () {
+        Route::get('/', [InventoryEvaluasiController::class, 'index'])->name('index');
+        Route::get('/tampil', [InventoryEvaluasiController::class, 'tampil'])->name('tampil');
+        Route::get('/detail', [InventoryEvaluasiController::class, 'detail'])->name('detail');
     });
 });

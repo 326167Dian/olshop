@@ -117,6 +117,8 @@
             'labapenjualan' => 'inventory.labapenjualan.',
             'neraca' => 'inventory.neraca.',
             'lapstokopname' => 'inventory.lapstokopname.',
+            'lapkomisi' => 'inventory.lapkomisi.',
+            'evaluasi' => 'inventory.evaluasi.',
         ];
 
         $activeModule = 'home';
@@ -257,6 +259,8 @@
                             'lppelanggan' => 'icon-printer',
                             'neraca' => 'icon-printer',
                             'lapstokopname' => 'icon-printer',
+                            'lapkomisi' => 'icon-printer',
+                            'evaluasi' => 'icon-printer',
                         ];
 
                         $groupIcons = [
@@ -265,11 +269,27 @@
                             'Transaksi' => 'icon-repeat',
                             'Laporan' => 'icon-file-text',
                         ];
+
+                        // "Laporan > Komisi Pegawai" & "Evaluasi Pegawai" TIDAK ada di
+                        // Admin::PERMISSION_GROUPS (tidak ada 1 kolom flag yang cocok untuk
+                        // keduanya -- lihat catatan kelas InventoryLapkomisiController/
+                        // InventoryEvaluasiController) -- disuntikkan manual ke sini,
+                        // bukan lewat mekanisme flag standar.
+                        $extraLaporanItems = [];
+                        if ($currentAdmin->isPemilik() && strtoupper((string) $currentAdmin->komisi) === 'Y') {
+                            $extraLaporanItems['lapkomisi'] = 'Komisi Pegawai';
+                        }
+                        if ($currentAdmin->isPemilik()) {
+                            $extraLaporanItems['evaluasi'] = 'Evaluasi Pegawai';
+                        }
                     @endphp
 
                     @foreach (\App\Models\Admin::PERMISSION_GROUPS as $groupName => $items)
                         @php
                             $visibleItems = collect($items)->filter(fn($label, $column) => $currentAdmin->hasModuleAccess($column));
+                            if ($groupName === 'Laporan') {
+                                $visibleItems = $visibleItems->merge($extraLaporanItems);
+                            }
                         @endphp
                         @if ($visibleItems->isNotEmpty())
                             <li class="nav-group-title">{{ strtoupper($groupName) }}</li>
