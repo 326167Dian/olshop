@@ -43,6 +43,8 @@ use App\Http\Controllers\InventoryPenjualansebelumController;
 use App\Http\Controllers\InventoryTrkasirController;
 use App\Http\Controllers\InventoryLpkasirController;
 use App\Http\Controllers\InventoryLabapenjualanController;
+use App\Http\Controllers\InventoryLabajenisobatController;
+use App\Http\Controllers\InventoryBundleController;
 use App\Http\Controllers\InventoryNeracaController;
 use App\Http\Controllers\InventoryLapkomisiController;
 use App\Http\Controllers\InventoryEvaluasiController;
@@ -410,6 +412,21 @@ Route::prefix('inventory')->middleware(['auth:admin', 'admin.active'])->name('in
         Route::get('/{konseling}/print', [InventoryKonselingController::class, 'print'])->name('print');
     });
 
+    // Program Promo > Bundle/Paket Produk -- tidak digerbang flag admin manapun di
+    // legacy (media_admin.php me-render link ini tanpa syarat sama sekali, satu-
+    // satunya menu top-level yang begitu di seluruh sidebar).
+    Route::prefix('bundle')->name('bundle.')->group(function () {
+        Route::get('/', [InventoryBundleController::class, 'index'])->name('index');
+        Route::get('/create', [InventoryBundleController::class, 'create'])->name('create');
+        Route::post('/', [InventoryBundleController::class, 'store'])->name('store');
+        Route::post('/item-search', [InventoryBundleController::class, 'itemSearch'])->name('item-search');
+        Route::get('/{bundle}/edit', [InventoryBundleController::class, 'edit'])->name('edit');
+        Route::put('/{bundle}', [InventoryBundleController::class, 'update'])->name('update');
+        Route::get('/{bundle}', [InventoryBundleController::class, 'show'])->name('show');
+        Route::delete('/{bundle}', [InventoryBundleController::class, 'destroy'])->name('destroy');
+        Route::delete('/detail/{bundleDetail}', [InventoryBundleController::class, 'detailDestroy'])->name('detail.destroy');
+    });
+
     // Tidak digerbang flag admin manapun di legacy (semua admin yang login bisa akses).
     Route::prefix('meso')->name('meso.')->group(function () {
         Route::get('/', [InventoryMesoController::class, 'index'])->name('index');
@@ -743,6 +760,15 @@ Route::prefix('inventory')->middleware(['auth:admin', 'admin.active'])->name('in
         Route::get('/', [InventoryLabapenjualanController::class, 'index'])->name('index');
         Route::get('/cetak', [InventoryLabapenjualanController::class, 'cetak'])->name('cetak');
         Route::get('/excel', [InventoryLabapenjualanController::class, 'excel'])->name('excel');
+    });
+
+    // Laporan > Detail Jenis Penjualan (flag labajenisobat, label lama "Jenis
+    // Penjualan") -- laporan baca-saja, transaksi dikelompokkan per jenis
+    // penjualan (Reguler/Resep/Nakes/SEMUA).
+    Route::prefix('labajenisobat')->middleware('inventory.module:labajenisobat')->name('labajenisobat.')->group(function () {
+        Route::get('/', [InventoryLabajenisobatController::class, 'index'])->name('index');
+        Route::get('/cetak', [InventoryLabajenisobatController::class, 'cetak'])->name('cetak');
+        Route::get('/excel', [InventoryLabajenisobatController::class, 'excel'])->name('excel');
     });
 
     // Laporan > Neraca Laba Rugi (flag neraca) -- satu halaman, form + hasil inline

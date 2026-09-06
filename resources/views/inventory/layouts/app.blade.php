@@ -115,6 +115,8 @@
             'lpbrgmasuk' => 'inventory.lpbrgmasuk.',
             'lpkasir' => 'inventory.lpkasir.',
             'labapenjualan' => 'inventory.labapenjualan.',
+            'labajenisobat' => 'inventory.labajenisobat.',
+            'bundle' => 'inventory.bundle.',
             'neraca' => 'inventory.neraca.',
             'lapstokopname' => 'inventory.lapstokopname.',
             'lapkomisi' => 'inventory.lapkomisi.',
@@ -254,9 +256,10 @@
                             'lpbrgmasuk' => 'icon-printer',
                             'lpkasir' => 'icon-printer',
                             'labapenjualan' => 'icon-printer',
-                            'labajenisobat' => 'icon-printer',
-                            'lpsupplier' => 'icon-printer',
-                            'lppelanggan' => 'icon-printer',
+                            'labajenisobat' => 'icon-printer', // Detail Jenis Penjualan
+                            'bundle' => 'icon-tag',
+                            // 'lpsupplier' => 'icon-printer', -- modul dihapus, lihat Admin::PERMISSION_GROUPS
+                            // 'lppelanggan' => 'icon-printer', -- modul dihapus, lihat Admin::PERMISSION_GROUPS
                             'neraca' => 'icon-printer',
                             'lapstokopname' => 'icon-printer',
                             'lapkomisi' => 'icon-printer',
@@ -312,6 +315,28 @@
                             </li>
                         @endif
                     @endforeach
+
+                    {{-- "Program Promo > Bundle/Paket Produk" -- tidak ada di
+                    Admin::PERMISSION_GROUPS sama sekali (tidak ada kolom flag untuk
+                    modul ini, legacy sendiri menampilkan menu ini tanpa syarat apapun
+                    ke semua admin yang login) -- disuntikkan manual di sini sebagai
+                    grup sidebar sendiri, bukan lewat mekanisme flag standar. --}}
+                    <li class="nav-group-title">PROGRAM PROMO</li>
+                    <li class="nav-submenu">
+                        <a class="nav-submenu-title" href="javascript:void(0)">
+                            <i class="feather icon-percent"></i>
+                            <span>Program Promo</span>
+                            <i class="nav-submenu-arrow"></i>
+                        </a>
+                        <ul class="nav-menu menu-collapse">
+                            <li class="nav-menu-item {{ $activeModule === 'bundle' ? 'active' : '' }}">
+                                <a href="{{ route('inventory.bundle.index') }}">
+                                    <i class="feather icon-tag"></i>
+                                    <span class="nav-menu-item-title">Bundle/Paket Produk</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
 
                     <li class="nav-menu-item">
                         <a href="javascript:void(0)" onclick="logoutConfirm(event)">

@@ -60,9 +60,12 @@ class Admin extends Authenticatable
             'lpbrgmasuk' => 'Barang Masuk',
             'lpkasir' => 'Penjualan',
             'labapenjualan' => 'Laba Penjualan',
-            'labajenisobat' => 'Jenis Penjualan',
-            'lpsupplier' => 'Data Supplier',
-            'lppelanggan' => 'Data Pelanggan',
+            'labajenisobat' => 'Detail Jenis Penjualan',
+            // 'lpsupplier' => 'Data Supplier', -- dikomentari 2026-09-06 atas
+            // permintaan user: sudah ada laporan yang sama di Data Master
+            // (menu Supplier), jadi duplikat di Laporan dihapus permanen.
+            // 'lppelanggan' => 'Data Pelanggan', -- sama alasannya, sudah ada di
+            // Data Master (menu Pelanggan).
             'neraca' => 'Neraca Laba Rugi',
             'lapstokopname' => 'Stok Opname',
         ],

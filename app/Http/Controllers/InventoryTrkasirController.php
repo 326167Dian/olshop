@@ -834,60 +834,83 @@ class InventoryTrkasirController extends Controller
             $hrgDisc = $component->hrgjual_barang * (1 - ($disc / 100));
 
             $this->kurangiStokAtauGagal($component->id_barang, $butuh);
-            $this->alokasikanBatchKeluar($validated['kd_trkasir'], $component->kd_barang, $butuh);
 
             $barang = Product::find($component->id_barang);
             $modal = (float) ($barang->hrgsat_barang ?? 0);
             $komisiPerUnit = $this->komisiPerUnit($barang, $petugas);
 
-            $existing = TrkasirDetail::where('kd_trkasir', $validated['kd_trkasir'])
-                ->where('kd_bundle', $bundle->kd_bundle)
-                ->where('kd_barang', $component->kd_barang)
-                ->first();
+            // Alokasi FEFO per komponen -- SATU baris keranjang per batch yang benar-benar
+            // dipakai (no_batch/exp_date terisi, tanggal kadaluarsa paling dekat duluan),
+            // sama seperti tambahBarang() untuk item non-bundle. Sebelumnya baris bundle
+            // selalu kosong no_batch/exp_date-nya (cuma menulis ledger `batch` lewat
+            // alokasikanBatchKeluar(), tidak pernah menyalin hasil alokasinya ke baris
+            // trkasir_detail) walau stok sudah benar-benar dipotong dari batch tertentu --
+            // ditemukan lewat laporan user (kolom Batch/Exp kosong di layar Kasir untuk
+            // item hasil bundle).
+            $alokasi = $this->fefoAllocate($component->kd_barang, $butuh);
 
-            if ($existing) {
-                $qtyBaru = $existing->qty_dtrkasir + $butuh;
-                $totalBaru = $qtyBaru * $hrgDisc;
-
-                $existing->update([
-                    'qty_dtrkasir' => $qtyBaru,
-                    'disc' => $disc,
-                    'modal' => $modal,
-                    'profit' => $totalBaru - ($modal * $qtyBaru),
-                    'hrgttl_dtrkasir' => $totalBaru,
-                    'komisi' => $komisiPerUnit,
-                    'idadmin' => $petugas->id_admin,
-                ]);
-
-                $this->catatUbahQty($existing, $existing->qty_dtrkasir - $butuh, $existing->hrgttl_dtrkasir, $totalBaru, $admin);
-                $this->sesuaikanKomisi($existing->id_dtrkasir, $validated['kd_trkasir'], $petugas->id_admin, $komisiPerUnit * $qtyBaru, true);
-            } else {
-                $total = $butuh * $hrgDisc;
-
-                $detail = TrkasirDetail::create([
-                    'kd_trkasir' => $validated['kd_trkasir'],
-                    'id_barang' => $component->id_barang,
+            foreach ($alokasi as $a) {
+                Batch::create([
+                    'tgl_transaksi' => now(),
+                    'no_batch' => $a['no_batch'],
+                    'exp_date' => $a['exp_date'] ?? '9999-12-31',
+                    'qty' => $a['qty'],
+                    'satuan' => $component->sat_barang,
+                    'kd_transaksi' => $validated['kd_trkasir'],
                     'kd_barang' => $component->kd_barang,
-                    'nmbrg_dtrkasir' => $component->nm_barang,
-                    'qty_dtrkasir' => $butuh,
-                    'sat_dtrkasir' => $component->sat_barang,
-                    'hrgjual_dtrkasir' => $component->hrgjual_barang,
-                    'disc' => $disc,
-                    'modal' => $modal,
-                    'profit' => $total - ($modal * $butuh),
-                    'hrgttl_dtrkasir' => $total,
-                    'no_batch' => '',
-                    'exp_date' => null,
-                    'tipe' => $validated['tipe'],
-                    'komisi' => $komisiPerUnit,
-                    'idadmin' => $petugas->id_admin,
-                    'tipetx' => 1,
-                    'resep' => 'TIDAK',
-                    'kd_bundle' => $bundle->kd_bundle,
-                    'nm_bundle' => $bundle->nm_bundle,
+                    'status' => 'keluar',
                 ]);
 
-                $this->sesuaikanKomisi($detail->id_dtrkasir, $validated['kd_trkasir'], $petugas->id_admin, $komisiPerUnit * $butuh, false);
+                $existing = TrkasirDetail::where('kd_trkasir', $validated['kd_trkasir'])
+                    ->where('kd_bundle', $bundle->kd_bundle)
+                    ->where('kd_barang', $component->kd_barang)
+                    ->where('no_batch', $a['no_batch'])
+                    ->first();
+
+                if ($existing) {
+                    $qtyBaru = $existing->qty_dtrkasir + $a['qty'];
+                    $totalBaru = $qtyBaru * $hrgDisc;
+
+                    $existing->update([
+                        'qty_dtrkasir' => $qtyBaru,
+                        'disc' => $disc,
+                        'modal' => $modal,
+                        'profit' => $totalBaru - ($modal * $qtyBaru),
+                        'hrgttl_dtrkasir' => $totalBaru,
+                        'komisi' => $komisiPerUnit,
+                        'idadmin' => $petugas->id_admin,
+                    ]);
+
+                    $this->catatUbahQty($existing, $existing->qty_dtrkasir - $a['qty'], $existing->hrgttl_dtrkasir, $totalBaru, $admin);
+                    $this->sesuaikanKomisi($existing->id_dtrkasir, $validated['kd_trkasir'], $petugas->id_admin, $komisiPerUnit * $qtyBaru, true);
+                } else {
+                    $total = $a['qty'] * $hrgDisc;
+
+                    $detail = TrkasirDetail::create([
+                        'kd_trkasir' => $validated['kd_trkasir'],
+                        'id_barang' => $component->id_barang,
+                        'kd_barang' => $component->kd_barang,
+                        'nmbrg_dtrkasir' => $component->nm_barang,
+                        'qty_dtrkasir' => $a['qty'],
+                        'sat_dtrkasir' => $component->sat_barang,
+                        'hrgjual_dtrkasir' => $component->hrgjual_barang,
+                        'disc' => $disc,
+                        'modal' => $modal,
+                        'profit' => $total - ($modal * $a['qty']),
+                        'hrgttl_dtrkasir' => $total,
+                        'no_batch' => $a['no_batch'],
+                        'exp_date' => $a['exp_date'],
+                        'tipe' => $validated['tipe'],
+                        'komisi' => $komisiPerUnit,
+                        'idadmin' => $petugas->id_admin,
+                        'tipetx' => 1,
+                        'resep' => 'TIDAK',
+                        'kd_bundle' => $bundle->kd_bundle,
+                        'nm_bundle' => $bundle->nm_bundle,
+                    ]);
+
+                    $this->sesuaikanKomisi($detail->id_dtrkasir, $validated['kd_trkasir'], $petugas->id_admin, $komisiPerUnit * $a['qty'], false);
+                }
             }
         }
     }
@@ -2311,61 +2334,6 @@ class InventoryTrkasirController extends Controller
     {
         $affected = DB::table('barang')->where('id_barang', $idBarang)->where('stok_barang', '>=', $qty)->decrement('stok_barang', $qty);
         abort_if($affected === 0, 422, 'Stok barang tidak mencukupi.');
-    }
-
-    /**
-     * Alokasi FEFO (First-Expired-First-Out) otomatis dari ledger `batch`, mengikuti
-     * get_batch_fifo() -- kecukupan stok SEBENARNYA sudah divalidasi lewat
-     * kurangiStokAtauGagal() (kolom stok_barang, sumber kebenaran utama); kalau ledger
-     * batch ternyata lebih sedikit dari qty yang diambil (drift pembukuan), sisanya
-     * tetap dicatat sebagai baris tanpa no_batch -- aman karena stok sungguhan sudah
-     * tervalidasi di atas, bukan celah oversell seperti fallback "phantom" legacy.
-     */
-    private function alokasikanBatchKeluar(string $kdTrkasir, string $kdBarang, float $qty): void
-    {
-        $ledger = Batch::query()
-            ->where('kd_barang', $kdBarang)
-            ->selectRaw("no_batch, exp_date, SUM(CASE WHEN status='masuk' THEN qty ELSE 0 END) - SUM(CASE WHEN status='keluar' THEN qty ELSE 0 END) as sisa")
-            ->groupBy('no_batch', 'exp_date')
-            ->havingRaw('SUM(CASE WHEN status=\'masuk\' THEN qty ELSE 0 END) - SUM(CASE WHEN status=\'keluar\' THEN qty ELSE 0 END) > 0')
-            ->orderByRaw('CASE WHEN exp_date IS NULL THEN 1 ELSE 0 END, exp_date ASC')
-            ->get();
-
-        $sisaButuh = $qty;
-        foreach ($ledger as $b) {
-            if ($sisaButuh <= 0) {
-                break;
-            }
-            $ambil = min($sisaButuh, (float) $b->sisa);
-            if ($ambil <= 0) {
-                continue;
-            }
-
-            Batch::create([
-                'tgl_transaksi' => now(),
-                'no_batch' => $b->no_batch,
-                'exp_date' => $b->exp_date,
-                'qty' => $ambil,
-                'satuan' => '',
-                'kd_transaksi' => $kdTrkasir,
-                'kd_barang' => $kdBarang,
-                'status' => 'keluar',
-            ]);
-            $sisaButuh -= $ambil;
-        }
-
-        if ($sisaButuh > 0) {
-            Batch::create([
-                'tgl_transaksi' => now(),
-                'no_batch' => '',
-                'exp_date' => '9999-12-31',
-                'qty' => $sisaButuh,
-                'satuan' => '',
-                'kd_transaksi' => $kdTrkasir,
-                'kd_barang' => $kdBarang,
-                'status' => 'keluar',
-            ]);
-        }
     }
 
     /**
