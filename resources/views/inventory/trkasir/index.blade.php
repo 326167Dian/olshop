@@ -132,5 +132,14 @@
             window.location = "{{ route('inventory.trkasir.create') }}";
         }
     });
+
+    // Delegated listener (dipasang sekali, tidak bergantung pada inline onclick di
+    // HTML yang di-generate ulang server tiap kali DataTables redraw/reload) --
+    // tombol Hapus ada di dalam dropdown Bootstrap, jadi dijadikan lebih tangguh
+    // terhadap kemungkinan race/timing seputar dropdown yang menutup diri sendiri.
+    $(document).on('click', '.btn-hapus-trkasir', function (e) {
+        e.preventDefault();
+        confirmDelete($(this).data('form-id'), $(this).data('label'));
+    });
 </script>
 @endpush
