@@ -49,6 +49,8 @@ use App\Http\Controllers\InventoryMstokController;
 use App\Http\Controllers\InventoryStokKritisController;
 use App\Http\Controllers\InventoryStokopnameController;
 use App\Http\Controllers\InventoryStokopnameHarianController;
+use App\Http\Controllers\InventoryCatatanController;
+use App\Http\Controllers\InventoryJurnalkasController;
 use App\Http\Controllers\InventoryLpitemController;
 use App\Http\Controllers\InventoryLpbrgmasukController;
 
@@ -335,6 +337,33 @@ Route::prefix('inventory')->middleware(['auth:admin', 'admin.active'])->name('in
         Route::post('/', [InventoryStokopnameHarianController::class, 'store'])->name('store');
         Route::delete('/{stokOpname}', [InventoryStokopnameController::class, 'destroy'])->name('destroy');
         Route::get('/excel', [InventoryStokopnameHarianController::class, 'excel'])->name('excel');
+    });
+
+    Route::prefix('jurnalkas')->middleware('inventory.module:jurnalkas')->name('jurnalkas.')->group(function () {
+        Route::get('/', [InventoryJurnalkasController::class, 'index'])->name('index');
+        Route::get('/create', [InventoryJurnalkasController::class, 'create'])->name('create');
+        Route::get('/create-income', [InventoryJurnalkasController::class, 'createIncome'])->name('create-income');
+        Route::post('/', [InventoryJurnalkasController::class, 'store'])->name('store');
+        Route::get('/kemarin', [InventoryJurnalkasController::class, 'kemarin'])->name('kemarin');
+        Route::get('/pilih-hari', [InventoryJurnalkasController::class, 'pilihHari'])->name('pilih-hari');
+        Route::get('/tampil-range', [InventoryJurnalkasController::class, 'tampilRange'])->name('tampil-range');
+        Route::get('/rekap', [InventoryJurnalkasController::class, 'rekapForm'])->name('rekap');
+        Route::get('/rekap/hasil', [InventoryJurnalkasController::class, 'rekapResult'])->name('rekap.hasil');
+        Route::get('/rekap/detail', [InventoryJurnalkasController::class, 'rekapDetail'])->name('rekap.detail');
+        Route::get('/excel', [InventoryJurnalkasController::class, 'excel'])->name('excel');
+
+        Route::prefix('jenis')->name('jenis.')->group(function () {
+            Route::get('/', [InventoryJurnalkasController::class, 'jenisIndex'])->name('index');
+            Route::get('/create', [InventoryJurnalkasController::class, 'jenisCreate'])->name('create');
+            Route::post('/', [InventoryJurnalkasController::class, 'jenisStore'])->name('store');
+            Route::get('/{jenisJurnal}/edit', [InventoryJurnalkasController::class, 'jenisEdit'])->name('edit');
+            Route::put('/{jenisJurnal}', [InventoryJurnalkasController::class, 'jenisUpdate'])->name('update');
+            Route::delete('/{jenisJurnal}', [InventoryJurnalkasController::class, 'jenisDestroy'])->name('destroy');
+        });
+
+        Route::get('/{jurnal}/edit', [InventoryJurnalkasController::class, 'edit'])->name('edit');
+        Route::put('/{jurnal}', [InventoryJurnalkasController::class, 'update'])->name('update');
+        Route::delete('/{jurnal}', [InventoryJurnalkasController::class, 'destroy'])->name('destroy');
     });
 
     Route::prefix('ujian')->middleware('inventory.module:ujian')->name('ujian.')->group(function () {
@@ -669,6 +698,16 @@ Route::prefix('inventory')->middleware(['auth:admin', 'admin.active'])->name('in
         Route::post('/bundle-resolve', [InventoryTrkasirController::class, 'bundleResolve'])->name('bundle-resolve');
         Route::get('/batch-picker', [InventoryTrkasirController::class, 'batchPicker'])->name('batch-picker');
         Route::get('/pelanggan-picker', [InventoryTrkasirController::class, 'pelangganPicker'])->name('pelanggan-picker');
+    });
+
+    Route::prefix('catatan')->middleware('inventory.module:catatan')->name('catatan.')->group(function () {
+        Route::get('/', [InventoryCatatanController::class, 'index'])->name('index');
+        Route::get('/create', [InventoryCatatanController::class, 'create'])->name('create');
+        Route::post('/', [InventoryCatatanController::class, 'store'])->name('store');
+        Route::get('/{catatan}/edit', [InventoryCatatanController::class, 'edit'])->name('edit');
+        Route::put('/{catatan}', [InventoryCatatanController::class, 'update'])->name('update');
+        Route::delete('/{catatan}', [InventoryCatatanController::class, 'destroy'])->name('destroy');
+        Route::get('/{catatan}', [InventoryCatatanController::class, 'show'])->name('show');
     });
 
     // Laporan > Item Barang (flag lpitem) -- laporan baca-saja atas tabel barang,

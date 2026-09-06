@@ -31,6 +31,7 @@ class InventoryController extends Controller
         'stok_kritis' => 'inventory.stok-kritis.index',
         'stokopname' => 'inventory.stokopname.index',
         'soharian' => 'inventory.soharian.index',
+        'jurnalkas' => 'inventory.jurnalkas.index',
         'ujian' => 'inventory.ujian.index',
         'cekdarah' => 'inventory.cekdarah.index',
         'konseling' => 'inventory.konseling.index',
@@ -53,6 +54,7 @@ class InventoryController extends Controller
         // (bandingkan admin.penjualansebelum di database vs href="?module=penjualansebelumnya"
         // di media_admin.php), bukan salah ketik di port ini.
         'penjualansebelumnya' => 'inventory.penjualansebelum.index',
+        'catatan' => 'inventory.catatan.index',
         'lpitem' => 'inventory.lpitem.index',
         'lpbrgmasuk' => 'inventory.lpbrgmasuk.index',
         'lpkasir' => 'inventory.lpkasir.index',
