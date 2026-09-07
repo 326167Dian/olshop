@@ -67,7 +67,7 @@ class InventoryOrdersController extends Controller
                         <a href="' . route('inventory.orders.print.alkes', $id) . '" target="_blank" class="btn btn-secondary btn-sm w-100 mb-1">SP Alkes</a>
                         <form action="' . route('inventory.orders.destroy', $id) . '" method="POST" id="delete-order-' . $id . '">
                             ' . csrf_field() . method_field('DELETE') . '
-                            <button type="button" onclick="confirmDelete(\'delete-order-' . $id . '\', \'pesanan ' . e($row->kd_trbmasuk) . '\')" class="btn btn-danger btn-sm w-100">Hapus</button>
+                            <button type="submit" class="btn btn-danger btn-sm w-100">Hapus</button>
                         </form>
                     </div>
                 </div>';
@@ -157,6 +157,7 @@ class InventoryOrdersController extends Controller
         });
 
         return redirect()->route('inventory.orders.index')->with('success', 'Pesanan berhasil dihapus.');
+        // dd($order);
     }
 
     /**
