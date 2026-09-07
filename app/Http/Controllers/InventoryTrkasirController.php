@@ -2365,7 +2365,7 @@ class InventoryTrkasirController extends Controller
                 continue;
             }
 
-            $alokasi[] = ['no_batch' => (string) $b->no_batch, 'exp_date' => $b->exp_date, 'qty' => $ambil];
+            $alokasi[] = ['no_batch' => (string) $b->no_batch, 'exp_date' => $this->sanitizeExpDate($b->exp_date), 'qty' => $ambil];
             $sisaButuh -= $ambil;
         }
 
@@ -2393,7 +2393,22 @@ class InventoryTrkasirController extends Controller
 
         abort_if(!$ledger || $ledger->sisa < $qty, 422, "Stok batch {$noBatch} tidak mencukupi.");
 
-        return ['no_batch' => $noBatch, 'exp_date' => $ledger->exp_date, 'qty' => $qty];
+        return ['no_batch' => $noBatch, 'exp_date' => $this->sanitizeExpDate($ledger->exp_date), 'qty' => $qty];
+    }
+
+    /**
+     * Data `batch` legacy punya banyak baris `exp_date = '0000-00-00'` (sentinel lawas,
+     * berarti "tanggal kadaluarsa tidak pernah diisi" -- bukan bug porting, memang begitu
+     * datanya, mis. batch no_batch=1160342158 dari transaksi Barang Masuk BMP-140826083402).
+     * Koneksi Laravel ini pakai sql_mode `NO_ZERO_DATE`, jadi INSERT baris `batch`/
+     * `trkasir_detail` BARU yang menyalin nilai itu apa adanya akan gagal total (SQLSTATE
+     * 22007) -- bukan cuma salah tampil. Disamakan dengan sentinel yang sudah dipakai di
+     * modul Stok Opname untuk kasus identik: '0000-00-00' -> '1970-01-01' (tanggal valid,
+     * jelas-jelas di masa lalu, tidak pernah disalahartikan sebagai "belum kadaluarsa").
+     */
+    private function sanitizeExpDate(?string $expDate): ?string
+    {
+        return $expDate === '0000-00-00' ? '1970-01-01' : $expDate;
     }
 
     /**
