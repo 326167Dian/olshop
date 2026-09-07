@@ -443,6 +443,25 @@
                 }
             });
         }
+
+        // Perbaikan global: dropdown Bootstrap (mis. kolom "Aksi" di tabel manapun)
+        // yang letaknya di dalam `.table-responsive` (overflow-x:auto -- otomatis
+        // membuat overflow-y ikut clipping, bukan cuma sumbu horizontal) bisa
+        // terpotong/tidak bisa diklik kalau menu-nya jatuh di luar area yang
+        // kelihatan -- baru benar-benar terasa di tabel yang KOLOMNYA BANYAK
+        // (sampai perlu scroll horizontal), makanya baru ketahuan di modul
+        // Penjualan/Kasir & Pesan Barang, bukan di tabel yang lebih sempit. Ini akar
+        // masalah "tombol Hapus di dalam dropdown tidak bisa diklik" yang pernah
+        // dicoba diperbaiki sebelumnya (2026-09-06) dengan mengganti pola JS-nya --
+        // ternyata bukan soal JS, tapi CSS clipping ini. Diperbaiki dengan
+        // menghilangkan sementara overflow-nya SELAMA dropdown terbuka saja (supaya
+        // scroll horizontal tabel tetap normal saat dropdown tertutup).
+        $(document).on('show.bs.dropdown', function (e) {
+            $(e.target).closest('.table-responsive').css('overflow', 'visible');
+        });
+        $(document).on('hide.bs.dropdown', function (e) {
+            $(e.target).closest('.table-responsive').css('overflow', '');
+        });
     </script>
 
     @if (request()->routeIs('inventory.trkasir.*') || request()->routeIs('inventory.penjualansebelum.*'))

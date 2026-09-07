@@ -154,35 +154,42 @@ class InventoryTrkasirController extends Controller
             ->addColumn('shift_label', fn ($row) => ['1' => 'Pagi', '2' => 'Siang', '3' => 'Malam'][(string) $row->shift] ?? $row->shift)
             ->addColumn('nm_carabayar', fn ($row) => optional(CaraBayar::find($row->id_carabayar))->nm_carabayar)
             ->addColumn('aksi', function ($row) use ($isPemilik) {
-                // Sengaja BUKAN dropdown Bootstrap -- tombol-tombol aksi langsung
-                // terlihat sebagai baris kecil yang bisa wrap, menghindari kelas bug
-                // "tombol di dalam dropdown-menu tidak bisa diklik" yang ditemukan
-                // 2026-09-06 (dua pendekatan JS berbeda sama-sama gagal untuk Hapus
-                // yang berada di dalam dropdown-menu, sementara tombol Print/dll di
-                // dropdown yang sama -- link biasa -- tidak dikeluhkan; menunjukkan
-                // masalahnya ada di posisi/overlay dropdown itu sendiri, bukan di
-                // cara event-nya dipasang). Pola ini sama dengan yang sudah terbukti
-                // jalan di seluruh modul lain sepanjang port ini (Catatan, Jurnal
-                // Kas, Stok Opname, dst).
-                $html = '<div class="d-flex flex-wrap gap-1">';
+                // Dropdown Bootstrap, mengikuti pola InventoryOrdersController -- link
+                // biasa untuk Edit/Print/dll, dan tombol Hapus berupa native
+                // <button type="submit"> polos di dalam <form> (tanpa JS
+                // onclick/delegated-click apa pun). Percobaan sebelumnya
+                // (2026-09-06) mengira akar masalah "Hapus di dalam dropdown tidak
+                // bisa diklik" ada di lapisan JS-nya dan sempat diganti ke tombol
+                // flex-wrap biasa (bukan dropdown) -- ternyata akar masalah
+                // sesungguhnya CSS: dropdown-menu di dalam `.table-responsive`
+                // (tabel lebar, banyak kolom) bisa terpotong/tidak bisa diklik kalau
+                // jatuh di luar area yang kelihatan. Sudah diperbaiki secara global
+                // di app.blade.php (listener show.bs.dropdown/hide.bs.dropdown yang
+                // menghilangkan overflow clipping SELAMA dropdown ini terbuka) --
+                // dropdown di sini aman dipakai lagi.
+                $onsubmit = 'return confirm(\'Hapus transaksi ' . e($row->kd_trkasir) . '? Data yang dihapus tidak dapat dikembalikan.\')';
+
+                $html = '<div class="dropdown">
+                    <button class="btn btn-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">Aksi</button>
+                    <div class="dropdown-menu p-2 shadow" style="min-width:170px;">';
 
                 if ($isPemilik) {
-                    $html .= '<a href="' . route('inventory.trkasir.edit', $row->id_trkasir) . '" class="btn btn-warning btn-sm">Edit</a>';
+                    $html .= '<a href="' . route('inventory.trkasir.edit', $row->id_trkasir) . '" class="btn btn-warning btn-sm w-100 mb-1">Edit</a>';
                 }
 
-                $html .= '<a href="' . route('inventory.trkasir.struk', $row->id_trkasir) . '" target="_blank" class="btn btn-info btn-sm">Print</a>
-                    <a href="' . route('inventory.trkasir.kwitansi', $row->id_trkasir) . '" target="_blank" class="btn btn-primary btn-sm">Kwitansi</a>
-                    <a href="' . route('inventory.trkasir.invoice', $row->id_trkasir) . '" target="_blank" class="btn btn-primary btn-sm">Invoice</a>
-                    <a href="' . route('inventory.trkasir.etiket', $row->id_trkasir) . '" target="_blank" class="btn btn-secondary btn-sm">Etiket</a>';
+                $html .= '<a href="' . route('inventory.trkasir.struk', $row->id_trkasir) . '" target="_blank" class="btn btn-info btn-sm w-100 mb-1">Print</a>
+                    <a href="' . route('inventory.trkasir.kwitansi', $row->id_trkasir) . '" target="_blank" class="btn btn-primary btn-sm w-100 mb-1">Kwitansi</a>
+                    <a href="' . route('inventory.trkasir.invoice', $row->id_trkasir) . '" target="_blank" class="btn btn-primary btn-sm w-100 mb-1">Invoice</a>
+                    <a href="' . route('inventory.trkasir.etiket', $row->id_trkasir) . '" target="_blank" class="btn btn-secondary btn-sm w-100 mb-1">Etiket</a>';
 
                 if ($isPemilik) {
-                    $html .= '<form action="' . route('inventory.trkasir.destroy', $row->id_trkasir) . '" method="POST" id="delete-trkasir-' . $row->id_trkasir . '" class="d-inline">
+                    $html .= '<form action="' . route('inventory.trkasir.destroy', $row->id_trkasir) . '" method="POST" onsubmit="' . $onsubmit . '">
                         ' . csrf_field() . method_field('DELETE') . '
-                        <button type="button" class="btn btn-danger btn-sm btn-hapus-trkasir" data-form-id="delete-trkasir-' . $row->id_trkasir . '" data-label="transaksi ' . e($row->kd_trkasir) . '">Hapus</button>
+                        <button type="submit" class="btn btn-danger btn-sm w-100">Hapus</button>
                     </form>';
                 }
 
-                $html .= '</div>';
+                $html .= '</div></div>';
 
                 return $html;
             })
