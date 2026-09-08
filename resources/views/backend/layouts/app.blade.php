@@ -98,6 +98,12 @@
                                             </div>
                                         </div>
                                     </div>
+                                    <a href="{{ route('inventory.index') }}" class="dropdown-item">
+                                        <div class="d-flex align-items-center">
+                                            <i class="font-size-lg me-2 feather icon-package"></i>
+                                            <span>Halaman Inventory</span>
+                                        </div>
+                                    </a>
                                     <a href="{{ route('admin.profile.edit') }}" class="dropdown-item">
                                         <div class="d-flex align-items-center">
                                             <i class="font-size-lg me-2 feather icon-user"></i>

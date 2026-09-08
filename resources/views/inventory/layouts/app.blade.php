@@ -179,7 +179,7 @@
                                     <a href="{{ route('backend.dashboard') }}" class="dropdown-item">
                                         <div class="d-flex align-items-center">
                                             <i class="font-size-lg me-2 feather icon-grid"></i>
-                                            <span>Dashboard Backend</span>
+                                            <span>Dashboard E-Commerce</span>
                                         </div>
                                     </a>
                                     <a href="{{ route('admin.profile.edit') }}" class="dropdown-item">
