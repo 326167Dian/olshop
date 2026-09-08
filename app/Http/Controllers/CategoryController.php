@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Category;
+use App\Models\Product;
 use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -13,7 +14,9 @@ class CategoryController extends Controller
      */
     public function index(Category $category)
     {
-        return view('backend.category.index', compact('category'));
+        $uncategorizedCount = Product::where('category_id', 0)->where('stok_barang', '>', 0)->count();
+
+        return view('backend.category.index', compact('category', 'uncategorizedCount'));
     }
 
     public function data()

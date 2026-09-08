@@ -10,7 +10,12 @@
 
         <div class="card">
             <div class="card-header">
-                <h3 class="card-title">Atur Kategori Produk</h3>
+                <h3 class="card-title">
+                    Atur Kategori Produk
+                    @if ($uncategorized)
+                        <span class="badge bg-warning text-dark">Belum berkategori, stok tersedia</span>
+                    @endif
+                </h3>
             </div>
 
             <div class="card-body">
@@ -21,6 +26,7 @@
                             <th>Kode Barang</th>
                             <th>Nama Barang</th>
                             <th>Satuan</th>
+                            <th>Stok</th>
                             <th>Gambar</th>
                             <th>Kategori</th>
                         </tr>
@@ -53,12 +59,16 @@
             processing: true,
             serverSide: true,
             responsive: true,
-            ajax: "{{ route('backend.product.selectCategoryData') }}",
+            ajax: {
+                url: "{{ route('backend.product.selectCategoryData') }}",
+                data: { uncategorized: {{ $uncategorized ? 1 : 0 }} }
+            },
             columns: [
                 { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
                 { data: 'kd_barang', name: 'kd_barang' },
                 { data: 'nm_barang', name: 'nm_barang' },
                 { data: 'sat_barang', name: 'sat_barang' },
+                { data: 'stok_barang', name: 'stok_barang', className: 'text-center' },
                 { data: 'gambar', name: 'gambar', orderable: false, searchable: false },
                 {
                     data: 'category_id',

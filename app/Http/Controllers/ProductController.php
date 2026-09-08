@@ -130,19 +130,26 @@ class ProductController extends Controller
     public function selectCategory()
     {
         $categories = Category::orderBy('name')->get();
-        return view('backend.product.select-category', compact('categories'));
+        $uncategorized = request()->boolean('uncategorized');
+
+        return view('backend.product.select-category', compact('categories', 'uncategorized'));
     }
 
-    public function selectCategoryData()
+    public function selectCategoryData(Request $request)
     {
         $query = Product::select([
             'id_barang',
             'kd_barang',
             'nm_barang',
             'sat_barang',
+            'stok_barang',
             'image',
             'category_id',
         ]);
+
+        if ($request->boolean('uncategorized')) {
+            $query->where('category_id', 0)->where('stok_barang', '>', 0);
+        }
 
         return DataTables::of($query)
             ->addIndexColumn()

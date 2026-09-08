@@ -28,6 +28,16 @@
                     <tbody>
                     </tbody>
                 </table>
+
+                <div class="alert alert-warning d-flex justify-content-between align-items-center mt-3 mb-0">
+                    <div>
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>{{ $uncategorizedCount }}</strong> barang (stok tersedia) belum diberi kategori.
+                    </div>
+                    <a href="{{ route('product.selectCategory') }}?uncategorized=1" class="btn btn-sm btn-outline-dark">
+                        Detail
+                    </a>
+                </div>
             </div>
         </div>
 
