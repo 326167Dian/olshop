@@ -18,7 +18,10 @@ class User extends Authenticatable
         'password',
         'google_id',
         'alamat',
-        'no_tlp'
+        'no_tlp',
+        'referal_admin_id',
+        'komisi_status',
+        'waktu_komisi_lunas',
     ];
 
     protected $hidden = [
@@ -28,5 +31,11 @@ class User extends Authenticatable
 
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'waktu_komisi_lunas' => 'datetime',
     ];
+
+    public function referal()
+    {
+        return $this->belongsTo(Admin::class, 'referal_admin_id', 'id_admin');
+    }
 }

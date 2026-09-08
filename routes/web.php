@@ -121,6 +121,7 @@ Route::prefix('/backend')->middleware('auth:admin')->group(function () {
     Route::get('/customer', [CustomerController::class, 'index'])->name('customer.index');
     Route::get('/customer/{customer}', [CustomerController::class, 'show'])->name('customer.show');
     Route::get('/customer-data', [CustomerController::class, 'data'])->name('backend.customer.data');
+    Route::put('/customer/{customer}/update-komisi', [CustomerController::class, 'updateKomisi'])->name('customer.updateKomisi');
     Route::delete('/customer/{customer}', [CustomerController::class, 'destroy'])->name('customer.destroy');
 
     // Product

@@ -86,6 +86,23 @@
                                     @enderror
                                 </div>
 
+                                <div class="form-group">
+                                    <label>Kode Referal (opsional)</label>
+                                    <select name="referal_admin_id"
+                                        class="form-control @error('referal_admin_id') is-invalid @enderror">
+                                        <option value="">-- Tidak ada --</option>
+                                        @foreach ($petugasList as $petugas)
+                                            <option value="{{ $petugas->id_admin }}"
+                                                @selected((string) old('referal_admin_id', $edit->referal_admin_id) === (string) $petugas->id_admin)>
+                                                {{ $petugas->nama_lengkap }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    @error('referal_admin_id')
+                                    <div class="invalid-feedback alert-danger">{{ $message }}</div>
+                                    @enderror
+                                </div>
+
                             </div>
 
                             {{-- Tombol Submit --}}

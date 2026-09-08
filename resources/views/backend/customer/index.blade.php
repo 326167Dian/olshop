@@ -20,6 +20,9 @@
                             <th>No</th>
                             <th>Nama</th>
                             <th>Email</th>
+                            <th>Referal</th>
+                            <th>Komisi</th>
+                            <th>Waktu</th>
                             <th>Aksi</th>
                         </tr>
                     </thead>
@@ -48,8 +51,53 @@
                 { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
                 { data: 'name', name: 'name' },
                 { data: 'email', name: 'email' },
+                { data: 'referal_nama', name: 'referal_nama' },
+                { data: 'komisi', name: 'komisi', orderable: false, searchable: false },
+                { data: 'waktu_komisi', name: 'waktu_komisi', orderable: false, searchable: false },
                 { data: 'aksi', name: 'aksi', orderable: false, searchable: false },
             ]
+        });
+    });
+
+    $(document).on('change', '.komisi-select', function () {
+        var $select = $(this);
+        var customerId = $select.data('id');
+        var status = $select.val();
+        var url = "{{ route('customer.updateKomisi', ['customer' => '__ID__']) }}".replace('__ID__', customerId);
+
+        $select.prop('disabled', true);
+
+        $.ajax({
+            url: url,
+            type: 'POST',
+            data: {
+                _token: $('meta[name="csrf-token"]').attr('content'),
+                _method: 'PUT',
+                komisi_status: status
+            },
+            success: function (res) {
+                $('.waktu-komisi-display[data-id="' + customerId + '"]').text(res.waktu_komisi_lunas || '-');
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Tersimpan',
+                    text: res.message,
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 1500
+                });
+            },
+            error: function (xhr) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal',
+                    text: (xhr.responseJSON && xhr.responseJSON.message) || 'Tidak dapat memperbarui status komisi.'
+                });
+            },
+            complete: function () {
+                $select.prop('disabled', false);
+            }
         });
     });
 
