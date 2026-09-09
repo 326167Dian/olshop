@@ -25,6 +25,16 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Query eager di sini pernah menjalankan boot untuk SEMUA proses (termasuk
+        // artisan console, mis. `php artisan migrate`) -- pada database yang benar-benar
+        // kosong (belum ada tabel sama sekali, skenario "bangun ulang dari nol"), ini
+        // membuat `migrate` sendiri gagal SEBELUM sempat memuat schema dump, karena
+        // tabel `company_settings` belum ada. View::share/composer hanya relevan untuk
+        // request web sungguhan, jadi dilewati saat runningInConsole().
+        if ($this->app->runningInConsole()) {
+            return;
+        }
+
         View::share('companySetting', CompanySetting::first());
         View::share('jenisobat', JenisObat::get());
         View::share('kategori', Category::get());
