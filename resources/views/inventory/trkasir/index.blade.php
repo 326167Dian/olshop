@@ -15,6 +15,12 @@
                 <a class="btn btn-sm btn-outline-secondary mb-3" href="{{ route('inventory.trkasir.item-terhapus.index') }}">Item Penjualan Terhapus</a>
             @endif
 
+            @if ($komisiGlobalText)
+                <div class="mysifa-marquee mb-3">
+                    <span class="fw-bold fs-5">{{ $komisiGlobalText }}</span>
+                </div>
+            @endif
+
             <div class="table-responsive">
                 <table id="tabel-trkasir" class="table table-auto table-sm table-bordered table-striped w-100">
                     <thead>
@@ -74,6 +80,12 @@
                     </tfoot>
                 </table>
             </div>
+
+            @if ($komisiProdukText)
+                <div class="mysifa-marquee mt-3">
+                    <span class="fw-bold fs-5">{{ $komisiProdukText }}</span>
+                </div>
+            @endif
         </div>
     </div>
 @endsection

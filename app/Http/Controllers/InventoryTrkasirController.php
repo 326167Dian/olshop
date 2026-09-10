@@ -9,6 +9,7 @@ use App\Models\BundleDetail;
 use App\Models\CaraBayar;
 use App\Models\KartuStok;
 use App\Models\Kdtk;
+use App\Models\KomisiGlobal;
 use App\Models\KomisiPegawai;
 use App\Models\Pelanggan;
 use App\Models\PoinPelanggan;
@@ -108,7 +109,75 @@ class InventoryTrkasirController extends Controller
 
     public function index()
     {
-        return view('inventory.trkasir.index', ['judul' => 'Inventory']);
+        $admin = Auth::guard('admin')->user();
+
+        return view('inventory.trkasir.index', [
+            'judul' => 'Inventory',
+            'komisiGlobalText' => $this->komisiGlobalMarquee($admin),
+            'komisiProdukText' => $this->komisiProdukMarquee($admin),
+        ]);
+    }
+
+    /**
+     * "Total Komisi Transaksi ... Saat Ini" -- marquee pertama di trkasir.php legacy,
+     * hanya muncul kalau ada baris `komisiglobal` yang aktif (status='ON', pengaturan
+     * persentase komisi global, TERPISAH dari `admin.komisi`/`barang.komisi`). Dihitung
+     * dari SEMUA transaksi bulan berjalan milik admin yang login (dicocokkan lewat
+     * `trkasir.petugas` = nama, sama seperti legacy -- BUKAN `idadmin`, ini genap
+     * mengikuti query aslinya apa adanya) dikali persentase global. Tidak digerbang
+     * role/flag apapun di legacy (pemilik pun bisa melihatnya) -- diikuti sama persis.
+     * `komisiglobal` di database produksi saat ini 0 baris aktif, jadi marquee ini belum
+     * pernah tampil ke siapapun, tapi mekanismenya tetap disiapkan untuk saat diaktifkan.
+     */
+    private function komisiGlobalMarquee(?Admin $admin): ?string
+    {
+        if (!$admin) {
+            return null;
+        }
+
+        $global = KomisiGlobal::where('status', 'ON')->first();
+        if (!$global) {
+            return null;
+        }
+
+        $awalBulan = now()->startOfMonth()->toDateString();
+        $hariIni = now()->toDateString();
+
+        $totalTransaksi = (float) Trkasir::where('petugas', $admin->nama_lengkap)
+            ->whereBetween('tgl_trkasir', [$awalBulan, $hariIni])
+            ->sum('ttl_trkasir');
+
+        $komisi = $totalTransaksi * ((float) $global->nilai / 100);
+
+        return 'Total Komisi Transaksi ' . $admin->nama_lengkap . ' Saat Ini = Rp ' . number_format($komisi, 0, ',', '.');
+    }
+
+    /**
+     * "Total Komisi per Produk ..." -- marquee kedua di trkasir.php legacy, muncul
+     * HANYA untuk admin ber-level petugas dengan flag `komisi='Y'` (pemilik tidak
+     * pernah melihat ini, mengikuti persis `$_SESSION['komisi']=='Y' &&
+     * $_SESSION['level']=='petugas'`). Dihitung dari `trkasir_detail.komisi` (kolom
+     * total per baris, sudah dikalikan qty saat disimpan -- lihat catatan
+     * InventoryLapkomisiController) milik admin yang login (`idadmin`, BUKAN nama)
+     * untuk bulan berjalan -- inilah komisi produk per-item yang sesungguhnya
+     * berjalan buat petugas, beda dari komisi global di atas.
+     */
+    private function komisiProdukMarquee(?Admin $admin): ?string
+    {
+        if (!$admin || strtoupper((string) $admin->komisi) !== 'Y' || $admin->akses_level !== 'petugas') {
+            return null;
+        }
+
+        $awalBulan = now()->startOfMonth()->toDateString();
+        $hariIni = now()->toDateString();
+
+        $totalKomisi = (float) TrkasirDetail::query()
+            ->join('trkasir', 'trkasir.kd_trkasir', '=', 'trkasir_detail.kd_trkasir')
+            ->where('trkasir_detail.idadmin', $admin->id_admin)
+            ->whereBetween('trkasir.tgl_trkasir', [$awalBulan, $hariIni])
+            ->sum('trkasir_detail.komisi');
+
+        return 'Total Komisi per Produk ' . $admin->nama_lengkap . ' Rp. ' . number_format($totalKomisi, 0, ',', '.');
     }
 
     /**
