@@ -29,6 +29,7 @@ class SupplierOrder extends Model
         'sisa_bayar',
         'ket_trbmasuk',
         'tandatangan',
+        'capapotek',
         'masuk',
     ];
 

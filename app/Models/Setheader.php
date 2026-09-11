@@ -27,13 +27,16 @@ class Setheader extends Model
         'empatbelas',
         'logo',
         'tandatangan',
+        'capapotek',
     ];
 
     /**
-     * File logo/tandatangan bisa datang dari dua sumber: yang diunggah lewat form
-     * Header Struk Laravel (disimpan Storage::disk('public')->store('setheader', ...),
+     * File logo/tandatangan/capapotek bisa datang dari dua sumber: yang diunggah lewat
+     * form Header Struk Laravel (disimpan Storage::disk('public')->store('setheader', ...),
      * jadi nilainya "setheader/xxxx.ext") atau nilai lama dari legacy (cuma nama file
-     * polos, mis. "logo.jpeg", fisiknya ada di public/apotekberlian/masuk/images/).
+     * polos, mis. "logo.jpeg", fisiknya ada di public/apotekberlian/masuk/images/) --
+     * `capapotek` sendiri kolom baru, jadi nilainya selalu dari sumber pertama, tapi
+     * accessor-nya tetap dibuat konsisten dengan logo/tandatangan untuk jaga-jaga.
      * Dibedakan dari ada/tidaknya '/' di nilainya.
      */
     public function getLogoUrlAttribute(): ?string
@@ -44,6 +47,11 @@ class Setheader extends Model
     public function getTandatanganUrlAttribute(): ?string
     {
         return $this->resolveFileUrl($this->tandatangan);
+    }
+
+    public function getCapapotekUrlAttribute(): ?string
+    {
+        return $this->resolveFileUrl($this->capapotek);
     }
 
     private function resolveFileUrl(?string $value): ?string

@@ -455,6 +455,7 @@ class InventoryOrdersController extends Controller
             'dp_bayar' => 'required|numeric|min:0',
             'sisa_bayar' => 'required|numeric|min:0',
             'tandatangan' => 'required|in:TIDAK,YA',
+            'capapotek' => 'required|in:TIDAK,YA',
         ]);
 
         // 'tlp_supplier' dan 'alamat_trbmasuk' NOT NULL di database, tapi middleware

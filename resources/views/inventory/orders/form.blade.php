@@ -56,6 +56,13 @@
                             <option value="YA" {{ ($order?->tandatangan ?? '') === 'YA' ? 'selected' : '' }}>YA</option>
                         </select>
                     </div>
+                    <div class="form-group">
+                        <label>Cap Apotek</label>
+                        <select class="form-control" id="capapotek">
+                            <option value="TIDAK" {{ ($order?->capapotek ?? 'TIDAK') === 'TIDAK' ? 'selected' : '' }}>TIDAK</option>
+                            <option value="YA" {{ ($order?->capapotek ?? '') === 'YA' ? 'selected' : '' }}>YA</option>
+                        </select>
+                    </div>
                     <div class="mt-3">
                         <button type="button" class="btn btn-primary" onclick="simpanTransaksi()">Simpan Transaksi</button>
                         <a href="{{ route('inventory.orders.index') }}" class="btn btn-secondary">Batal</a>
@@ -450,6 +457,7 @@
         form.append('dp_bayar', dp || '0');
         form.append('sisa_bayar', sisa || '0');
         form.append('tandatangan', document.getElementById('tandatangan').value);
+        form.append('capapotek', document.getElementById('capapotek').value);
 
         fetch(url, { method: 'POST', body: form })
             .then(function(res) {

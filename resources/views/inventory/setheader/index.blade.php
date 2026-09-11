@@ -111,6 +111,19 @@
                     </div>
                 </div>
 
+                <div class="row">
+                    <div class="col-md-6 form-group">
+                        <label for="capapotek">Cap Apotek</label>
+                        <input type="file" name="capapotek" id="capapotek"
+                            class="form-control @error('capapotek') is-invalid @enderror">
+                        @error('capapotek') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                        @if ($setheader->capapotek_url)
+                            <img src="{{ $setheader->capapotek_url }}" alt="Cap Apotek"
+                                class="mt-2" style="max-width: 100px; border: 1px solid #ccc;">
+                        @endif
+                    </div>
+                </div>
+
                 <h5 class="fw-bold mt-3">Footer Struk</h5>
                 <hr>
 

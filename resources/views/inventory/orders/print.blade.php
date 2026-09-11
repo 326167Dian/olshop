@@ -93,7 +93,34 @@
 
         .signature-block .ttd-img {
             max-height: 60px;
-            margin: 5px 0;
+            margin-top: 5px;
+            margin-right: 30px;
+            margin-bottom: 5px;
+            margin-left: 0;
+        }
+
+        /* Cap Apotek ditampilkan bertumpuk dengan tanda tangan (cap di belakang,
+           tanda tangan di depan sedikit menutupi), meniru cap+ttd asli di atas kertas. */
+        .signature-stamp-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            margin-top: 5px;
+            margin-bottom: 5px;
+        }
+
+        .signature-stamp-wrap .cap-img {
+            max-height: 75px;
+            margin-right: -28px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .signature-stamp-wrap .ttd-img {
+            max-height: 60px;
+            margin: 0 30px 0 0;
+            position: relative;
+            z-index: 2;
         }
 
         .signature-name {
@@ -174,8 +201,19 @@
             <div class="signature-block">
                 <p>{{ $setheader->tigabelas ?? '' }}, {{ now()->translatedFormat('d F Y') }}</p>
                 <p>Apoteker Pemesan,</p>
-                @if ($order->tandatangan === 'YA' && $setheader && $setheader->tandatangan_url)
-                    <img class="ttd-img" src="{{ $setheader->tandatangan_url }}" alt="Tanda Tangan">
+                @php
+                    $tampilTtd = $order->tandatangan === 'YA' && $setheader && $setheader->tandatangan_url;
+                    $tampilCap = $order->capapotek === 'YA' && $setheader && $setheader->capapotek_url;
+                @endphp
+                @if ($tampilTtd || $tampilCap)
+                    <div class="signature-stamp-wrap">
+                        @if ($tampilCap)
+                            <img class="cap-img" src="{{ $setheader->capapotek_url }}" alt="Cap Apotek">
+                        @endif
+                        @if ($tampilTtd)
+                            <img class="ttd-img" src="{{ $setheader->tandatangan_url }}" alt="Tanda Tangan">
+                        @endif
+                    </div>
                 @else
                     <br><br><br>
                 @endif
@@ -236,8 +274,19 @@
             <div class="signature-block">
                 <p>{{ $setheader->tigabelas ?? '' }}, {{ $order->tgl_trbmasuk?->translatedFormat('d F Y') }}</p>
                 <p>Apoteker Pemesan,</p>
-                @if ($order->tandatangan === 'YA' && $setheader && $setheader->tandatangan_url)
-                    <img class="ttd-img" src="{{ $setheader->tandatangan_url }}" alt="Tanda Tangan">
+                @php
+                    $tampilTtd = $order->tandatangan === 'YA' && $setheader && $setheader->tandatangan_url;
+                    $tampilCap = $order->capapotek === 'YA' && $setheader && $setheader->capapotek_url;
+                @endphp
+                @if ($tampilTtd || $tampilCap)
+                    <div class="signature-stamp-wrap">
+                        @if ($tampilCap)
+                            <img class="cap-img" src="{{ $setheader->capapotek_url }}" alt="Cap Apotek">
+                        @endif
+                        @if ($tampilTtd)
+                            <img class="ttd-img" src="{{ $setheader->tandatangan_url }}" alt="Tanda Tangan">
+                        @endif
+                    </div>
                 @else
                     <br><br><br>
                 @endif

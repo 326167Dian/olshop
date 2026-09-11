@@ -18,6 +18,7 @@ class InventorySetheaderController extends Controller
             'satu' => '', 'dua' => '', 'tiga' => '', 'empat' => '', 'lima' => '', 'enam' => '',
             'tujuh' => '', 'delapan' => '', 'sembilan' => '', 'sepuluh' => '', 'sebelas' => '',
             'duabelas' => '', 'tigabelas' => '', 'empatbelas' => 0, 'logo' => '', 'tandatangan' => '',
+            'capapotek' => '',
         ]);
 
         return view('inventory.setheader.index', [
@@ -45,6 +46,7 @@ class InventorySetheaderController extends Controller
             'sebelas' => 'nullable|string|max:100',
             'logo' => 'nullable|image|max:3048',
             'tandatangan' => 'nullable|image|max:3048',
+            'capapotek' => 'nullable|image|max:3048',
         ]);
 
         // Kolom 'sebelas' NOT NULL di database, tapi middleware Laravel mengubah
@@ -65,6 +67,13 @@ class InventorySetheaderController extends Controller
                 Storage::disk('public')->delete($setheader->tandatangan);
             }
             $validated['tandatangan'] = $request->file('tandatangan')->store('setheader', 'public');
+        }
+
+        if ($request->hasFile('capapotek')) {
+            if ($setheader->capapotek && Storage::disk('public')->exists($setheader->capapotek)) {
+                Storage::disk('public')->delete($setheader->capapotek);
+            }
+            $validated['capapotek'] = $request->file('capapotek')->store('setheader', 'public');
         }
 
         $setheader->update($validated);
