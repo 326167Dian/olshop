@@ -31,6 +31,98 @@ class ProductController extends Controller
         return view('backend.product.index', compact('index'));
     }
 
+    /**
+     * Barang stok > 0 yang gambarnya belum lengkap -- baik kolom `image` masih
+     * kosong, MAUPUN sudah terisi tapi filenya sendiri tidak ada di disk `public`
+     * (link putus, file terhapus/tidak pernah ter-upload penuh). Dipakai untuk
+     * halaman "Gambar Tidak Lengkap" (tautan terpisah dari Data Produk, bukan
+     * filter di halaman yang sama).
+     */
+    public function missingImage()
+    {
+        $ids = $this->missingImageIds();
+
+        return view('backend.product.missing-image', [
+            'totalCount' => count($ids),
+        ]);
+    }
+
+    /**
+     * Upload gambar inline dari halaman "Gambar Tidak Lengkap" (AJAX, satu field
+     * saja) -- terpisah dari update() yang mewajibkan status/kategori/dll sekaligus
+     * lewat redirect halaman penuh, tidak cocok dipakai untuk edit-di-tempat.
+     */
+    public function updateImage(Request $request, Product $product)
+    {
+        $request->validate([
+            'gambar_produk' => 'required|image|mimes:jpg,jpeg,png|max:2048',
+        ]);
+
+        if (!Storage::disk('public')->exists('product')) {
+            Storage::disk('public')->makeDirectory('product');
+        }
+
+        if ($product->image && Storage::disk('public')->exists($product->image)) {
+            Storage::disk('public')->delete($product->image);
+        }
+
+        $product->image = $request->file('gambar_produk')->store('product', 'public');
+        $product->updated_by = Auth::id();
+        $product->save();
+
+        return response()->json([
+            'message' => 'Gambar produk berhasil diunggah.',
+            'image_url' => asset('storage/' . $product->image),
+        ]);
+    }
+
+    public function missingImageData()
+    {
+        $ids = $this->missingImageIds();
+
+        $query = Product::whereIn('id_barang', $ids)->select([
+            'id_barang', 'kd_barang', 'nm_barang', 'stok_barang', 'hrgjual_barang2', 'image',
+        ]);
+
+        return DataTables::of($query)
+            ->addIndexColumn()
+            ->addColumn('gambar_status', function ($row) {
+                if (empty($row->image)) {
+                    return '<span class="badge bg-danger">Belum upload</span>';
+                }
+
+                return '<span class="badge bg-warning text-dark">File tidak ditemukan</span>';
+            })
+            ->editColumn('hrgjual_barang2', fn ($row) => number_format($row->hrgjual_barang2, 0, ',', '.'))
+            ->addColumn('aksi', function ($row) {
+                return '<input type="file" class="form-control form-control-sm input-upload-gambar" '
+                    . 'data-id="' . $row->id_barang . '" accept="image/png,image/jpeg,image/jpg">';
+            })
+            ->rawColumns(['gambar_status', 'aksi'])
+            ->make(true);
+    }
+
+    /**
+     * @return int[] id_barang produk stok>0 dengan gambar kosong atau file hilang
+     *               dari disk. Pengecekan file per baris ini murni I/O filesystem
+     *               lokal (bukan query DB tambahan per baris), sekali jalan untuk
+     *               seluruh produk stok>0 (skala ratusan, bukan ribuan) -- bukan
+     *               kelas N+1 query yang perlu dihindari.
+     */
+    private function missingImageIds(): array
+    {
+        $produk = Product::where('stok_barang', '>', 0)->get(['id_barang', 'image']);
+
+        $ids = [];
+        foreach ($produk as $p) {
+            if (empty($p->image) || !Storage::disk('public')->exists($p->image)) {
+                $ids[] = $p->id_barang;
+            }
+        }
+
+        return $ids;
+    }
+
     public function search(Request $request)
     {
         $keyword = trim($request->q);

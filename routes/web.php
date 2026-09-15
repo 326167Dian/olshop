@@ -128,6 +128,9 @@ Route::prefix('/backend')->middleware('auth:admin')->group(function () {
     Route::get('/product', [ProductController::class, 'indexbackend'])->name('product.index');
     Route::get('/product/select-category', [ProductController::class, 'selectCategory'])->name('product.selectCategory');
     Route::get('/product-select-category-data', [ProductController::class, 'selectCategoryData'])->name('backend.product.selectCategoryData');
+    Route::get('/product/gambar-tidak-lengkap', [ProductController::class, 'missingImage'])->name('product.missingImage');
+    Route::get('/product-missing-image-data', [ProductController::class, 'missingImageData'])->name('backend.product.missingImageData');
+    Route::put('/product/{product}/update-image', [ProductController::class, 'updateImage'])->name('product.updateImage');
     Route::put('/product/{product}/update-category', [ProductController::class, 'updateCategory'])->name('product.updateCategory');
     Route::get('/product/{product}/edit', [ProductController::class, 'edit'])->name('product.edit');
     Route::put('/product/{product}', [ProductController::class, 'update'])->name('product.update');

@@ -8,11 +8,21 @@
             <h3 class="card-title">Data Barang</h3>
         </div>
         <div class="card-body">
-            <div class="mb-3 d-flex flex-wrap gap-1">
+            <div class="mb-3 d-flex flex-wrap gap-1 align-items-center">
                 <a class="btn btn-sm btn-success" href="{{ route('inventory.barang.create') }}">
                     <i class="fas fa-plus"></i> Tambah
                 </a>
+                <a class="btn btn-sm btn-warning" href="{{ route('inventory.barang.index', ['belum_lengkap' => 1]) }}">
+                    <i class="fas fa-exclamation-triangle"></i> Data belum lengkap ({{ $belumLengkapCount }})
+                </a>
             </div>
+
+            @if (request()->boolean('belum_lengkap'))
+                <div class="alert alert-warning d-flex justify-content-between align-items-center">
+                    <div>Menampilkan {{ $belumLengkapCount }} barang dengan stok &gt; 0 yang belum ada Komposisi dan Indikasinya.</div>
+                    <a href="{{ route('inventory.barang.index') }}" class="btn btn-sm btn-outline-dark">Tampilkan Semua</a>
+                </div>
+            @endif
 
             <div class="table-responsive">
                 <table id="tabel-barang" class="table table-auto table-sm table-bordered table-striped w-100">
@@ -100,7 +110,10 @@
             serverSide: true,
             responsive: true,
             autoWidth: false,
-            ajax: "{{ route('inventory.barang.data') }}",
+            ajax: {
+                url: "{{ route('inventory.barang.data') }}",
+                data: { belum_lengkap: {{ request()->boolean('belum_lengkap') ? 1 : 0 }} }
+            },
             columns: [
                 { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'nm_barang', name: 'nm_barang' },

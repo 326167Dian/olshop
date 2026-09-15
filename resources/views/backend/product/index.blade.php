@@ -13,7 +13,10 @@
             <div class="card-header">
                 <div class="d-flex w-100 justify-content-between align-items-center">
                     <h3 class="card-title mb-0">Data Produk</h3>
-                    <p>Ubah Status Produk : <button id="btnSubmit" class="btn btn-primary btn-md">Submit</button></p>
+                    <div class="d-flex align-items-center gap-2">
+                        <a href="{{ route('product.missingImage') }}" class="btn btn-warning btn-md">Gambar Tidak Lengkap</a>
+                        <p class="mb-0">Ubah Status Produk : <button id="btnSubmit" class="btn btn-primary btn-md">Submit</button></p>
+                    </div>
                 </div>
             </div>
 

@@ -27,7 +27,25 @@ class InventoryBarangController extends Controller
             'judul' => 'Inventory',
             'isPemilik' => Auth::guard('admin')->user()->isPemilik(),
             'jenisObatList' => JenisObat::orderBy('jenisobat')->get(),
+            'belumLengkapCount' => $this->belumLengkapQuery()->count(),
         ]);
+    }
+
+    /**
+     * Barang dengan stok > 0 tapi kolom "Komposisi dan Indikasi" (indikasi) masih
+     * kosong -- dipakai untuk info + filter "Data belum lengkap" di halaman list.
+     */
+    private function belumLengkapQuery()
+    {
+        return $this->applyBelumLengkapFilter(Product::query());
+    }
+
+    private function applyBelumLengkapFilter($query)
+    {
+        return $query->where('stok_barang', '>', 0)
+            ->where(function ($q) {
+                $q->whereNull('indikasi')->orWhere('indikasi', '');
+            });
     }
 
     /**
@@ -43,6 +61,10 @@ class InventoryBarangController extends Controller
             'jenisobat', 'hrgsat_barang', 'hrgjual_barang', 'hrgjual_barang1',
             'hrgjual_barang2', 'zataktif', 'indikasi', 'updated_by',
         ]);
+
+        if ($request->boolean('belum_lengkap')) {
+            $this->applyBelumLengkapFilter($query);
+        }
 
         return DataTables::of($query)
             ->addIndexColumn()
