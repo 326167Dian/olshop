@@ -100,6 +100,17 @@
                                 @enderror
                             </div>
                             <div class="form-group">
+                                <label for="ket_barang">Deskripsi Produk</label>
+                                <textarea name="ket_barang" id="ket_barang" class="form-control" rows="6">{{ old('ket_barang', $product->ket_barang) }}</textarea>
+                                <small class="text-muted d-block mt-1">Tampil sebagai "Deskripsi Produk" di halaman detail produk toko.</small>
+                                @error('ket_barang')
+                                <div class="invalid-feedback d-block">
+                                    {{ $message }}
+                                </div>
+                                @enderror
+                            </div>
+
+                            <div class="form-group">
                                 <label for="promosi">Produk Promosi</label>
                                 <select name="promosi" class="form-control">
                                     <option value="" disabled {{ old('promosi', $product->promosi ?? 'standar') == '' ?
@@ -149,6 +160,7 @@
 @endsection
 
 @push('scripts')
+<script src="{{ asset('apotekberlian/masuk/vendors/ckeditor/ckeditor.js') }}"></script>
 <script>
     document.getElementById('gambar_produk').addEventListener('change', function() {
         const file = this.files[0];
@@ -160,5 +172,9 @@
             reader.readAsDataURL(file);
         }
     });
+
+    if (document.getElementById('ket_barang')) {
+        CKEDITOR.replace('ket_barang');
+    }
 </script>
 @endpush

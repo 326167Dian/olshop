@@ -101,7 +101,8 @@
                         </div>
                         <div class="form-group">
                             <label>Komposisi (Keterangan Lain)</label>
-                            <textarea name="ket_barang" class="form-control" rows="6">{{ old('ket_barang', $barang->ket_barang) }}</textarea>
+                            <textarea name="ket_barang" id="ket_barang" class="form-control" rows="6">{{ old('ket_barang', $barang->ket_barang) }}</textarea>
+                            <small class="text-muted d-block mt-1">Tampil sebagai "Deskripsi Produk" di halaman detail produk toko.</small>
                         </div>
                         <div class="form-group">
                             <label>Dosis / Kekuatan</label>
@@ -117,3 +118,12 @@
         </form>
     </div>
 @endsection
+
+@push('scripts')
+<script src="{{ asset('apotekberlian/masuk/vendors/ckeditor/ckeditor.js') }}"></script>
+<script>
+    if (document.getElementById('ket_barang')) {
+        CKEDITOR.replace('ket_barang');
+    }
+</script>
+@endpush

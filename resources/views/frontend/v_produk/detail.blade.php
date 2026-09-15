@@ -49,7 +49,14 @@
                                     style="font-weight: bold">/{{ $produks->sat_barang }}</small>
                             @endif
                         </h3>
-                        <p>{!! $produks->indikasi !!}</p>
+                        <div class="product-desc mt-2">
+                            <h4 style="font-size: 1rem; font-weight: 700;">Deskripsi Produk</h4>
+                            @if (trim((string) $produks->ket_barang) !== '')
+                                {!! $produks->ket_barang !!}
+                            @else
+                                <p class="text-muted">Belum ada deskripsi untuk produk ini.</p>
+                            @endif
+                        </div>
 
                         <div class="product-options">
                             <ul class="size-option">

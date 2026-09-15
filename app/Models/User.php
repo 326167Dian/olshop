@@ -38,4 +38,9 @@ class User extends Authenticatable
     {
         return $this->belongsTo(Admin::class, 'referal_admin_id', 'id_admin');
     }
+
+    public function reseller()
+    {
+        return $this->hasOne(Reseller::class);
+    }
 }

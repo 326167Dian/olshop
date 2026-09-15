@@ -31,6 +31,7 @@
                             <th><input type="checkbox" id="checkAll"> </th>
                             <th>Kode</th>
                             <th>Nama Barang</th>
+                            <th>Deskripsi Obat</th>
                             <th>Status</th>
                             <th>Kategori</th>
                             <th>Stok</th>
@@ -47,9 +48,28 @@
 
     </div>
 </section>
+
+<div class="modal fade" id="modalEditKetBarang" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Deskripsi Obat</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <textarea id="inputKetBarang" class="form-control" rows="8"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-primary" id="btnSaveKetBarang">Simpan</button>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
+<script src="{{ asset('apotekberlian/masuk/vendors/ckeditor/ckeditor.js') }}"></script>
 <script>
     $(function () {
     let table = $('#example1').DataTable({
@@ -74,6 +94,18 @@
                     return `<span title="${data}">${text}</span>`;
                 }
             },
+            {
+                data: 'ket_barang',
+                name: 'ket_barang',
+                render: function (data, type, row) {
+                    const maxLength = 40;
+                    const preview = !data ? '<span class="text-muted">-</span>' : (function () {
+                        const text = data.length > maxLength ? data.substring(0, maxLength) + '...' : data;
+                        return `<span title="${data.replace(/"/g, '&quot;')}">${text}</span>`;
+                    })();
+                    return preview + '<div class="mt-1"><button type="button" class="btn btn-xs btn-info btn-edit-ket-barang" data-id="' + row.id_barang + '">Edit</button></div>';
+                }
+            },
             { data: 'status', name: 'status' },
             { data: 'kategori', name: 'kategori' },
             { data: 'stok_barang', name: 'stok_barang' },
@@ -88,6 +120,62 @@
             { data: 'gambar_status', name: 'gambar_status', orderable: false, searchable: false },
             { data: 'aksi', name: 'aksi', orderable: false, searchable: false },
         ]
+    });
+
+    // Edit Deskripsi Obat (ket_barang) inline lewat modal + CKEditor.
+    var ketBarangEditor = null;
+    var currentKetBarangId = null;
+
+    $(document).on('click', '.btn-edit-ket-barang', function () {
+        currentKetBarangId = $(this).data('id');
+        var rowData = table.row($(this).closest('tr')).data();
+        var content = rowData ? (rowData.ket_barang_raw || '') : '';
+
+        if (ketBarangEditor) {
+            ketBarangEditor.setData(content);
+        } else {
+            $('#inputKetBarang').val(content);
+        }
+
+        new bootstrap.Modal(document.getElementById('modalEditKetBarang')).show();
+    });
+
+    $('#modalEditKetBarang').on('shown.bs.modal', function () {
+        if (!ketBarangEditor) {
+            ketBarangEditor = CKEDITOR.replace('inputKetBarang');
+        }
+    });
+
+    $('#btnSaveKetBarang').on('click', function () {
+        if (!currentKetBarangId) return;
+        var content = ketBarangEditor ? ketBarangEditor.getData() : $('#inputKetBarang').val();
+
+        $.ajax({
+            url: "{{ route('product.updateKetBarang', ':id') }}".replace(':id', currentKetBarangId),
+            method: 'PUT',
+            data: {
+                _token: '{{ csrf_token() }}',
+                ket_barang: content
+            },
+            success: function (res) {
+                table.ajax.reload(null, false);
+                bootstrap.Modal.getInstance(document.getElementById('modalEditKetBarang')).hide();
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil',
+                    text: res.message,
+                    showConfirmButton: false,
+                    timer: 1200
+                });
+            },
+            error: function (xhr) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Oops...',
+                    text: (xhr.responseJSON && xhr.responseJSON.message) || 'Gagal menyimpan deskripsi.'
+                });
+            }
+        });
     });
 
     // Klik tombol check all

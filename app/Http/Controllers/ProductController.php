@@ -76,6 +76,21 @@ class ProductController extends Controller
         ]);
     }
 
+    /**
+     * Edit inline Deskripsi Obat (ket_barang) dari halaman Data Produk (AJAX,
+     * dipanggil dari modal + CKEditor) -- satu field saja, mengikuti pola
+     * InventoryBarangController::updateIndikasi()/updateJenisobat() untuk edit
+     * inline di tabel.
+     */
+    public function updateKetBarangInline(Request $request, Product $product)
+    {
+        $product->ket_barang = (string) $request->input('ket_barang', '');
+        $product->updated_by = Auth::id();
+        $product->save();
+
+        return response()->json(['message' => 'Deskripsi obat berhasil diperbarui.']);
+    }
+
     public function missingImageData()
     {
         $ids = $this->missingImageIds();
@@ -158,6 +173,7 @@ class ProductController extends Controller
             'hrgjual_barang2',
             'diskon',
             'image',
+            'ket_barang',
         ]);
 
         $categories = Category::orderBy('name')->get(['id', 'name']);
@@ -175,6 +191,18 @@ class ProductController extends Controller
                     . $options
                     . '</select>';
             })
+            ->editColumn('ket_barang', function ($row) {
+                // Isinya HTML dari CKEditor -- dilucuti jadi teks polos di sini
+                // (tabel ini menampilkannya sebagai preview singkat, bukan
+                // deskripsi lengkap terformat seperti di halaman detail produk
+                // toko/form edit), lalu dipotong sisi client (lihat nm_barang,
+                // pola yang sama sudah dipakai di kolom itu).
+                return trim(strip_tags((string) $row->ket_barang));
+            })
+            // HTML aslinya (BELUM dilucuti) dikirim terpisah, cuma dipakai modal
+            // edit inline (CKEditor perlu markup aslinya, bukan versi preview yang
+            // sudah dibuang tag-nya) -- tidak diikat ke kolom tabel manapun.
+            ->addColumn('ket_barang_raw', fn ($row) => (string) $row->ket_barang)
             ->addColumn('checkbox', function ($row) {
                 $checked = $row->status === 'active' ? 'checked' : '';
                 return '<input type="checkbox" class="checkItem" value="' . $row->id_barang . '" ' . $checked . '>';
@@ -215,7 +243,7 @@ class ProductController extends Controller
             </div>';
                 return $btn;
             })
-            ->rawColumns(['aksi', 'checkbox', 'gambar_status', 'kategori'])
+            ->rawColumns(['aksi', 'checkbox', 'gambar_status', 'kategori', 'ket_barang_raw'])
             ->make(true);
     }
 
@@ -340,6 +368,7 @@ class ProductController extends Controller
             'category_id' => 'required|exists:categories,id', // Validasi kategori
             'diskon' => 'nullable|numeric', // Validasi diskon
             'promosi' => 'nullable|in:terlaris,diskon,standar', // Validasi produk promosi
+            'ket_barang' => 'nullable|string', // Deskripsi produk (CKEditor, HTML)
         ]);
 
         // Cek jika ada file gambar baru yang diupload
@@ -364,6 +393,7 @@ class ProductController extends Controller
         $product->category_id = $request->category_id;
         $product->diskon = $request->diskon;
         $product->promosi = $request->promosi;
+        $product->ket_barang = $request->input('ket_barang', '');
         $product->updated_by = Auth::id();
         $product->save();
 

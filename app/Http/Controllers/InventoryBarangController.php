@@ -18,8 +18,13 @@ class InventoryBarangController extends Controller
      * Tidak diadaptasi: scan barcode kamera (kenyamanan tambahan, bukan CRUD inti),
      * submodul "Zat Aktif/Merk Obat" (module=zataktif, modul terpisah), link
      * "Kartu Stok" (modul terpisah belum diadaptasi), export Excel (bagian dari
-     * grup Laporan, digerbang flag berbeda), dan CKEditor (dipakai textarea biasa --
-     * data lama yang sudah berisi HTML tetap tampil apa adanya).
+     * grup Laporan, digerbang flag berbeda). CKEditor sendiri dipakai textarea biasa
+     * untuk `indikasi`/`zataktif`/`dosis` (data lama yang sudah berisi HTML tetap
+     * tampil apa adanya) -- KECUALI `ket_barang`, yang sejak 2026-09-15 memakai
+     * CKEditor sungguhan (create.blade.php/edit.blade.php) karena field ini sekarang
+     * ditampilkan sebagai "Deskripsi Produk" di halaman detail produk toko
+     * (frontend.v_produk.detail), jadi format rapi lebih penting untuk kolom ini
+     * dibanding kolom internal lain yang cuma dilihat admin.
      */
     public function index()
     {

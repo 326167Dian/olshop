@@ -89,6 +89,19 @@ class LoginController extends Controller
         return Socialite::driver('google')->redirect();
     }
 
+    /**
+     * Arahkan ke Google, tapi tandai di session bahwa ini alur pendaftaran
+     * reseller -- dibaca lagi oleh handleGoogleCallback() (satu-satunya callback
+     * URL yang didaftarkan di Google Console, jadi tidak bisa dibedakan lewat URL
+     * callback yang berbeda) untuk menentukan tujuan redirect setelah login.
+     */
+    public function redirectToGoogleForReseller()
+    {
+        session(['login_intent' => 'reseller']);
+
+        return Socialite::driver('google')->redirect();
+    }
+
     // Handle callback dari Google
     public function handleGoogleCallback()
     {
@@ -107,6 +120,11 @@ class LoginController extends Controller
 
             Auth::login($user);
             session()->regenerate();
+
+            if (session()->pull('login_intent') === 'reseller') {
+                return redirect()->route('reseller.register');
+            }
+
             // Cek apakah telephone dan alamat sudah diisi
             if (
                 is_null($user->no_tlp) || $user->no_tlp === '' ||

@@ -63,7 +63,7 @@
                             </tr>
                             <tr>
                                 <th>Deskripsi</th>
-                                <td>{{ $product->ket_barang ?? '-' }}</td>
+                                <td>{!! trim((string) $product->ket_barang) !== '' ? $product->ket_barang : '-' !!}</td>
                             </tr>
                             <tr>
                                 <th>Status</th>

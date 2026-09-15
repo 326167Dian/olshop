@@ -13,6 +13,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\CompanySettingController;
 use App\Http\Controllers\BannerController;
 use App\Http\Controllers\PromoController;
+use App\Http\Controllers\ResellerController;
 use App\Http\Controllers\AdminProfileController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InventoryAdminController;
@@ -74,6 +75,16 @@ Route::post('backend/logout', [LoginController::class, 'logoutBackend'])->name('
 Route::get('auth/google', [LoginController::class, 'redirectToGoogle'])->name('google.login');
 Route::get('auth/google/callback', [LoginController::class, 'handleGoogleCallback']);
 
+// Reseller -- masuk lewat akun Google yang sama dengan customer (lihat
+// LoginController::redirectToGoogleForReseller()/handleGoogleCallback()), profil
+// reseller ('resellers' table) terpisah dari data akun 'users'.
+Route::prefix('reseller')->name('reseller.')->group(function () {
+    Route::get('/auth/google', [LoginController::class, 'redirectToGoogleForReseller'])->name('google');
+    Route::get('/register', [ResellerController::class, 'register'])->name('register');
+    Route::post('/register', [ResellerController::class, 'store'])->name('store');
+    Route::get('/', [ResellerController::class, 'home'])->name('home');
+});
+
 Route::get('/home-page', [HomepageController::class, 'index'])->name('home-page');
 
 // Route Product
@@ -131,6 +142,7 @@ Route::prefix('/backend')->middleware('auth:admin')->group(function () {
     Route::get('/product/gambar-tidak-lengkap', [ProductController::class, 'missingImage'])->name('product.missingImage');
     Route::get('/product-missing-image-data', [ProductController::class, 'missingImageData'])->name('backend.product.missingImageData');
     Route::put('/product/{product}/update-image', [ProductController::class, 'updateImage'])->name('product.updateImage');
+    Route::put('/product/{product}/update-ket-barang', [ProductController::class, 'updateKetBarangInline'])->name('product.updateKetBarang');
     Route::put('/product/{product}/update-category', [ProductController::class, 'updateCategory'])->name('product.updateCategory');
     Route::get('/product/{product}/edit', [ProductController::class, 'edit'])->name('product.edit');
     Route::put('/product/{product}', [ProductController::class, 'update'])->name('product.update');
