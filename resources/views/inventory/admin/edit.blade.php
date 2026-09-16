@@ -64,6 +64,24 @@
                     </div>
                 </div>
 
+                <div class="row">
+                    <div class="col-md-4 form-group">
+                        <label for="nama_bank">Nama Bank/E-wallet</label>
+                        <input type="text" name="nama_bank" id="nama_bank"
+                            class="form-control @error('nama_bank') is-invalid @enderror" placeholder="Contoh: BCA, DANA"
+                            value="{{ old('nama_bank', $admin->nama_bank) }}">
+                        @error('nama_bank') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="col-md-4 form-group">
+                        <label for="rekening_bank">No. Rekening</label>
+                        <input type="text" name="rekening_bank" id="rekening_bank"
+                            class="form-control @error('rekening_bank') is-invalid @enderror" placeholder="No. Rekening"
+                            value="{{ old('rekening_bank', $admin->rekening_bank) }}">
+                        @error('rekening_bank') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                        <small class="text-muted">Dipakai di info transfer Slip Gaji.</small>
+                    </div>
+                </div>
+
                 <hr>
 
                 <div class="row">

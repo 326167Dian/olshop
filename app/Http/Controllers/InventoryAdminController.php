@@ -51,6 +51,8 @@ class InventoryAdminController extends Controller
             'no_telp' => ['required', 'string', 'max:30'],
             'akses_level' => ['required', 'in:pemilik,petugas'],
             'blokir' => ['required', 'in:Y,N'],
+            'nama_bank' => ['nullable', 'string', 'max:50'],
+            'rekening_bank' => ['nullable', 'string', 'max:50'],
         ], [
             'username.regex' => 'Username hanya boleh huruf dan angka, tanpa spasi.',
             'password.regex' => 'Password hanya boleh huruf dan angka, tanpa spasi.',
@@ -90,6 +92,8 @@ class InventoryAdminController extends Controller
             'no_telp' => ['required', 'string', 'max:30'],
             'akses_level' => ['required', 'in:pemilik,petugas'],
             'blokir' => ['required', 'in:Y,N'],
+            'nama_bank' => ['nullable', 'string', 'max:50'],
+            'rekening_bank' => ['nullable', 'string', 'max:50'],
         ];
 
         if ($request->filled('password')) {

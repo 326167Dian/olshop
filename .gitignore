@@ -19,3 +19,4 @@ yarn-error.log
 
 # Legacy PHP/PDO inventory app kept as a local reference for the Laravel /inventory adaptation
 /public/apotekberlian
+/public/yasfigrup

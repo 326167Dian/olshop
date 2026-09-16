@@ -42,4 +42,20 @@ class AdminProfileController extends Controller
 
         return redirect()->route('admin.profile.edit')->with('success', 'Foto profil berhasil diperbarui.');
     }
+
+    /**
+     * Update info rekening bank/e-wallet admin yang sedang login, dipakai untuk
+     * info transfer di Slip Gaji (lihat InventoryGajiDetailController).
+     */
+    public function updateBank(Request $request)
+    {
+        $validated = $request->validate([
+            'nama_bank' => ['nullable', 'string', 'max:50'],
+            'rekening_bank' => ['nullable', 'string', 'max:50'],
+        ]);
+
+        Auth::user()->update($validated);
+
+        return redirect()->route('admin.profile.edit')->with('success', 'Info rekening bank berhasil diperbarui.');
+    }
 }

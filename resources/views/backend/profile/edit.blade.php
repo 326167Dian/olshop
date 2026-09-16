@@ -40,6 +40,40 @@
                     </form>
                 </div>
             </div>
+
+            <div class="card card-primary mt-3">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Info Rekening Bank</h5>
+                </div>
+                <div class="card-body">
+                    <form action="{{ route('admin.profile.update-bank') }}" method="POST">
+                        @csrf
+                        @method('PUT')
+
+                        <div class="mb-3">
+                            <label class="form-label">Nama Bank/E-Wallet</label>
+                            <input type="text" name="nama_bank"
+                                class="form-control @error('nama_bank') is-invalid @enderror"
+                                placeholder="Nama Bank/E-Wallet" value="{{ old('nama_bank', $admin->nama_bank) }}">
+                            @error('nama_bank')
+                            <div class="text-danger">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Rekening Bank / E-Wallet</label>
+                            <input type="text" name="rekening_bank"
+                                class="form-control @error('rekening_bank') is-invalid @enderror"
+                                placeholder="Rekening Bank" value="{{ old('rekening_bank', $admin->rekening_bank) }}">
+                            @error('rekening_bank')
+                            <div class="text-danger">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100">Simpan</button>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 </div>

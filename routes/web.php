@@ -49,6 +49,15 @@ use App\Http\Controllers\InventoryBundleController;
 use App\Http\Controllers\InventoryNeracaController;
 use App\Http\Controllers\InventoryLapkomisiController;
 use App\Http\Controllers\InventoryEvaluasiController;
+use App\Http\Controllers\InventoryAbsensiController;
+use App\Http\Controllers\InventoryCutiController;
+use App\Http\Controllers\InventoryGajiController;
+use App\Http\Controllers\InventoryGajiDetailController;
+use App\Http\Controllers\InventoryJadwalShiftController;
+use App\Http\Controllers\InventoryKehadiranController;
+use App\Http\Controllers\InventoryLemburController;
+use App\Http\Controllers\InventoryMasterShiftController;
+use App\Http\Controllers\InventoryRekapGajiController;
 use App\Http\Controllers\InventoryLapstokopnameController;
 use App\Http\Controllers\InventoryMstokController;
 use App\Http\Controllers\InventoryStokKritisController;
@@ -206,6 +215,7 @@ Route::prefix('/backend')->middleware('auth:admin')->group(function () {
     // Profil admin (foto profil)
     Route::get('/profile', [AdminProfileController::class, 'edit'])->name('admin.profile.edit');
     Route::put('/profile', [AdminProfileController::class, 'update'])->name('admin.profile.update');
+    Route::put('/profile/bank', [AdminProfileController::class, 'updateBank'])->name('admin.profile.update-bank');
 });
 
 // Sistem Inventory (adaptasi Laravel dari public/apotekberlian, database yang sama)
@@ -820,5 +830,93 @@ Route::prefix('inventory')->middleware(['auth:admin', 'admin.active'])->name('in
         Route::get('/', [InventoryEvaluasiController::class, 'index'])->name('index');
         Route::get('/tampil', [InventoryEvaluasiController::class, 'tampil'])->name('tampil');
         Route::get('/detail', [InventoryEvaluasiController::class, 'detail'])->name('detail');
+    });
+
+    // Gaji Karyawan / Slip Gaji / Rekap Gaji -- adaptasi public/yasfigrup/masuk/modul/
+    // {mod_gaji,mod_gajidetail,mod_rekap_gaji}. KHUSUS pemilik (tidak ada kolom flag
+    // admin sendiri, sama seperti legacy Yasfi), digerbang manual lewat gate() di
+    // masing-masing controller + disuntik ke sidebar app.blade.php -- pola yang sama
+    // dengan lapkomisi/evaluasi di atas.
+    Route::prefix('gaji')->name('gaji.')->group(function () {
+        Route::get('/', [InventoryGajiController::class, 'index'])->name('index');
+        Route::get('/tambah', [InventoryGajiController::class, 'create'])->name('create');
+        Route::post('/', [InventoryGajiController::class, 'store'])->name('store');
+        Route::get('/{gaji}/edit', [InventoryGajiController::class, 'edit'])->name('edit');
+        Route::put('/{gaji}', [InventoryGajiController::class, 'update'])->name('update');
+        Route::delete('/{gaji}', [InventoryGajiController::class, 'destroy'])->name('destroy');
+    });
+
+    Route::prefix('gaji-detail')->name('gajidetail.')->group(function () {
+        Route::get('/', [InventoryGajiDetailController::class, 'index'])->name('index');
+        Route::get('/tambah', [InventoryGajiDetailController::class, 'create'])->name('create');
+        Route::post('/', [InventoryGajiDetailController::class, 'store'])->name('store');
+        Route::get('/{gajiDetail}/edit', [InventoryGajiDetailController::class, 'edit'])->name('edit');
+        Route::put('/{gajiDetail}', [InventoryGajiDetailController::class, 'update'])->name('update');
+        Route::delete('/{gajiDetail}', [InventoryGajiDetailController::class, 'destroy'])->name('destroy');
+        Route::get('/{gajiDetail}/cetak', [InventoryGajiDetailController::class, 'cetak'])->name('cetak');
+    });
+
+    Route::prefix('rekap-gaji')->name('rekapgaji.')->group(function () {
+        Route::get('/', [InventoryRekapGajiController::class, 'index'])->name('index');
+        Route::get('/tampil', [InventoryRekapGajiController::class, 'tampil'])->name('tampil');
+    });
+
+    // Kehadiran Pegawai (shift, absensi, lembur, cuti) -- digerbang flag
+    // `kehadiran` (bukan pemilik-only murni seperti Gaji, lihat catatan kelas
+    // InventoryKehadiranController); aksi elevated dikunci abort_unless(isPemilik())
+    // per method di controller anak masing-masing.
+    Route::prefix('kehadiran')->middleware('inventory.module:kehadiran')->name('kehadiran.')->group(function () {
+        Route::get('/', [InventoryKehadiranController::class, 'index'])->name('index');
+        Route::get('/checkin', [InventoryKehadiranController::class, 'checkinForm'])->name('checkin.form');
+        Route::post('/checkin', [InventoryKehadiranController::class, 'checkin'])->name('checkin.store');
+        Route::post('/checkout', [InventoryKehadiranController::class, 'checkout'])->name('checkout');
+
+        Route::prefix('shift')->name('shift.')->group(function () {
+            Route::get('/', [InventoryMasterShiftController::class, 'index'])->name('index');
+            Route::get('/tambah', [InventoryMasterShiftController::class, 'create'])->name('create');
+            Route::post('/', [InventoryMasterShiftController::class, 'store'])->name('store');
+            Route::get('/{shift}/edit', [InventoryMasterShiftController::class, 'edit'])->name('edit');
+            Route::put('/{shift}', [InventoryMasterShiftController::class, 'update'])->name('update');
+            Route::delete('/{shift}', [InventoryMasterShiftController::class, 'destroy'])->name('destroy');
+        });
+
+        Route::prefix('jadwal')->name('jadwal.')->group(function () {
+            Route::get('/', [InventoryJadwalShiftController::class, 'index'])->name('index');
+            Route::get('/tambah', [InventoryJadwalShiftController::class, 'create'])->name('create');
+            Route::post('/', [InventoryJadwalShiftController::class, 'store'])->name('store');
+            Route::put('/{jadwal}/setujui', [InventoryJadwalShiftController::class, 'approve'])->name('approve');
+            Route::put('/{jadwal}/tolak', [InventoryJadwalShiftController::class, 'reject'])->name('reject');
+            Route::delete('/{jadwal}', [InventoryJadwalShiftController::class, 'destroy'])->name('destroy');
+        });
+
+        Route::prefix('absensi')->name('absensi.')->group(function () {
+            Route::get('/', [InventoryAbsensiController::class, 'index'])->name('index');
+            Route::get('/tambah', [InventoryAbsensiController::class, 'create'])->name('create');
+            Route::post('/', [InventoryAbsensiController::class, 'store'])->name('store');
+            Route::get('/{absensi}/edit', [InventoryAbsensiController::class, 'edit'])->name('edit');
+            Route::put('/{absensi}', [InventoryAbsensiController::class, 'update'])->name('update');
+            Route::delete('/{absensi}', [InventoryAbsensiController::class, 'destroy'])->name('destroy');
+            Route::post('/generate-alpha', [InventoryAbsensiController::class, 'generateAlpha'])->name('generate-alpha');
+        });
+
+        Route::prefix('lembur')->name('lembur.')->group(function () {
+            Route::get('/', [InventoryLemburController::class, 'index'])->name('index');
+            Route::get('/tambah', [InventoryLemburController::class, 'create'])->name('create');
+            Route::post('/', [InventoryLemburController::class, 'store'])->name('store');
+            Route::put('/{lembur}/setujui', [InventoryLemburController::class, 'approve'])->name('approve');
+            Route::put('/{lembur}/tolak', [InventoryLemburController::class, 'reject'])->name('reject');
+            Route::delete('/{lembur}', [InventoryLemburController::class, 'destroy'])->name('destroy');
+        });
+
+        Route::prefix('cuti')->name('cuti.')->group(function () {
+            Route::get('/', [InventoryCutiController::class, 'index'])->name('index');
+            Route::get('/tambah', [InventoryCutiController::class, 'create'])->name('create');
+            Route::post('/', [InventoryCutiController::class, 'store'])->name('store');
+            Route::put('/{cuti}/setujui', [InventoryCutiController::class, 'approve'])->name('approve');
+            Route::put('/{cuti}/tolak', [InventoryCutiController::class, 'reject'])->name('reject');
+            Route::delete('/{cuti}', [InventoryCutiController::class, 'destroy'])->name('destroy');
+            Route::get('/kuota', [InventoryCutiController::class, 'kuotaIndex'])->name('kuota.index');
+            Route::put('/kuota', [InventoryCutiController::class, 'kuotaUpdate'])->name('kuota.update');
+        });
     });
 });

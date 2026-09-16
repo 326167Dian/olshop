@@ -111,6 +111,7 @@
             'tpk' => 'inventory.trkasir.',
             'penjualansebelum' => 'inventory.penjualansebelum.',
             'catatan' => 'inventory.catatan.',
+            'kehadiran' => 'inventory.kehadiran.',
             'lpitem' => 'inventory.lpitem.',
             'lpbrgmasuk' => 'inventory.lpbrgmasuk.',
             'lpkasir' => 'inventory.lpkasir.',
@@ -121,6 +122,7 @@
             'lapstokopname' => 'inventory.lapstokopname.',
             'lapkomisi' => 'inventory.lapkomisi.',
             'evaluasi' => 'inventory.evaluasi.',
+            'gaji' => 'inventory.gaji.',
         ];
 
         $activeModule = 'home';
@@ -252,6 +254,7 @@
                             'tpk' => 'icon-shopping-cart',
                             'penjualansebelum' => 'icon-rotate-ccw',
                             'catatan' => 'icon-edit-3',
+                            'kehadiran' => 'icon-user-check',
                             'lpitem' => 'icon-printer',
                             'lpbrgmasuk' => 'icon-printer',
                             'lpkasir' => 'icon-printer',
@@ -264,6 +267,7 @@
                             'lapstokopname' => 'icon-printer',
                             'lapkomisi' => 'icon-printer',
                             'evaluasi' => 'icon-printer',
+                            'gaji' => 'icon-dollar-sign',
                         ];
 
                         $groupIcons = [
@@ -285,6 +289,18 @@
                         if ($currentAdmin->isPemilik()) {
                             $extraLaporanItems['evaluasi'] = 'Evaluasi Pegawai';
                         }
+
+                        // "Data Master > Gaji Karyawan" -- TIDAK ada di
+                        // Admin::PERMISSION_GROUPS (tidak ada kolom flag admin, modul
+                        // ini KHUSUS pemilik mengikuti legacy Yasfi's
+                        // `$_SESSION['level'] != 'pemilik'`) -- disuntikkan manual di
+                        // sini, sama seperti $extraLaporanItems di atas. Slip Gaji &
+                        // Rekap Gaji dijangkau dari dalam halaman Gaji Karyawan sendiri,
+                        // tidak jadi entri sidebar terpisah.
+                        $extraDataMasterItems = [];
+                        if ($currentAdmin->isPemilik()) {
+                            $extraDataMasterItems['gaji'] = 'Gaji Karyawan';
+                        }
                     @endphp
 
                     @foreach (\App\Models\Admin::PERMISSION_GROUPS as $groupName => $items)
@@ -292,6 +308,9 @@
                             $visibleItems = collect($items)->filter(fn($label, $column) => $currentAdmin->hasModuleAccess($column));
                             if ($groupName === 'Laporan') {
                                 $visibleItems = $visibleItems->merge($extraLaporanItems);
+                            }
+                            if ($groupName === 'Data Master') {
+                                $visibleItems = $visibleItems->merge($extraDataMasterItems);
                             }
                         @endphp
                         @if ($visibleItems->isNotEmpty())

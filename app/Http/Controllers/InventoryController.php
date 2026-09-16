@@ -65,6 +65,10 @@ class InventoryController extends Controller
         'lapstokopname' => 'inventory.lapstokopname.index',
         'lapkomisi' => 'inventory.lapkomisi.index',
         'evaluasi' => 'inventory.evaluasi.index',
+        'gaji' => 'inventory.gaji.index',
+        'gajidetail' => 'inventory.gajidetail.index',
+        'rekap_gaji' => 'inventory.rekapgaji.index',
+        'kehadiran' => 'inventory.kehadiran.index',
     ];
 
     /**

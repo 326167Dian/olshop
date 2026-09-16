@@ -54,6 +54,7 @@ class Admin extends Authenticatable
             'tpk' => 'Penjualan/Kasir',
             'penjualansebelum' => 'Edit/Retur/Hapus Penjualan',
             'catatan' => 'Catatan',
+            'kehadiran' => 'Kehadiran Pegawai',
         ],
         'Laporan' => [
             'lpitem' => 'Item Barang',
@@ -80,6 +81,8 @@ class Admin extends Authenticatable
         'akses_level',
         'unit',
         'blokir',
+        'nama_bank',
+        'rekening_bank',
         'mpengguna',
         'mheader',
         'mjenisbayar',
@@ -115,6 +118,7 @@ class Admin extends Authenticatable
         'cekdarah',
         'jurnalkas',
         'ujian',
+        'kehadiran',
     ];
 
     protected $hidden = [
@@ -135,6 +139,39 @@ class Admin extends Authenticatable
     public function products_updated()
     {
         return $this->hasMany(Product::class, 'updated_by', 'id_admin');
+    }
+
+    /**
+     * Data Gaji Karyawan (modul Gaji, satu baris per admin). Lihat
+     * [[App\Models\Gaji]].
+     */
+    public function gaji()
+    {
+        return $this->hasOne(Gaji::class, 'id_admin', 'id_admin');
+    }
+
+    /**
+     * Modul Kehadiran Pegawai -- lihat [[App\Models\JadwalShift]],
+     * [[App\Models\Absensi]], [[App\Models\Lembur]], [[App\Models\Cuti]].
+     */
+    public function jadwalShift()
+    {
+        return $this->hasMany(JadwalShift::class, 'id_admin', 'id_admin');
+    }
+
+    public function absensi()
+    {
+        return $this->hasMany(Absensi::class, 'id_admin', 'id_admin');
+    }
+
+    public function lembur()
+    {
+        return $this->hasMany(Lembur::class, 'id_admin', 'id_admin');
+    }
+
+    public function cuti()
+    {
+        return $this->hasMany(Cuti::class, 'id_admin', 'id_admin');
     }
 
     /**
