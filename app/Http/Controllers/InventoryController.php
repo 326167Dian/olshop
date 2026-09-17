@@ -137,6 +137,11 @@ class InventoryController extends Controller
      *
      * - Penjualan: SUM(ttl_trkasir) dari tabel trkasir, dikelompokkan per tgl_trkasir.
      * - Swamedikasi: COUNT(*) dari tabel riwayat_pelanggan, dikelompokkan per tgl.
+     *
+     * "Bulan Dipilih" dibatasi sampai hari ini kalau bulan yang dipilih adalah
+     * bulan berjalan (biar tidak menampilkan hari-hari yang belum terjadi
+     * sebagai 0 dan mendistorsi grafik/total), TAPI "Bulan Lalu" SELALU bulan
+     * penuh -- lihat komentar di titik pembentukan $dataBulanLalu di bawah.
      */
     public function salesChartData(Request $request)
     {
@@ -212,22 +217,33 @@ class InventoryController extends Controller
         }
 
         $dataHarian = [];
-        $dataBulanLalu = [];
         $cursor = $awalBulan->copy();
         while ($cursor->lte($akhirPeriode)) {
-            $tanggalStr = $cursor->toDateString();
-            $hari = $cursor->format('d');
-
             $dataHarian[] = [
-                'tanggal' => $tanggalStr,
-                'nilai' => $mapNilai[$tanggalStr] ?? 0,
-            ];
-            $dataBulanLalu[] = [
-                'hari' => $hari,
-                'nilai' => $mapNilaiPrevByHari[$hari] ?? 0,
+                'tanggal' => $cursor->toDateString(),
+                'nilai' => $mapNilai[$cursor->toDateString()] ?? 0,
             ];
 
             $cursor->addDay();
+        }
+
+        // "Bulan Lalu" SENGAJA memakai rentang bulan sebelumnya PENUH (bukan
+        // dibatasi $akhirPeriode, yang hanya sampai "hari ini" kalau bulan yang
+        // dipilih adalah bulan berjalan) -- kalau ikut dibatasi, total & grafik
+        // "Bulan Lalu" cuma menjumlah tanggal 1 s.d. hari-ini-bulan-lalu,
+        // membuat "Total Bulan Lalu" jauh lebih kecil dari total bulan itu yang
+        // sebenarnya (bug yang dilaporkan user 2026-09-17: bulan lalu tampil
+        // Rp 5.000, padahal totalnya yang benar Rp 2.468.500 kalau bulan itu
+        // dipilih langsung). Perbandingan "Bulan Lalu" harus selalu bulan penuh.
+        $dataBulanLalu = [];
+        $cursorPrev = $awalBulanSebelumnya->copy();
+        while ($cursorPrev->lte($akhirBulanSebelumnya)) {
+            $dataBulanLalu[] = [
+                'hari' => $cursorPrev->format('d'),
+                'nilai' => $mapNilaiPrevByHari[$cursorPrev->format('d')] ?? 0,
+            ];
+
+            $cursorPrev->addDay();
         }
 
         return response()->json([
