@@ -312,6 +312,16 @@
                             if ($groupName === 'Data Master') {
                                 $visibleItems = $visibleItems->merge($extraDataMasterItems);
                             }
+                            if ($groupName === 'Transaksi') {
+                                // "Kehadiran Pegawai" TETAP di kolom flag 'kehadiran' milik
+                                // grup Transaksi (dipakai form centang izin Operator), tapi
+                                // SENGAJA dikeluarkan dari render submenu Transaksi di sini --
+                                // dirender sebagai grup sidebar sendiri sejajar Data
+                                // Master/Inventory/Transaksi/Laporan/Program Promo (lihat blok
+                                // "KEHADIRAN PEGAWAI" di bawah, setelah Program Promo), bukan
+                                // jadi sub-item Transaksi, atas permintaan user 2026-09-17.
+                                $visibleItems = $visibleItems->except('kehadiran');
+                            }
                         @endphp
                         @if ($visibleItems->isNotEmpty())
                             <li class="nav-group-title">{{ strtoupper($groupName) }}</li>
@@ -356,6 +366,30 @@
                             </li>
                         </ul>
                     </li>
+
+                    {{-- "Kehadiran Pegawai" -- sejajar Data Master/Inventory/Transaksi/
+                    Laporan/Program Promo (grup sidebar sendiri, bukan sub-item Transaksi),
+                    atas permintaan user 2026-09-17. Tetap digerbang flag 'kehadiran' yang
+                    sama seperti di Admin::PERMISSION_GROUPS -- lihat pengecualian
+                    ->except('kehadiran') di render grup Transaksi di atas. --}}
+                    @if ($currentAdmin->hasModuleAccess('kehadiran'))
+                        <li class="nav-group-title">KEHADIRAN PEGAWAI</li>
+                        <li class="nav-submenu">
+                            <a class="nav-submenu-title" href="javascript:void(0)">
+                                <i class="feather icon-user-check"></i>
+                                <span>Kehadiran Pegawai</span>
+                                <i class="nav-submenu-arrow"></i>
+                            </a>
+                            <ul class="nav-menu menu-collapse">
+                                <li class="nav-menu-item {{ $activeModule === 'kehadiran' ? 'active' : '' }}">
+                                    <a href="{{ route('inventory.kehadiran.index') }}">
+                                        <i class="feather icon-user-check"></i>
+                                        <span class="nav-menu-item-title">Kehadiran Pegawai</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                    @endif
 
                     <li class="nav-menu-item">
                         <a href="javascript:void(0)" onclick="logoutConfirm(event)">
