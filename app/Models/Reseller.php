@@ -10,6 +10,7 @@ class Reseller extends Model
         'user_id',
         'nama_lengkap',
         'no_hp',
+        'alamat',
         'nama_bank',
         'no_rekening',
     ];
@@ -17,5 +18,10 @@ class Reseller extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function referredCustomers()
+    {
+        return $this->hasMany(User::class, 'referred_by_reseller_id');
     }
 }

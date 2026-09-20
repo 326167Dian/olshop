@@ -103,7 +103,7 @@ class LoginController extends Controller
     }
 
     // Handle callback dari Google
-    public function handleGoogleCallback()
+    public function handleGoogleCallback(Request $request)
     {
         try {
             $googleUser = Socialite::driver('google')->user();
@@ -117,6 +117,15 @@ class LoginController extends Controller
                     'google_id' => $googleUser->id,
                 ]
             );
+
+            // Tautkan ke reseller yang mengajak (lewat link referral, lihat
+            // CaptureResellerReferral) -- sekali saja saat akun BARU pertama kali
+            // dibuat, supaya pelanggan lama tidak berpindah-pindah reseller hanya
+            // karena klik link referral orang lain.
+            if ($user->wasRecentlyCreated && $request->cookie('reseller_ref')) {
+                $user->referred_by_reseller_id = (int) $request->cookie('reseller_ref');
+                $user->save();
+            }
 
             Auth::login($user);
             session()->regenerate();

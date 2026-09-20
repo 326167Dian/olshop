@@ -93,6 +93,7 @@ Route::prefix('reseller')->name('reseller.')->group(function () {
     Route::get('/register', [ResellerController::class, 'register'])->name('register');
     Route::post('/register', [ResellerController::class, 'store'])->name('store');
     Route::get('/', [ResellerController::class, 'home'])->name('home');
+    Route::get('/pelanggan/{userId}', [ResellerController::class, 'pelangganDetail'])->name('pelanggan.detail');
 });
 
 Route::get('/home-page', [HomepageController::class, 'index'])->name('home-page');
@@ -924,3 +925,10 @@ Route::prefix('inventory')->middleware(['auth:admin', 'admin.active'])->name('in
         });
     });
 });
+
+// Link referral pendek reseller: domain/{id} -- diletakkan paling akhir dan dibatasi
+// hanya angka ([0-9]+) supaya tidak pernah menabrak route lain di atas (mis. /login,
+// /staf, /home-page tidak akan cocok dengan pola ini).
+Route::get('/{resellerId}', [ResellerController::class, 'referral'])
+    ->where('resellerId', '[0-9]+')
+    ->name('reseller.referral');

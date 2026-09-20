@@ -171,6 +171,30 @@
                     </div>
                 </div>
             </div>
+
+            <div class="col-md-6 mt-4">
+                <div class="card card-primary">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Komisi Reseller</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="komisi_reseller">Persentase Komisi (%)</label>
+                            <input type="number" step="0.01" min="0" max="100" name="komisi_reseller"
+                                id="komisi_reseller"
+                                class="form-control @error('komisi_reseller') is-invalid @enderror"
+                                value="{{ old('komisi_reseller', $companySetting->komisi_reseller ?? 5) }}">
+                            <small class="form-text text-muted">Persentase dari total transaksi pelanggan yang
+                                direkrut reseller, dihitung sebagai komisi mereka. Berlaku untuk semua reseller.</small>
+                            @error('komisi_reseller')
+                            <div class="invalid-feedback">
+                                {{ $message }}
+                            </div>
+                            @enderror
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </form>
 </div>

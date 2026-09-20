@@ -73,6 +73,16 @@
                                         </div>
 
                                         <div class="form-group mb-3">
+                                            <label>Alamat</label>
+                                            <textarea name="alamat" rows="3"
+                                                class="form-control @error('alamat') is-invalid @enderror"
+                                                placeholder="Alamat lengkap">{{ old('alamat') }}</textarea>
+                                            @error('alamat')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+
+                                        <div class="form-group mb-3">
                                             <label>Nama Bank</label>
                                             <input type="text" name="nama_bank" value="{{ old('nama_bank') }}"
                                                 class="form-control @error('nama_bank') is-invalid @enderror"

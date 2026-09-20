@@ -22,6 +22,7 @@ class User extends Authenticatable
         'referal_admin_id',
         'komisi_status',
         'waktu_komisi_lunas',
+        'referred_by_reseller_id',
     ];
 
     protected $hidden = [
@@ -42,5 +43,19 @@ class User extends Authenticatable
     public function reseller()
     {
         return $this->hasOne(Reseller::class);
+    }
+
+    /**
+     * Reseller yang mengajak user ini belanja (lewat link referral), bukan profil
+     * reseller milik user ini sendiri -- lihat reseller() di atas untuk itu.
+     */
+    public function referredByReseller()
+    {
+        return $this->belongsTo(Reseller::class, 'referred_by_reseller_id');
+    }
+
+    public function orders()
+    {
+        return $this->hasMany(Order::class);
     }
 }

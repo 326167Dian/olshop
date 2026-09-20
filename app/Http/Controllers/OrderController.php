@@ -635,6 +635,7 @@ class OrderController extends Controller
             // Jika status berubah ke "Selesai", insert ke trkasir
             if ($validatedData['status'] === 'Selesai' && $oldStatus !== 'Selesai') {
                 $user = $order->user;
+                $idReseller = $user->referred_by_reseller_id;
 
                 // insert ke trkasir
                 DB::table('trkasir')->insertGetId([
@@ -679,6 +680,7 @@ class OrderController extends Controller
                         'nm_bundle'        => '',
                         'tipe'             => 3,
                         'idadmin'          => Auth::id(),
+                        'id_reseller'      => $idReseller,
                         'waktu'            => now(),
                     ]);
                 }

@@ -13,6 +13,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->append([
             \App\Http\Middleware\PreventBackHistory::class,
+            \App\Http\Middleware\CaptureResellerReferral::class,
         ]);
         $middleware->alias([
             'is.customer' => \App\Http\Middleware\IsCustomer::class,

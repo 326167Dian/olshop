@@ -40,6 +40,7 @@ class CompanySettingController extends Controller
             'telepon'         => 'nullable|string|max:16',
             'peta_lokasi'     => 'nullable|string',
             'catatan'         => 'nullable|string',
+            'komisi_reseller' => 'required|numeric|min:0|max:100',
         ]);
 
         // Simpan file logo jika diupload
@@ -82,6 +83,7 @@ class CompanySettingController extends Controller
             'telepon'         => 'nullable|string|max:16',
             'peta_lokasi'     => 'nullable|string',
             'catatan'         => 'nullable|string',
+            'komisi_reseller' => 'required|numeric|min:0|max:100',
         ]);
 
         // Hapus logo lama dan simpan yang baru jika diupload

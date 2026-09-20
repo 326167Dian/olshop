@@ -21,5 +21,6 @@ class CompanySetting extends Model
         'telepon',
         'peta_lokasi',
         'catatan',
+        'komisi_reseller',
     ];
 }

@@ -12,31 +12,107 @@
 </head>
 
 <body>
-    <div class="auth-full-height d-flex flex-row align-items-center">
-        <div class="container">
-            <div class="row justify-content-center">
-                <div class="col-md-5">
-                    <div class="card">
-                        <div class="card-body text-center">
-                            <div class="m-2">
-                                <div class="d-flex justify-content-center mt-3">
-                                    <div class="text-center logo">
-                                        <img alt="logo" class="img-fluid" src="{{ asset('storage/' . $companySetting->logo) }}" style="max-height: 70px;">
-                                    </div>
-                                </div>
+    <div class="container py-5">
+        <div class="d-flex justify-content-center mb-3">
+            <div class="text-center logo">
+                <img alt="logo" class="img-fluid" src="{{ asset('storage/' . $companySetting->logo) }}" style="max-height: 60px;">
+            </div>
+        </div>
 
-                                @if (session('success'))
-                                    <div class="alert alert-success mt-3">{{ session('success') }}</div>
-                                @endif
+        <div class="text-center mb-4">
+            <h3 class="fw-bolder">Halaman Reseller</h3>
+            <p class="text-muted">Halo, {{ $reseller->nama_lengkap }}.</p>
+        </div>
 
-                                <i class="fas fa-tools mt-4" style="font-size: 48px; color: #999;"></i>
-                                <h3 class="fw-bolder mt-3">Halaman Reseller</h3>
-                                <p class="text-muted">Halo, {{ $reseller->nama_lengkap }}.</p>
-                                <p class="text-muted">Dalam pengembangan. Fitur reseller akan segera hadir.</p>
-                            </div>
-                        </div>
+        @if (session('success'))
+            <div class="alert alert-success">{{ session('success') }}</div>
+        @endif
+
+        {{-- Link referral --}}
+        <div class="card mb-4">
+            <div class="card-body">
+                <p class="text-muted mb-1">Bagikan link ini ke calon pembeli. Setiap orang yang mendaftar lewat link ini akan otomatis tercatat sebagai ajakan Anda.</p>
+                <div class="input-group">
+                    <input type="text" id="reseller-link" class="form-control" readonly
+                        value="{{ url('/' . $reseller->id) }}">
+                    <button class="btn btn-outline-secondary" type="button" onclick="copyResellerLink()">
+                        <i class="fas fa-copy"></i> Salin
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        {{-- Ringkasan --}}
+        <div class="row mb-4">
+            <div class="col-md-4 mb-3 mb-md-0">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <p class="text-muted mb-1">Omzet Bulan Ini</p>
+                        <h4 class="fw-bolder mb-0">Rp {{ number_format($omzetBulanIni, 0, ',', '.') }}</h4>
                     </div>
                 </div>
+            </div>
+            <div class="col-md-4 mb-3 mb-md-0">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <p class="text-muted mb-1">Komisi Bulan Ini ({{ rtrim(rtrim(number_format($komisiPersen, 2, ',', '.'), '0'), ',') }}%)</p>
+                        <h4 class="fw-bolder mb-0 text-success">Rp {{ number_format($komisiBulanIni, 0, ',', '.') }}</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <p class="text-muted mb-1">Pelanggan Direkrut</p>
+                        <h4 class="fw-bolder mb-0">{{ $pelanggan->count() }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Daftar pelanggan --}}
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Pelanggan yang Anda Rekrut</h5>
+            </div>
+            <div class="card-body">
+                @if ($pelanggan->isEmpty())
+                    <p class="text-muted mb-0">Belum ada pelanggan yang mendaftar lewat link referral Anda.</p>
+                @else
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered table-striped align-middle">
+                            <thead>
+                                <tr>
+                                    <th>No</th>
+                                    <th>Nama</th>
+                                    <th>Email</th>
+                                    <th>No HP</th>
+                                    <th>Total Pesanan</th>
+                                    <th>Total Belanja</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($pelanggan as $index => $item)
+                                <tr>
+                                    <td>{{ $loop->iteration }}</td>
+                                    <td>{{ $item->name }}</td>
+                                    <td>{{ $item->email }}</td>
+                                    <td>{{ $item->no_tlp ?? '-' }}</td>
+                                    <td>{{ $item->total_pesanan }}</td>
+                                    <td>Rp {{ number_format($item->total_belanja ?? 0, 0, ',', '.') }}</td>
+                                    <td>
+                                        <a href="{{ route('reseller.pelanggan.detail', $item->id) }}"
+                                            class="btn btn-sm btn-primary">
+                                            <i class="fas fa-eye"></i> Detail
+                                        </a>
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
             </div>
         </div>
     </div>
@@ -45,6 +121,15 @@
     <script src="{{ asset('newadmin/assets/js/vendors.min.js') }}"></script>
     <!-- Core JS -->
     <script src="{{ asset('newadmin/assets/js/app.min.js') }}"></script>
+
+    <script>
+        function copyResellerLink() {
+            var input = document.getElementById('reseller-link');
+            input.select();
+            input.setSelectionRange(0, 99999);
+            navigator.clipboard.writeText(input.value);
+        }
+    </script>
 </body>
 
 </html>
