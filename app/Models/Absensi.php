@@ -21,6 +21,9 @@ class Absensi extends Model
         'keterangan',
         'sumber',
         'dicatat_oleh',
+        'lat',
+        'lng',
+        'jarak_meter',
     ];
 
     protected $casts = [

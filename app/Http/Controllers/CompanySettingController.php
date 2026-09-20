@@ -41,6 +41,9 @@ class CompanySettingController extends Controller
             'peta_lokasi'     => 'nullable|string',
             'catatan'         => 'nullable|string',
             'komisi_reseller' => 'required|numeric|min:0|max:100',
+            'kehadiran_lat'   => 'nullable|numeric|between:-90,90',
+            'kehadiran_lng'   => 'nullable|numeric|between:-180,180',
+            'kehadiran_radius' => 'required|integer|min:10',
         ]);
 
         // Simpan file logo jika diupload
@@ -84,6 +87,9 @@ class CompanySettingController extends Controller
             'peta_lokasi'     => 'nullable|string',
             'catatan'         => 'nullable|string',
             'komisi_reseller' => 'required|numeric|min:0|max:100',
+            'kehadiran_lat'   => 'nullable|numeric|between:-90,90',
+            'kehadiran_lng'   => 'nullable|numeric|between:-180,180',
+            'kehadiran_radius' => 'required|integer|min:10',
         ]);
 
         // Hapus logo lama dan simpan yang baru jika diupload

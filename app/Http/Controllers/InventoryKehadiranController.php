@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Absensi;
+use App\Models\CompanySetting;
 use App\Models\Cuti;
 use App\Models\JadwalShift;
 use App\Models\KuotaCuti;
@@ -90,11 +91,50 @@ class InventoryKehadiranController extends Controller
         ]);
     }
 
+    /**
+     * Validasi lokasi check-in terhadap radius apotek, kalau sudah dikonfigurasi
+     * di Setting (kehadiran_lat/kehadiran_lng). Kalau belum dikonfigurasi,
+     * validasi dilewati (tidak mengunci semua orang sebelum fitur ini di-setup).
+     * Return ['lat','lng','jarak','error'] -- error null berarti lolos/dilewati.
+     */
+    private function validasiRadiusKehadiran(Request $request): array
+    {
+        $companySetting = CompanySetting::first();
+
+        if (!$companySetting || $companySetting->kehadiran_lat === null || $companySetting->kehadiran_lng === null) {
+            return ['lat' => null, 'lng' => null, 'jarak' => null, 'error' => null];
+        }
+
+        $request->validate([
+            'lat' => 'required|numeric',
+            'lng' => 'required|numeric',
+        ], [
+            'lat.required' => 'Aktifkan akses lokasi di HP Anda untuk check-in.',
+            'lng.required' => 'Aktifkan akses lokasi di HP Anda untuk check-in.',
+        ]);
+
+        $lat = (float) $request->input('lat');
+        $lng = (float) $request->input('lng');
+        $jarak = $companySetting->jarakMeterDari($lat, $lng);
+
+        $error = null;
+        if ($jarak > $companySetting->kehadiran_radius) {
+            $error = 'Anda berada di luar radius apotek (jarak ' . round($jarak) . ' meter dari apotek, maksimal ' . $companySetting->kehadiran_radius . ' meter). Check-in ditolak.';
+        }
+
+        return ['lat' => $lat, 'lng' => $lng, 'jarak' => round($jarak, 2), 'error' => $error];
+    }
+
     public function checkin(Request $request)
     {
         $admin = Auth::guard('admin')->user();
         $hariIni = now()->toDateString();
         $idJadwal = $request->input('id_jadwal') ? (int) $request->input('id_jadwal') : null;
+
+        $lokasi = $this->validasiRadiusKehadiran($request);
+        if ($lokasi['error']) {
+            return back()->with('error', $lokasi['error']);
+        }
 
         $shift = null;
         if ($idJadwal) {
@@ -123,6 +163,9 @@ class InventoryKehadiranController extends Controller
             'status' => Absensi::hitungStatusMasuk($shift, $jamMasuk),
             'sumber' => 'self_service',
             'dicatat_oleh' => null,
+            'lat' => $lokasi['lat'],
+            'lng' => $lokasi['lng'],
+            'jarak_meter' => $lokasi['jarak'],
         ]);
 
         return redirect()->route('inventory.kehadiran.index')->with('success', 'Check-in berhasil dicatat.');

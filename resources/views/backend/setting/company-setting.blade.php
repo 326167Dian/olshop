@@ -175,6 +175,57 @@
             <div class="col-md-6 mt-4">
                 <div class="card card-primary">
                     <div class="card-header">
+                        <h5 class="card-title mb-0">Radius Kehadiran (Lokasi Apotek)</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted small">Dipakai untuk validasi check-in/check-out kehadiran pegawai lewat HP masing-masing. Kosongkan latitude/longitude kalau belum mau mengaktifkan validasi ini.</p>
+
+                        <div class="mb-3">
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="gunakanLokasiSaya()">
+                                <i class="align-middle" data-feather="map-pin"></i> Gunakan Lokasi Saya Sekarang
+                            </button>
+                            <small class="form-text text-muted">Buka halaman ini dari HP/laptop yang sedang berada di apotek, lalu klik tombol ini.</small>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Latitude</label>
+                                <input type="text" name="kehadiran_lat" id="kehadiran_lat"
+                                    class="form-control @error('kehadiran_lat') is-invalid @enderror"
+                                    value="{{ old('kehadiran_lat', $companySetting->kehadiran_lat ?? '') }}"
+                                    placeholder="Contoh: -6.2345678">
+                                @error('kehadiran_lat')
+                                <div class="text-danger">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Longitude</label>
+                                <input type="text" name="kehadiran_lng" id="kehadiran_lng"
+                                    class="form-control @error('kehadiran_lng') is-invalid @enderror"
+                                    value="{{ old('kehadiran_lng', $companySetting->kehadiran_lng ?? '') }}"
+                                    placeholder="Contoh: 106.9876543">
+                                @error('kehadiran_lng')
+                                <div class="text-danger">{{ $message }}</div>
+                                @enderror
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Radius Toleransi (meter)</label>
+                            <input type="number" min="10" name="kehadiran_radius"
+                                class="form-control @error('kehadiran_radius') is-invalid @enderror"
+                                value="{{ old('kehadiran_radius', $companySetting->kehadiran_radius ?? 100) }}">
+                            @error('kehadiran_radius')
+                            <div class="text-danger">{{ $message }}</div>
+                            @enderror
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 mt-4">
+                <div class="card card-primary">
+                    <div class="card-header">
                         <h5 class="card-title mb-0">Komisi Reseller</h5>
                     </div>
                     <div class="card-body">
@@ -201,6 +252,24 @@
 @endsection
 
 @push('scripts')
+<script>
+    function gunakanLokasiSaya() {
+        if (!navigator.geolocation) {
+            alert('Browser ini tidak mendukung akses lokasi.');
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(function (pos) {
+            document.getElementById('kehadiran_lat').value = pos.coords.latitude;
+            document.getElementById('kehadiran_lng').value = pos.coords.longitude;
+        }, function (err) {
+            alert('Gagal mengambil lokasi: ' + err.message);
+        }, {
+            enableHighAccuracy: true,
+            timeout: 10000
+        });
+    }
+</script>
 <!-- CKEditor 5 CDN -->
 <script src="https://cdn.ckeditor.com/ckeditor5/39.0.1/classic/ckeditor.js"></script>
 <script>
