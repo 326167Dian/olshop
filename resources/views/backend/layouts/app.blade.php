@@ -157,6 +157,12 @@
                                     <span class="nav-menu-item-title">Customer</span>
                                 </a>
                             </li>
+                            <li class="nav-menu-item {{ in_array(Route::currentRouteName(), ['reseller-report.index', 'reseller-report.show', 'reseller-report.pelanggan']) ? 'active' : '' }}">
+                                <a href="{{ route('reseller-report.index') }}">
+                                    <i class="feather icon-share-2"></i>
+                                    <span class="nav-menu-item-title">Reseller</span>
+                                </a>
+                            </li>
                             <li class="nav-menu-item {{ in_array(Route::currentRouteName(), ['category.index', 'category.create', 'category.edit']) ? 'active' : '' }}">
                                 <a href="{{ route('category.index') }}">
                                     <i class="feather icon-tag"></i>

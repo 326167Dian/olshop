@@ -13,6 +13,16 @@
 
 <body>
     <div class="container py-5">
+        <div class="d-flex justify-content-end">
+            <a href="#" onclick="event.preventDefault(); document.getElementById('logoutForm').submit();"
+                class="btn btn-sm btn-outline-danger">
+                <i class="fas fa-unlock-alt"></i> Logout
+            </a>
+            <form id="logoutForm" action="{{ route('logout') }}" method="POST" class="d-none">
+                @csrf
+            </form>
+        </div>
+
         <div class="d-flex justify-content-center mb-3">
             <div class="text-center logo">
                 <img alt="logo" class="img-fluid" src="{{ asset('storage/' . $companySetting->logo) }}" style="max-height: 60px;">

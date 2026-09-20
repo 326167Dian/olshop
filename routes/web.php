@@ -14,6 +14,7 @@ use App\Http\Controllers\CompanySettingController;
 use App\Http\Controllers\BannerController;
 use App\Http\Controllers\PromoController;
 use App\Http\Controllers\LokasiAntarController;
+use App\Http\Controllers\ResellerReportController;
 use App\Http\Controllers\ResellerController;
 use App\Http\Controllers\AdminProfileController;
 use App\Http\Controllers\InventoryController;
@@ -145,6 +146,11 @@ Route::prefix('/backend')->middleware('auth:admin')->group(function () {
     Route::get('/customer-data', [CustomerController::class, 'data'])->name('backend.customer.data');
     Route::put('/customer/{customer}/update-komisi', [CustomerController::class, 'updateKomisi'])->name('customer.updateKomisi');
     Route::delete('/customer/{customer}', [CustomerController::class, 'destroy'])->name('customer.destroy');
+
+    // Reseller (laporan, read-only -- tidak ada route store/update/destroy dengan sengaja)
+    Route::get('/reseller-report', [ResellerReportController::class, 'index'])->name('reseller-report.index');
+    Route::get('/reseller-report/{reseller}', [ResellerReportController::class, 'show'])->name('reseller-report.show');
+    Route::get('/reseller-report/{reseller}/pelanggan/{userId}', [ResellerReportController::class, 'pelangganDetail'])->name('reseller-report.pelanggan');
 
     // Product
     Route::get('/product', [ProductController::class, 'indexbackend'])->name('product.index');
