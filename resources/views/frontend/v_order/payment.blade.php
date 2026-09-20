@@ -82,11 +82,19 @@
                                         {{ number_format($totalDiskon, 0, ',', '.') }}</th>
                                 </tr>
                                 @endif
+                                @if ($order->tipe_layanan === 'Dikirim ke alamat')
+                                <tr>
+                                    <th class="empty" colspan="3"></th>
+                                    <th>ONGKOS KIRIM ({{ $order->lokasiAntar->nama_kelurahan ?? '-' }})</th>
+                                    <th colspan="2" class="sub-total">Rp.
+                                        {{ number_format($order->biaya_ongkir, 0, ',', '.') }}</th>
+                                </tr>
+                                @endif
                                 <tr>
                                     <th class="empty" colspan="3"></th>
                                     <th>TOTAL BAYAR</th>
                                     <th colspan="2" class="total">Rp.
-                                        {{ number_format($totalHarga - $totalDiskon, 0, ',', '.') }}</th>
+                                        {{ number_format($totalHarga - $totalDiskon + $order->biaya_ongkir, 0, ',', '.') }}</th>
                                 </tr>
                             </tfoot>
                         </table>
@@ -135,11 +143,20 @@
                                 </span>
                             </div>
                             @endif
+                            @if ($order->tipe_layanan === 'Dikirim ke alamat')
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
+                                <span style="font-size: 14px;">Ongkos Kirim ({{ $order->lokasiAntar->nama_kelurahan ?? '-' }})</span>
+                                <span style="font-size: 14px;">
+                                    Rp. {{ number_format($order->biaya_ongkir, 0, ',', '.') }}
+                                </span>
+                            </div>
+                            @endif
                             <div
                                 style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
                                 <span style="font-size: 16px; font-weight: bold;">Total Bayar</span>
                                 <span style="font-size: 18px; font-weight: bold; color: #d10024;">
-                                    Rp. {{ number_format($totalHarga - $totalDiskonMobile, 0, ',', '.') }}
+                                    Rp. {{ number_format($totalHarga - $totalDiskonMobile + $order->biaya_ongkir, 0, ',', '.') }}
                                 </span>
                             </div>
                         </div>
@@ -148,17 +165,24 @@
                     @php
                         $qrisImage = asset('storage/' . ($companySetting->qris_image ?? 'images/qris.jpeg'));
                     @endphp
-                    <form method="POST" action="{{ route('order.bank_transfer') }}" enctype="multipart/form-data">
+                    <form method="POST" action="{{ route('order.bank_transfer') }}" enctype="multipart/form-data"
+                        id="payment-form">
                         @csrf
-                        <input type="hidden" name="total_price" value="{{ $totalHarga }}">
+                        <input type="hidden" name="total_price" value="{{ $totalHarga - $totalDiskon + $order->biaya_ongkir }}">
 
                         <div class="form-group" style="max-width: 300px; margin-top: 20px;">
                             <label for="payment_method">Metode Pembayaran:</label>
-                            <select id="payment_method" name="payment_method" class="form-control" required>
+                            <select id="payment_method" name="payment_method" class="form-control" required
+                                onchange="togglePaymentMethod()">
                                 {{-- <option value="midtrans">Bayar Online (Midtrans)</option> --}}
-                                {{-- <option value="cod">Bayar di Tempat (COD)</option> --}}
                                 <option value="bank_transfer">Qris</option>
+                                <option value="cod">COD (Cash on Delivery)</option>
                             </select>
+                        </div>
+
+                        {{-- COD info --}}
+                        <div id="cod-container" class="alert alert-info" style="margin-top: 20px; display: none;">
+                            Pesanan akan langsung diproses. Pembayaran dilakukan tunai kepada kurir saat barang diterima/diambil — tidak perlu upload bukti pembayaran.
                         </div>
 
                         {{-- QRIS container --}}
@@ -214,6 +238,31 @@
         </div>
     </div>
 </div>
+
+<script>
+    function togglePaymentMethod() {
+        var method = document.getElementById('payment_method').value;
+        var form = document.getElementById('payment-form');
+        var qrisContainer = document.getElementById('qris-container');
+        var codContainer = document.getElementById('cod-container');
+        var buktiInput = document.getElementById('bukti_pembayaran');
+        var payButton = document.getElementById('pay-button');
+
+        if (method === 'cod') {
+            form.action = "{{ route('order.cod') }}";
+            qrisContainer.style.display = 'none';
+            codContainer.style.display = 'block';
+            buktiInput.required = false;
+            payButton.textContent = 'Proses Pesanan';
+        } else {
+            form.action = "{{ route('order.bank_transfer') }}";
+            qrisContainer.style.display = 'block';
+            codContainer.style.display = 'none';
+            buktiInput.required = true;
+            payButton.textContent = 'Bayar Sekarang';
+        }
+    }
+</script>
 
 {{-- Midtrans dinonaktifkan — UI pembayaran sekarang hanya menawarkan QRIS manual. --}}
 {{--

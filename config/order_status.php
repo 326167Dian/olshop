@@ -5,6 +5,7 @@ return [
     'Dikirim ke alamat' => [
         'COD' => ['Proses COD', 'Kirim', 'Selesai', 'Dibatalkan'],
         'Midtrans' => ['Paid', 'Kirim', 'Selesai'],
+        'Qris' => ['Proses konfirmasi pembayaran', 'Paid', 'Kirim', 'Selesai', 'Ditolak'],
     ],
 
     'Ambil di toko' => [

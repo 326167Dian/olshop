@@ -257,6 +257,12 @@
                                     <span class="nav-menu-item-title">Promo</span>
                                 </a>
                             </li>
+                            <li class="nav-menu-item {{ in_array(Route::currentRouteName(), ['lokasi-antar.index', 'lokasi-antar.create', 'lokasi-antar.edit']) ? 'active' : '' }}">
+                                <a href="{{ route('lokasi-antar.index') }}">
+                                    <i class="feather icon-map-pin"></i>
+                                    <span class="nav-menu-item-title">Lokasi Antar</span>
+                                </a>
+                            </li>
                         </ul>
                     </li>
 

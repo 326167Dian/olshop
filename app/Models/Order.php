@@ -17,10 +17,13 @@ class Order extends Model
         'total_diskon',
         'status',
         'tipe_layanan',
+        'lokasi_antar_id',
+        'biaya_ongkir',
         'layanan_pengiriman',
         'tipe_pembayaran',
         'total_berat',
         'alamat',
+        'no_tlp',
         'midtrans_order_id',
         'bukti_pembayaran',
         'petugas_approval',
@@ -46,6 +49,11 @@ class Order extends Model
     public function promo()
     {
         return $this->belongsTo(Promo::class);
+    }
+
+    public function lokasiAntar()
+    {
+        return $this->belongsTo(LokasiAntar::class, 'lokasi_antar_id');
     }
 
     public static function mapMidtransStatus($transactionStatus, $paymentType = null, $fraudStatus = null)

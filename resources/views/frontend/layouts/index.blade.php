@@ -267,14 +267,12 @@
                                 Home
                             </a>
                         </li>
-                        @if (auth()->check())
-                            <li>
-                                <a href="{{ route('produk.all') }}"
-                                    class="{{ request()->routeIs('produk.all') ? 'active' : '' }}">
-                                    All Produk
-                                </a>
-                            </li>
-                        @endif
+                        <li>
+                            <a href="{{ auth()->check() ? route('produk.all') : route('login.form') }}"
+                                class="{{ request()->routeIs('produk.all') ? 'active' : '' }}">
+                                Cari Produk
+                            </a>
+                        </li>
                         <li>
                             <a href="{{ route('artikel.all') }}"
                                 class="{{ request()->routeIs('artikel.all', 'article.show') ? 'active' : '' }}">

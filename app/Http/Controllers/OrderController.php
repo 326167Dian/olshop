@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\LokasiAntar;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
@@ -169,8 +170,8 @@ class OrderController extends Controller
         if (!$order || $order->orderItems->count() == 0) {
             return redirect()->route('order.cart')->with('error', 'Keranjang belanja kosong.');
         }
-        $jenisLayanan = $order->total_harga >= 50000 ? 'Instan' : 'Reguler';
-        return view('frontend.v_order.shipping', compact('order', 'customer', 'jenisLayanan'));
+        $lokasiAntar = LokasiAntar::orderBy('nama_kelurahan')->get();
+        return view('frontend.v_order.shipping', compact('order', 'customer', 'lokasiAntar'));
     }
 
     public function selectPayment()
@@ -237,8 +238,25 @@ class OrderController extends Controller
                     ->with('error', 'Alamat dan nomor telepon harus diisi sebelum melanjutkan.');
             }
 
-            $jenisLayanan = $order->total_harga >= 50000 ? 'Instan' : 'Reguler';
-            $order->layanan_pengiriman = $jenisLayanan;
+            $request->validate([
+                'tipe_alamat' => 'required|in:rumah,lain',
+                'metode_antar' => 'required|in:reguler,express',
+                'lokasi_antar_id' => 'required_if:metode_antar,express|nullable|exists:lokasi_antar,id',
+            ], [
+                'lokasi_antar_id.required_if' => 'Silakan pilih kelurahan tujuan untuk pengantaran express.',
+            ]);
+
+            if ($request->input('metode_antar') === 'express') {
+                $lokasi = LokasiAntar::findOrFail($request->input('lokasi_antar_id'));
+                $order->lokasi_antar_id = $lokasi->id;
+                $order->biaya_ongkir = $lokasi->biaya_antar;
+                $order->layanan_pengiriman = 'Instan';
+            } else {
+                $order->lokasi_antar_id = null;
+                $order->biaya_ongkir = 0;
+                $order->layanan_pengiriman = 'Reguler';
+            }
+
             $order->alamat = $request->input('alamat');
             $order->no_tlp = $request->input('no_tlp');
             $order->save();
@@ -757,11 +775,9 @@ class OrderController extends Controller
             $order->tipe_pembayaran = 'COD';
             $order->status = 'Proses COD';
 
-            // 🚀 Tentukan layanan pengiriman
-            if ($order->tipe_layanan === 'Dikirim ke alamat') {
-                $jenisLayanan = $order->total_harga >= 50000 ? 'Instan' : 'Reguler';
-                $order->layanan_pengiriman = $jenisLayanan;
-            } elseif ($order->tipe_layanan === 'Ambil di toko') {
+            // Layanan pengiriman untuk "Dikirim ke alamat" sudah ditentukan pelanggan
+            // (Gratis Ongkir/Reguler atau Express/Instan) saat mengisi form alamat.
+            if ($order->tipe_layanan === 'Ambil di toko') {
                 $order->layanan_pengiriman = 'Ambil ditempat';
             }
 
@@ -863,9 +879,7 @@ class OrderController extends Controller
     public function selectPickup(Request $request)
     {
         $request->validate([
-            // 'Dikirim ke alamat' dinonaktifkan sementara — masih negosiasi dengan pihak ekspedisi.
-            // TODO: kembalikan ke 'required|in:Dikirim ke alamat,Ambil di toko' setelah aktif lagi.
-            'tipe_layanan' => 'required|in:Ambil di toko',
+            'tipe_layanan' => 'required|in:Dikirim ke alamat,Ambil di toko',
         ]);
 
         $customer = Auth::user();

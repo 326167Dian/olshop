@@ -170,15 +170,12 @@
                     <p class="text-muted mb-4">Bagaimana Anda ingin menerima pesanan Anda?</p>
 
                     <div class="d-grid gap-3">
-                        {{-- "Dikirim ke Alamat" dinonaktifkan sementara — masih negosiasi dengan pihak ekspedisi.
-                        TODO: aktifkan lagi radio ini setelah kerja sama ekspedisi selesai.
                         <label class="custom-selection-box">
                             <input type="radio" name="tipe_layanan" value="Dikirim ke alamat" required>
                             <div class="content">
-                                <i class="fas fa-truck fa-2x mb-2 text-primary"></i> <span>Dikirim ke Alamat</span>
+                                <i class="fas fa-truck fa-2x mb-2 text-primary"></i> <span>Pengantaran</span>
                             </div>
                         </label>
-                        --}}
 
                         <label class="custom-selection-box">
                             <input type="radio" name="tipe_layanan" value="Ambil di toko" required>

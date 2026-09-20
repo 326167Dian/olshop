@@ -13,6 +13,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\CompanySettingController;
 use App\Http\Controllers\BannerController;
 use App\Http\Controllers\PromoController;
+use App\Http\Controllers\LokasiAntarController;
 use App\Http\Controllers\ResellerController;
 use App\Http\Controllers\AdminProfileController;
 use App\Http\Controllers\InventoryController;
@@ -127,7 +128,7 @@ Route::middleware('is.customer')->group(function () {
 
     Route::get('history', [OrderController::class, 'orderHistory'])->name('order.history');
     Route::get('order/invoice/{id}', [OrderController::class, 'invoiceFrontend'])->name('order.invoice');
-    Route::get('/order/cod', [OrderController::class, 'cod'])->name('order.cod');
+    Route::post('/order/cod', [OrderController::class, 'cod'])->name('order.cod');
     Route::post('/order/bank-transfer', [OrderController::class, 'bankTransfer'])->name('order.bank_transfer');
     Route::get('/produk/all', [ProductController::class, 'index'])->name('produk.all');
 });
@@ -211,6 +212,9 @@ Route::prefix('/backend')->middleware('auth:admin')->group(function () {
 
     // Promo
     Route::resource('promo', PromoController::class);
+
+    // Lokasi antar (wilayah pengantaran & biayanya)
+    Route::resource('lokasi-antar', LokasiAntarController::class)->except(['show']);
 
     // Profil admin (foto profil)
     Route::get('/profile', [AdminProfileController::class, 'edit'])->name('admin.profile.edit');
