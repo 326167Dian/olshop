@@ -2,15 +2,19 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CompanySetting;
 use App\Models\LokasiAntar;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Promo;
 use App\Models\User;
+use App\Models\UserAddress;
+use App\Services\DeliveryPricingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 use Midtrans\Snap;
 use Midtrans\Config;
 use Yajra\DataTables\Facades\DataTables;
@@ -170,8 +174,18 @@ class OrderController extends Controller
         if (!$order || $order->orderItems->count() == 0) {
             return redirect()->route('order.cart')->with('error', 'Keranjang belanja kosong.');
         }
-        $lokasiAntar = LokasiAntar::orderBy('nama_kelurahan')->get();
-        return view('frontend.v_order.shipping', compact('order', 'customer', 'lokasiAntar'));
+        $lokasiAntar = LokasiAntar::orderBy('jarak_min')->get();
+        $alamatLain = UserAddress::where('user_id', $customer->id)->orderByDesc('id')->get();
+        $regulerTersedia = (new DeliveryPricingService(CompanySetting::first() ?? new CompanySetting()))
+            ->regulerTersediaHariIni();
+
+        return view('frontend.v_order.shipping', compact(
+            'order',
+            'customer',
+            'lokasiAntar',
+            'alamatLain',
+            'regulerTersedia'
+        ));
     }
 
     public function selectPayment()
@@ -230,41 +244,96 @@ class OrderController extends Controller
         $customer = User::where('id', Auth::id())->first();
         $order = Order::where('user_id', $customer->id)->where('status', 'pending')->first();
 
-
-        if ($order) {
-            if (empty($request->input('alamat')) && empty($request->input('no_tlp'))) {
-                return redirect()
-                    ->route('customer.akun', ['id' => $order->user_id])
-                    ->with('error', 'Alamat dan nomor telepon harus diisi sebelum melanjutkan.');
-            }
-
-            $request->validate([
-                'tipe_alamat' => 'required|in:rumah,lain',
-                'metode_antar' => 'required|in:reguler,express',
-                'lokasi_antar_id' => 'required_if:metode_antar,express|nullable|exists:lokasi_antar,id',
-            ], [
-                'lokasi_antar_id.required_if' => 'Silakan pilih kelurahan tujuan untuk pengantaran express.',
-            ]);
-
-            if ($request->input('metode_antar') === 'express') {
-                $lokasi = LokasiAntar::findOrFail($request->input('lokasi_antar_id'));
-                $order->lokasi_antar_id = $lokasi->id;
-                $order->biaya_ongkir = $lokasi->biaya_antar;
-                $order->layanan_pengiriman = 'Instan';
-            } else {
-                $order->lokasi_antar_id = null;
-                $order->biaya_ongkir = 0;
-                $order->layanan_pengiriman = 'Reguler';
-            }
-
-            $order->alamat = $request->input('alamat');
-            $order->no_tlp = $request->input('no_tlp');
-            $order->save();
-            // Simpan ke session flash agar bisa diakses di halaman tujuan
-            return redirect()->route('order.selectpayment');
+        if (!$order) {
+            return back()->with('error', 'Gagal menyimpan data ongkir');
         }
 
-        return back()->with('error', 'Gagal menyimpan data ongkir');
+        $validator = Validator::make($request->all(), [
+            'no_tlp' => 'required|string|max:20',
+            'tipe_alamat' => 'required|in:rumah,lain',
+            'metode_antar' => 'required|in:reguler,express',
+            'rumah_lat' => 'nullable|numeric|between:-90,90',
+            'rumah_lng' => 'nullable|numeric|between:-180,180',
+            'alamat_lain_pilihan' => 'required_if:tipe_alamat,lain|nullable|string',
+            'alamat_baru_label' => 'required_if:alamat_lain_pilihan,baru|nullable|string|max:100',
+            'alamat_baru_teks' => 'required_if:alamat_lain_pilihan,baru|nullable|string|max:500',
+            'alamat_baru_lat' => 'required_if:alamat_lain_pilihan,baru|nullable|numeric|between:-90,90',
+            'alamat_baru_lng' => 'required_if:alamat_lain_pilihan,baru|nullable|numeric|between:-180,180',
+        ]);
+
+        $validator->after(function ($validator) use ($request, $customer) {
+            $belumPunyaPin = $customer->latitude === null || $customer->longitude === null;
+            $pinBaruKosong = !$request->filled('rumah_lat') || !$request->filled('rumah_lng');
+
+            if ($request->input('tipe_alamat') === 'rumah' && $belumPunyaPin && $pinBaruKosong) {
+                $validator->errors()->add('rumah_lat', 'Silakan tentukan pin lokasi rumah Anda di peta.');
+            }
+        });
+
+        $validator->validate();
+
+        if ($request->input('tipe_alamat') === 'rumah') {
+            if ($customer->latitude === null || $customer->longitude === null) {
+                $customer->latitude = $request->input('rumah_lat');
+                $customer->longitude = $request->input('rumah_lng');
+                $customer->save();
+            }
+
+            $lat = $customer->latitude;
+            $lng = $customer->longitude;
+            $alamatTeks = $customer->alamat;
+            $alamatLabel = null;
+        } else {
+            if ($request->input('alamat_lain_pilihan') === 'baru') {
+                $userAddress = UserAddress::create([
+                    'user_id' => $customer->id,
+                    'label' => $request->input('alamat_baru_label'),
+                    'alamat' => $request->input('alamat_baru_teks'),
+                    'latitude' => $request->input('alamat_baru_lat'),
+                    'longitude' => $request->input('alamat_baru_lng'),
+                ]);
+            } else {
+                $userAddress = UserAddress::where('user_id', $customer->id)
+                    ->find($request->input('alamat_lain_pilihan'));
+
+                if (!$userAddress) {
+                    return back()->withInput()->with('error', 'Alamat tidak ditemukan.');
+                }
+            }
+
+            $lat = $userAddress->latitude;
+            $lng = $userAddress->longitude;
+            $alamatTeks = $userAddress->alamat;
+            $alamatLabel = $userAddress->label;
+        }
+
+        $pricing = new DeliveryPricingService(CompanySetting::first() ?? new CompanySetting());
+        $quote = $pricing->quote((float) $lat, (float) $lng, $request->input('metode_antar'));
+
+        if (!$quote['ok']) {
+            return back()->withInput()->with('error', $quote['error']);
+        }
+
+        if ($request->input('metode_antar') === 'reguler' && !$pricing->regulerTersediaHariIni()) {
+            return back()->withInput()->with('error', 'Pengantaran Reguler sudah tutup untuk hari ini (order setelah jam 15:00 atau hari Minggu tidak ada slot reguler). Silakan pilih Express.');
+        }
+
+        $order->tipe_alamat = $request->input('tipe_alamat');
+        $order->alamat_label = $alamatLabel;
+        $order->alamat = $alamatTeks;
+        $order->alamat_lat = $lat;
+        $order->alamat_lng = $lng;
+        $order->jarak_km = $quote['km'];
+        $order->lokasi_antar_id = $quote['tier']->id;
+        $order->biaya_ongkir = $quote['biaya'];
+        $order->layanan_pengiriman = $request->input('metode_antar') === 'express' ? 'Instan' : 'Reguler';
+        $order->estimasi_antar = $request->input('metode_antar') === 'express'
+            ? $pricing->estimasiAntarExpress()
+            : $pricing->estimasiAntarReguler();
+        $order->no_tlp = $request->input('no_tlp');
+        $order->save();
+
+        return redirect()->route('order.selectpayment');
     }
 
     public function orderHistory()
@@ -364,11 +433,10 @@ class OrderController extends Controller
         $order->status = 'Paid'; // Atau 'Completed' jika itu status akhir Anda
         $order->kode_pesanan = $invoice;
 
-        // 🚀 Tentukan layanan pengiriman
-        if ($order->tipe_layanan === 'Dikirim ke alamat') {
-            $jenisLayanan = $order->total_harga >= 50000 ? 'Instan' : 'Reguler';
-            $order->layanan_pengiriman = $jenisLayanan;
-        } elseif ($order->tipe_layanan === 'Ambil di toko') {
+        // Layanan pengiriman untuk "Dikirim ke alamat" sudah ditentukan pelanggan
+        // (Reguler/Express) saat mengisi form alamat -- lihat updateOngkir(). Jangan
+        // timpa lagi di sini berdasarkan nominal transaksi (skema itu sudah dihapus).
+        if ($order->tipe_layanan === 'Ambil di toko') {
             $order->layanan_pengiriman = 'Ambil ditempat';
         }
 

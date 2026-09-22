@@ -1,0 +1,28 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Titik koordinat "Alamat Rumah" pelanggan -- diisi lazy sekali saat checkout
+     * pengantaran pertama kali (lihat OrderController::updateOngkir), bukan di form
+     * edit profil, supaya pelanggan yang tidak pernah pesan antar tidak direpotkan.
+     */
+    public function up(): void
+    {
+        Schema::table('users', function (Blueprint $table) {
+            $table->decimal('latitude', 10, 7)->nullable()->after('alamat');
+            $table->decimal('longitude', 10, 7)->nullable()->after('latitude');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropColumn(['latitude', 'longitude']);
+        });
+    }
+};

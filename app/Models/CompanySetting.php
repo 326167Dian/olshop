@@ -53,4 +53,16 @@ class CompanySetting extends Model
 
         return $earthRadius * $c;
     }
+
+    /**
+     * Sama seperti jarakMeterDari(), tapi dalam kilometer -- dipakai untuk
+     * penghitungan tarif & radius maksimal pengantaran (lihat DeliveryPricingService),
+     * supaya tidak ada konversi meter/km manual yang gampang salah di tempat lain.
+     */
+    public function jarakKmDari(float $lat, float $lng): ?float
+    {
+        $meter = $this->jarakMeterDari($lat, $lng);
+
+        return $meter === null ? null : $meter / 1000;
+    }
 }

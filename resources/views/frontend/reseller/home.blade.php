@@ -14,6 +14,9 @@
 <body>
     <div class="container py-5">
         <div class="d-flex justify-content-end">
+            <a href="{{ route('reseller.profil.edit') }}" class="btn btn-sm btn-outline-secondary me-2">
+                <i class="fas fa-user-edit"></i> Update Data Diri
+            </a>
             <a href="#" onclick="event.preventDefault(); document.getElementById('logoutForm').submit();"
                 class="btn btn-sm btn-outline-danger">
                 <i class="fas fa-unlock-alt"></i> Logout
@@ -22,6 +25,13 @@
                 @csrf
             </form>
         </div>
+
+        @if (empty($reseller->nama_bank) || empty($reseller->no_rekening))
+            <div class="alert alert-warning">
+                Data rekening bank Anda belum lengkap. Lengkapi lewat menu
+                <a href="{{ route('reseller.profil.edit') }}">Update Data Diri</a> agar komisi dapat dicairkan.
+            </div>
+        @endif
 
         <div class="d-flex justify-content-center mb-3">
             <div class="text-center logo">

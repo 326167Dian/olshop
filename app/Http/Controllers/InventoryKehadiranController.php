@@ -92,12 +92,13 @@ class InventoryKehadiranController extends Controller
     }
 
     /**
-     * Validasi lokasi check-in terhadap radius apotek, kalau sudah dikonfigurasi
-     * di Setting (kehadiran_lat/kehadiran_lng). Kalau belum dikonfigurasi,
-     * validasi dilewati (tidak mengunci semua orang sebelum fitur ini di-setup).
-     * Return ['lat','lng','jarak','error'] -- error null berarti lolos/dilewati.
+     * Validasi lokasi check-in/check-out terhadap radius apotek, kalau sudah
+     * dikonfigurasi di Setting (kehadiran_lat/kehadiran_lng). Kalau belum
+     * dikonfigurasi, validasi dilewati (tidak mengunci semua orang sebelum
+     * fitur ini di-setup). Return ['lat','lng','jarak','error'] -- error null
+     * berarti lolos/dilewati.
      */
-    private function validasiRadiusKehadiran(Request $request): array
+    private function validasiRadiusKehadiran(Request $request, string $aksi): array
     {
         $companySetting = CompanySetting::first();
 
@@ -109,8 +110,8 @@ class InventoryKehadiranController extends Controller
             'lat' => 'required|numeric',
             'lng' => 'required|numeric',
         ], [
-            'lat.required' => 'Aktifkan akses lokasi di HP Anda untuk check-in.',
-            'lng.required' => 'Aktifkan akses lokasi di HP Anda untuk check-in.',
+            'lat.required' => "Aktifkan akses lokasi di HP Anda untuk {$aksi}.",
+            'lng.required' => "Aktifkan akses lokasi di HP Anda untuk {$aksi}.",
         ]);
 
         $lat = (float) $request->input('lat');
@@ -119,7 +120,7 @@ class InventoryKehadiranController extends Controller
 
         $error = null;
         if ($jarak > $companySetting->kehadiran_radius) {
-            $error = 'Anda berada di luar radius apotek (jarak ' . round($jarak) . ' meter dari apotek, maksimal ' . $companySetting->kehadiran_radius . ' meter). Check-in ditolak.';
+            $error = "Anda berada di luar radius apotek (jarak " . round($jarak) . " meter dari apotek, maksimal {$companySetting->kehadiran_radius} meter). " . ucfirst($aksi) . " ditolak.";
         }
 
         return ['lat' => $lat, 'lng' => $lng, 'jarak' => round($jarak, 2), 'error' => $error];
@@ -131,7 +132,7 @@ class InventoryKehadiranController extends Controller
         $hariIni = now()->toDateString();
         $idJadwal = $request->input('id_jadwal') ? (int) $request->input('id_jadwal') : null;
 
-        $lokasi = $this->validasiRadiusKehadiran($request);
+        $lokasi = $this->validasiRadiusKehadiran($request, 'check-in');
         if ($lokasi['error']) {
             return back()->with('error', $lokasi['error']);
         }
@@ -163,9 +164,9 @@ class InventoryKehadiranController extends Controller
             'status' => Absensi::hitungStatusMasuk($shift, $jamMasuk),
             'sumber' => 'self_service',
             'dicatat_oleh' => null,
-            'lat' => $lokasi['lat'],
-            'lng' => $lokasi['lng'],
-            'jarak_meter' => $lokasi['jarak'],
+            'lat_masuk' => $lokasi['lat'],
+            'lng_masuk' => $lokasi['lng'],
+            'jarak_masuk_meter' => $lokasi['jarak'],
         ]);
 
         return redirect()->route('inventory.kehadiran.index')->with('success', 'Check-in berhasil dicatat.');
@@ -188,8 +189,18 @@ class InventoryKehadiranController extends Controller
             return back()->with('error', 'Anda sudah check-out untuk absensi ini.');
         }
 
+        $lokasi = $this->validasiRadiusKehadiran($request, 'check-out');
+        if ($lokasi['error']) {
+            return back()->with('error', $lokasi['error']);
+        }
+
         $jamPulang = now()->format('H:i:s');
-        $absensi->update(['jam_pulang' => $jamPulang]);
+        $absensi->update([
+            'jam_pulang' => $jamPulang,
+            'lat_pulang' => $lokasi['lat'],
+            'lng_pulang' => $lokasi['lng'],
+            'jarak_pulang_meter' => $lokasi['jarak'],
+        ]);
 
         $jamLembur = Absensi::hitungJamLembur($absensi->shift, $jamPulang);
         if ($jamLembur > 0) {

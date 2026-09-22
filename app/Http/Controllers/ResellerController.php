@@ -60,12 +60,16 @@ class ResellerController extends Controller
             return redirect()->route('reseller.home');
         }
 
+        // nama_bank & no_rekening sengaja opsional saat daftar -- kebanyakan calon
+        // reseller enggan menulis data rekening sebelum benar-benar punya komisi.
+        // Diminta lagi lewat halaman "Update Data Diri" (lihat editProfil/updateProfil)
+        // begitu mereka sudah login dan siap menerima komisi.
         $validated = $request->validate([
             'nama_lengkap' => 'required|string|max:255',
             'no_hp' => 'required|string|max:30',
             'alamat' => 'required|string',
-            'nama_bank' => 'required|string|max:255',
-            'no_rekening' => 'required|string|max:50',
+            'nama_bank' => 'nullable|string|max:255',
+            'no_rekening' => 'nullable|string|max:50',
         ]);
 
         Reseller::create(array_merge($validated, [
@@ -73,6 +77,46 @@ class ResellerController extends Controller
         ]));
 
         return redirect()->route('reseller.home')->with('success', 'Pendaftaran reseller berhasil.');
+    }
+
+    /**
+     * Form untuk reseller yang sudah terdaftar melengkapi/mengubah data diri
+     * mereka sendiri, terutama nama bank & no rekening yang tadinya dikosongkan
+     * saat daftar.
+     */
+    public function editProfil()
+    {
+        $user = Auth::guard('web')->user();
+
+        if (!$user || !$user->reseller) {
+            return redirect()->route('reseller.register');
+        }
+
+        return view('frontend.reseller.edit-profil', [
+            'judul' => 'Update Data Diri',
+            'reseller' => $user->reseller,
+        ]);
+    }
+
+    public function updateProfil(Request $request)
+    {
+        $user = Auth::guard('web')->user();
+
+        if (!$user || !$user->reseller) {
+            return redirect()->route('reseller.register');
+        }
+
+        $validated = $request->validate([
+            'nama_lengkap' => 'required|string|max:255',
+            'no_hp' => 'required|string|max:30',
+            'alamat' => 'required|string',
+            'nama_bank' => 'nullable|string|max:255',
+            'no_rekening' => 'nullable|string|max:50',
+        ]);
+
+        $user->reseller->update($validated);
+
+        return redirect()->route('reseller.home')->with('success', 'Data diri berhasil diperbarui.');
     }
 
     /**

@@ -12,7 +12,7 @@ class LokasiAntarController extends Controller
      */
     public function index()
     {
-        $lokasiAntar = LokasiAntar::orderBy('nama_kelurahan')->get();
+        $lokasiAntar = LokasiAntar::orderBy('jarak_min')->get();
         return view('backend.setting.lokasiantar.index', compact('lokasiAntar'));
     }
 
@@ -30,7 +30,8 @@ class LokasiAntarController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'nama_kelurahan' => 'required|string|max:255',
+            'jarak_min' => 'required|numeric|min:0',
+            'jarak_max' => 'required|numeric|gt:jarak_min|max:5',
             'biaya_antar' => 'required|numeric|min:0',
         ]);
 
@@ -53,7 +54,8 @@ class LokasiAntarController extends Controller
     public function update(Request $request, LokasiAntar $lokasiAntar)
     {
         $validated = $request->validate([
-            'nama_kelurahan' => 'required|string|max:255',
+            'jarak_min' => 'required|numeric|min:0',
+            'jarak_max' => 'required|numeric|gt:jarak_min|max:5',
             'biaya_antar' => 'required|numeric|min:0',
         ]);
 

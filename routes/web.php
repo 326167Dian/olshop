@@ -95,6 +95,8 @@ Route::prefix('reseller')->name('reseller.')->group(function () {
     Route::post('/register', [ResellerController::class, 'store'])->name('store');
     Route::get('/', [ResellerController::class, 'home'])->name('home');
     Route::get('/pelanggan/{userId}', [ResellerController::class, 'pelangganDetail'])->name('pelanggan.detail');
+    Route::get('/profil', [ResellerController::class, 'editProfil'])->name('profil.edit');
+    Route::put('/profil', [ResellerController::class, 'updateProfil'])->name('profil.update');
 });
 
 Route::get('/home-page', [HomepageController::class, 'index'])->name('home-page');

@@ -46,11 +46,13 @@
                         </table>
                     @endif
 
+                    <p class="text-muted small mb-2"><i class="fas fa-map-marker-alt"></i> Check-in/check-out akan meminta izin akses lokasi HP Anda untuk memverifikasi Anda berada di area apotek.</p>
+
                     <a href="{{ route('inventory.kehadiran.checkin.form') }}" class="btn btn-success btn-sm">
                         <i class="fas fa-sign-in-alt"></i> Check-In
                     </a>
 
-                    <form action="{{ route('inventory.kehadiran.checkout') }}" method="POST" class="d-inline">
+                    <form action="{{ route('inventory.kehadiran.checkout') }}" method="POST" class="js-geo-form d-inline">
                         @csrf
                         @php $absenBelumPulang = $absensiHariIni->first(fn($a) => !$a->jam_pulang); @endphp
                         <input type="hidden" name="id_absensi" value="{{ $absenBelumPulang->id_absensi ?? '' }}">
@@ -132,3 +134,7 @@
         </div>
     @endif
 @endsection
+
+@push('scripts')
+@include('inventory.kehadiran._geolocation-script')
+@endpush

@@ -83,17 +83,18 @@
                                         </div>
 
                                         <div class="form-group mb-3">
-                                            <label>Nama Bank</label>
+                                            <label>Nama Bank (opsional)</label>
                                             <input type="text" name="nama_bank" value="{{ old('nama_bank') }}"
                                                 class="form-control @error('nama_bank') is-invalid @enderror"
                                                 placeholder="Contoh: BCA, Mandiri, BRI">
                                             @error('nama_bank')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
+                                            <small class="text-muted">Bisa dilengkapi nanti lewat menu Update Data Diri.</small>
                                         </div>
 
                                         <div class="form-group mb-3">
-                                            <label>Nomor Rekening</label>
+                                            <label>Nomor Rekening (opsional)</label>
                                             <input type="text" name="no_rekening" value="{{ old('no_rekening') }}"
                                                 class="form-control @error('no_rekening') is-invalid @enderror"
                                                 placeholder="Nomor rekening bank di atas">

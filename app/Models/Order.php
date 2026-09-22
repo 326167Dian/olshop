@@ -18,11 +18,17 @@ class Order extends Model
         'status',
         'tipe_layanan',
         'lokasi_antar_id',
+        'jarak_km',
         'biaya_ongkir',
         'layanan_pengiriman',
+        'estimasi_antar',
         'tipe_pembayaran',
         'total_berat',
         'alamat',
+        'tipe_alamat',
+        'alamat_label',
+        'alamat_lat',
+        'alamat_lng',
         'no_tlp',
         'midtrans_order_id',
         'bukti_pembayaran',
@@ -34,6 +40,7 @@ class Order extends Model
 
     protected $casts = [
         'waktu_approval' => 'datetime',
+        'estimasi_antar' => 'datetime',
     ];
 
     public function orderItems()
@@ -51,6 +58,10 @@ class Order extends Model
         return $this->belongsTo(Promo::class);
     }
 
+    /**
+     * Tier tarif jarak (bukan lagi kelurahan) yang cocok untuk order ini --
+     * lihat LokasiAntar::tierUntukJarak().
+     */
     public function lokasiAntar()
     {
         return $this->belongsTo(LokasiAntar::class, 'lokasi_antar_id');

@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Admin;
 use App\Models\User;
 use App\Models\Order;
 use Illuminate\Http\Request;
@@ -150,7 +149,6 @@ class CustomerController extends Controller
             'judul' => 'Customer',
             'subJudul' => 'Akun Customer',
             'edit' => $customer,
-            'petugasList' => Admin::where('akses_level', 'petugas')->orderBy('nama_lengkap')->get(['id_admin', 'nama_lengkap']),
         ]);
     }
 
@@ -174,6 +172,6 @@ class CustomerController extends Controller
 
         $user->update($validatedData);
 
-        return redirect()->route('customer.akun', $id)->with('success', 'Data berhasil diperbarui');
+        return redirect()->route('home-page')->with('success', 'Data berhasil diperbarui');
     }
 }

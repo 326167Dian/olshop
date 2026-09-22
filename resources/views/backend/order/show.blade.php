@@ -71,8 +71,12 @@
                             {{-- Kurir: {{ $order->kurir }}<br> --}}
                             Layanan: {{ empty($order->layanan_pengiriman) ? 'Ambil di tempat' :
                             $order->layanan_pengiriman }}<br>
-                            {{-- Estimasi: {{ $order->estimasi_ongkir }} Hari<br>
-                            Berat: {{ $order->total_berat }} Gram<br> --}}
+                            @if ($order->jarak_km !== null)
+                            Jarak: {{ number_format($order->jarak_km, 1) }} km<br>
+                            @endif
+                            @if ($order->estimasi_antar)
+                            Estimasi Antar: {{ $order->estimasi_antar->format('d/m/Y H:i') }}<br>
+                            @endif
                         </address>
                     </div>
                 </div>

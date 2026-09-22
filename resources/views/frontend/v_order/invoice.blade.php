@@ -426,7 +426,11 @@
                 <p class="mb-1"><strong class="me-2">Pengambilan:</strong>{{ $order->layanan_pengiriman ?? 'N/A' }}</p>
                 @elseif ($order->tipe_layanan == 'Dikirim ke alamat' )
                 <p class="mb-1"><strong class="me-2">Kurir:</strong>{{ $order->layanan_pengiriman ?? 'N/A' }}
+                    @if ($order->jarak_km !== null) ({{ number_format($order->jarak_km, 1) }} km) @endif
                 </p>
+                @if ($order->estimasi_antar)
+                <p class="mb-1"><strong class="me-2">Estimasi Antar:</strong>{{ $order->estimasi_antar->format('d/m/Y H:i') }}</p>
+                @endif
                 @endif
 
             </div>

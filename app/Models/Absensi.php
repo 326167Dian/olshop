@@ -21,9 +21,12 @@ class Absensi extends Model
         'keterangan',
         'sumber',
         'dicatat_oleh',
-        'lat',
-        'lng',
-        'jarak_meter',
+        'lat_masuk',
+        'lng_masuk',
+        'jarak_masuk_meter',
+        'lat_pulang',
+        'lng_pulang',
+        'jarak_pulang_meter',
     ];
 
     protected $casts = [

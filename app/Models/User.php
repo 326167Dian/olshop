@@ -18,6 +18,8 @@ class User extends Authenticatable
         'password',
         'google_id',
         'alamat',
+        'latitude',
+        'longitude',
         'no_tlp',
         'referal_admin_id',
         'komisi_status',
@@ -57,5 +59,13 @@ class User extends Authenticatable
     public function orders()
     {
         return $this->hasMany(Order::class);
+    }
+
+    /**
+     * Buku alamat "Alamat Lain" untuk checkout pengantaran -- lihat UserAddress.
+     */
+    public function addresses()
+    {
+        return $this->hasMany(UserAddress::class);
     }
 }

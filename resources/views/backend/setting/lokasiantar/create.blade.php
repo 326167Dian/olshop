@@ -17,24 +17,37 @@
                 @csrf
                 <div class="card-body">
 
-                    <div class="form-group">
-                        <label for="nama_kelurahan">Nama Kelurahan</label>
-                        <input type="text" name="nama_kelurahan" id="nama_kelurahan"
-                            class="form-control @error('nama_kelurahan') is-invalid @enderror"
-                            placeholder="Masukkan nama kelurahan" value="{{ old('nama_kelurahan') }}">
-                        @error('nama_kelurahan')
-                        <span class="invalid-feedback" role="alert">{{ $message }}</span>
-                        @enderror
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label for="jarak_min">Jarak Min (km)</label>
+                            <input type="number" step="0.1" min="0" max="5" name="jarak_min" id="jarak_min"
+                                class="form-control @error('jarak_min') is-invalid @enderror"
+                                placeholder="Contoh: 0" value="{{ old('jarak_min') }}">
+                            @error('jarak_min')
+                            <span class="invalid-feedback" role="alert">{{ $message }}</span>
+                            @enderror
+                        </div>
+
+                        <div class="form-group col-md-6">
+                            <label for="jarak_max">Jarak Maks (km)</label>
+                            <input type="number" step="0.1" min="0" max="5" name="jarak_max" id="jarak_max"
+                                class="form-control @error('jarak_max') is-invalid @enderror"
+                                placeholder="Contoh: 2" value="{{ old('jarak_max') }}">
+                            @error('jarak_max')
+                            <span class="invalid-feedback" role="alert">{{ $message }}</span>
+                            @enderror
+                        </div>
                     </div>
 
                     <div class="form-group">
-                        <label for="biaya_antar">Biaya Antar (Rp)</label>
+                        <label for="biaya_antar">Biaya Antar Reguler (Rp)</label>
                         <input type="number" step="1" min="0" name="biaya_antar" id="biaya_antar"
                             class="form-control @error('biaya_antar') is-invalid @enderror"
                             placeholder="Masukkan biaya antar" value="{{ old('biaya_antar') }}">
                         @error('biaya_antar')
                         <span class="invalid-feedback" role="alert">{{ $message }}</span>
                         @enderror
+                        <small class="form-text text-muted">Tarif Express otomatis 2x nilai ini, tidak perlu diisi terpisah.</small>
                     </div>
 
                 </div>

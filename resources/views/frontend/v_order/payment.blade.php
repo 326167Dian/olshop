@@ -85,7 +85,7 @@
                                 @if ($order->tipe_layanan === 'Dikirim ke alamat')
                                 <tr>
                                     <th class="empty" colspan="3"></th>
-                                    <th>ONGKOS KIRIM ({{ $order->lokasiAntar->nama_kelurahan ?? '-' }})</th>
+                                    <th>ONGKOS KIRIM ({{ $order->layanan_pengiriman ?? '-' }}{{ $order->jarak_km !== null ? ', ' . number_format($order->jarak_km, 1) . ' km' : '' }})</th>
                                     <th colspan="2" class="sub-total">Rp.
                                         {{ number_format($order->biaya_ongkir, 0, ',', '.') }}</th>
                                 </tr>
@@ -146,7 +146,7 @@
                             @if ($order->tipe_layanan === 'Dikirim ke alamat')
                             <div
                                 style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
-                                <span style="font-size: 14px;">Ongkos Kirim ({{ $order->lokasiAntar->nama_kelurahan ?? '-' }})</span>
+                                <span style="font-size: 14px;">Ongkos Kirim ({{ $order->layanan_pengiriman ?? '-' }}{{ $order->jarak_km !== null ? ', ' . number_format($order->jarak_km, 1) . ' km' : '' }})</span>
                                 <span style="font-size: 14px;">
                                     Rp. {{ number_format($order->biaya_ongkir, 0, ',', '.') }}
                                 </span>
