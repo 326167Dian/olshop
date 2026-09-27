@@ -87,7 +87,7 @@
                             <div class="pull-right">
                                 <button type="button" class="primary-btn" data-toggle="modal"
                                     data-target="#checkoutModal">
-                                    Check Out
+                                    Lanjutkan
                                 </button>
                             </div>
                         </form>
@@ -139,7 +139,7 @@
                                 <br>
                                 <button type="button" class="btn btn-primary btn-block" data-toggle="modal"
                                     data-target="#checkoutModal" style="margin-top: 10px;">
-                                    Check Out
+                                    Lanjutkan
                                 </button>
                             </div>
                         </div>

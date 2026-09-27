@@ -399,6 +399,7 @@
         <button onclick="openWhatsApp()" class="wa-button">
             <img src="https://img.icons8.com/color/48/whatsapp--v1.png" alt="WhatsApp Icon">
         </button>
+        <div class="wa-label">Konsultasi</div>
     </div>
 
     <script>
@@ -414,6 +415,20 @@
             bottom: 20px;
             right: 20px;
             z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .wa-label {
+            margin-top: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #25D366;
+            background-color: #fff;
+            padding: 2px 8px;
+            border-radius: 10px;
+            box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.2);
         }
 
         .wa-button {
