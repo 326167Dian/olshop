@@ -15,6 +15,9 @@ class Gaji extends Model
         'gaji_harian',
         'transportasi_harian',
         'rate_lembur',
+        'potongan_telat_15_30',
+        'potongan_telat_30_60',
+        'potongan_telat_60_lebih',
         'status_aktif',
     ];
 

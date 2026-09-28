@@ -6,7 +6,7 @@
     <title>Slip Gaji {{ $slip->admin->nama_lengkap ?? '' }} {{ $slip->periode_bulan }}</title>
     <style>
         @page {
-            size: 210mm 148mm;
+            size: 210mm 297mm;
             margin: 8mm;
         }
 
@@ -219,6 +219,10 @@
             <tr class="potongan-row">
                 <td colspan="2">Potongan: Pinjaman / Kasbon</td>
                 <td class="num">- {{ number_format($slip->pinjaman, 0, ',', '.') }}</td>
+            </tr>
+            <tr class="potongan-row">
+                <td colspan="2">Potongan: Keterlambatan</td>
+                <td class="num">- {{ number_format($slip->potongan_telat, 0, ',', '.') }}</td>
             </tr>
             <tr class="take-home-row">
                 <td colspan="2">Penerimaan Bersih (Take Home Pay)</td>

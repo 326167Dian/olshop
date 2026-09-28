@@ -863,6 +863,8 @@ Route::prefix('inventory')->middleware(['auth:admin', 'admin.active'])->name('in
         Route::get('/', [InventoryGajiDetailController::class, 'index'])->name('index');
         Route::get('/tambah', [InventoryGajiDetailController::class, 'create'])->name('create');
         Route::post('/', [InventoryGajiDetailController::class, 'store'])->name('store');
+        Route::get('/jumlah-hari-otomatis', [InventoryGajiDetailController::class, 'jumlahHariOtomatis'])->name('jumlah-hari-otomatis');
+        Route::get('/rincian-kehadiran', [InventoryGajiDetailController::class, 'rincianKehadiran'])->name('rincian-kehadiran');
         Route::get('/{gajiDetail}/edit', [InventoryGajiDetailController::class, 'edit'])->name('edit');
         Route::put('/{gajiDetail}', [InventoryGajiDetailController::class, 'update'])->name('update');
         Route::delete('/{gajiDetail}', [InventoryGajiDetailController::class, 'destroy'])->name('destroy');

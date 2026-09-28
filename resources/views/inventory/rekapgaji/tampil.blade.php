@@ -40,6 +40,7 @@
                         <th>Nama</th>
                         <th>Status</th>
                         <th>Gaji</th>
+                        <th class="no-print">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -49,10 +50,22 @@
                             <td>{{ $row->admin->nama_lengkap ?? '-' }}</td>
                             <td>{{ ($row->admin->blokir ?? 'N') == 'Y' ? 'Tidak Aktif' : 'Aktif' }}</td>
                             <td class="text-end">{{ number_format($row->total, 0, ',', '.') }}</td>
+                            <td class="no-print">
+                                <div class="d-flex flex-wrap gap-1">
+                                    <a href="{{ route('inventory.gajidetail.edit', $row->id_gaji_detail) }}"
+                                        class="btn btn-warning btn-sm">
+                                        <i class="fas fa-eye"></i> Detail
+                                    </a>
+                                    <a href="{{ route('inventory.gajidetail.cetak', $row->id_gaji_detail) }}"
+                                        target="_blank" class="btn btn-info btn-sm">
+                                        <i class="fas fa-print"></i> Cetak
+                                    </a>
+                                </div>
+                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="4" class="text-center">Tidak ada data untuk periode ini.</td>
+                            <td colspan="5" class="text-center">Tidak ada data untuk periode ini.</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -60,6 +73,7 @@
                     <tr class="fw-bold">
                         <td colspan="3" class="text-end">Total</td>
                         <td class="text-end">{{ number_format($grandTotal, 0, ',', '.') }}</td>
+                        <td class="no-print"></td>
                     </tr>
                 </tfoot>
             </table>

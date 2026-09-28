@@ -14,6 +14,7 @@ class Lembur extends Model
         'id_absensi',
         'tanggal',
         'jam_lembur',
+        'tipe',
         'sumber',
         'status_approval',
         'ditarik_ke_gaji',

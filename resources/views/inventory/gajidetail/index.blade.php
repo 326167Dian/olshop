@@ -55,6 +55,7 @@
                             <th>Lembur</th>
                             <th>Komisi</th>
                             <th>Pinjaman / Kasbon</th>
+                            <th>Potongan Telat</th>
                             <th>Total</th>
                             <th>Dibuat Oleh</th>
                             <th>Disetujui Oleh</th>
@@ -73,6 +74,7 @@
                                 <td>Rp {{ number_format($row->lembur, 0, ',', '.') }}</td>
                                 <td>Rp {{ number_format($row->komisi, 0, ',', '.') }}</td>
                                 <td>Rp {{ number_format($row->pinjaman, 0, ',', '.') }}</td>
+                                <td>Rp {{ number_format($row->potongan_telat, 0, ',', '.') }}</td>
                                 <td><b>Rp {{ number_format($row->total, 0, ',', '.') }}</b></td>
                                 <td>{{ $row->pembuat->nama_lengkap ?? '-' }}</td>
                                 <td>
@@ -84,6 +86,10 @@
                                 </td>
                                 <td>
                                     <div class="d-flex flex-wrap gap-1">
+                                        <a href="{{ route('inventory.gajidetail.rincian-kehadiran', ['id_admin' => $row->id_admin, 'tgl_awal' => optional($row->tgl_awal)->format('Y-m-d'), 'tgl_akhir' => optional($row->tgl_akhir)->format('Y-m-d')]) }}"
+                                            target="_blank" title="Detail Kehadiran" class="btn btn-secondary btn-sm">
+                                            <i class="fas fa-list"></i> Detail
+                                        </a>
                                         <a href="{{ route('inventory.gajidetail.cetak', $row->id_gaji_detail) }}"
                                             target="_blank" title="Cetak Slip" class="btn btn-info btn-sm">
                                             <i class="fas fa-print"></i> Cetak

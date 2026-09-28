@@ -76,22 +76,38 @@ class Absensi extends Model
     }
 
     /**
-     * Selisih jam pulang aktual vs jam_pulang shift, dibulatkan 2 desimal.
-     * 0 kalau tidak ada shift acuan atau pulang lebih awal/tepat waktu.
+     * Durasi kerja PENUH dari jam_masuk ke jam_pulang -- dipakai untuk shift
+     * tambahan (ke-2+) di hari yang sama, yang seluruh durasinya dianggap lembur
+     * (jam_lembur cuma buat informasi, bukan dasar hitung uang -- lihat
+     * InventoryKehadiranController::checkout() & hitungLemburOtomatis()).
      */
-    public static function hitungJamLembur(?MasterShift $shift, ?string $jamPulangAktual): float
+    public static function hitungDurasiJam(string $jamMasuk, string $jamPulang): float
     {
-        if (!$shift || !$jamPulangAktual) {
+        $masuk = Carbon::parse($jamMasuk);
+        $pulang = Carbon::parse($jamPulang);
+
+        return round($masuk->diffInMinutes($pulang) / 60, 2);
+    }
+
+    /**
+     * Menit terlambat dihitung dari batasTerlambat() (jam_masuk shift + toleransi_telat),
+     * BUKAN dari jadwal mentah -- dipakai untuk potongan gaji berjenjang (lihat
+     * InventoryGajiDetailController::hitungPotonganTelatOtomatis()). 0 kalau tidak
+     * telat atau tidak ada shift acuan.
+     */
+    public static function hitungMenitTerlambat(?MasterShift $shift, ?string $jamMasukAktual): float
+    {
+        if (!$shift || !$jamMasukAktual) {
             return 0;
         }
 
-        $jadwalPulang = Carbon::parse($shift->jam_pulang);
-        $aktual = Carbon::parse($jamPulangAktual);
+        $batas = $shift->batasTerlambat();
+        $aktual = Carbon::parse($jamMasukAktual);
 
-        if ($aktual->lessThanOrEqualTo($jadwalPulang)) {
+        if ($aktual->lessThanOrEqualTo($batas)) {
             return 0;
         }
 
-        return round($jadwalPulang->diffInMinutes($aktual) / 60, 2);
+        return $batas->diffInMinutes($aktual);
     }
 }

@@ -29,6 +29,7 @@ class GajiDetail extends Model
         'lembur',
         'komisi',
         'pinjaman',
+        'potongan_telat',
         'dibuat_oleh',
         'disetujui_oleh',
     ];

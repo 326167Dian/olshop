@@ -44,12 +44,39 @@
                         @error('transportasi_harian') <span class="invalid-feedback">{{ $message }}</span> @enderror
                     </div>
                     <div class="form-group">
-                        <label for="rate_lembur">Tarif Lembur / Jam</label>
+                        <label for="rate_lembur">Tarif Lembur 1 Shift</label>
                         <input type="number" step="0.01" min="0" name="rate_lembur" id="rate_lembur"
                             class="form-control @error('rate_lembur') is-invalid @enderror"
                             value="{{ old('rate_lembur', 0) }}" required>
-                        <small class="text-muted">Dipakai untuk menghitung nominal lembur dari modul Kehadiran Pegawai saat ditarik ke Slip Gaji.</small>
+                        <small class="text-muted">Dipakai flat untuk setiap shift tambahan (ke-2+ di hari yang sama) yang tercatat otomatis dari Kehadiran Pegawai, tidak dikali jam kerja. Juga dipakai per jam untuk lembur yang diinput manual di menu Kehadiran Pegawai &gt; Lembur.</small>
                         @error('rate_lembur') <span class="invalid-feedback d-block">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="form-group">
+                        <label>Potongan Keterlambatan</label>
+                        <small class="text-muted d-block mb-2">Dihitung dari menit terlambat setelah toleransi_telat shift terlampaui (bukan dari jadwal mentah).</small>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <label for="potongan_telat_15_30" class="small">Telat 15&ndash;30 Menit</label>
+                                <input type="number" step="0.01" min="0" name="potongan_telat_15_30" id="potongan_telat_15_30"
+                                    class="form-control @error('potongan_telat_15_30') is-invalid @enderror"
+                                    value="{{ old('potongan_telat_15_30', 0) }}" required>
+                                @error('potongan_telat_15_30') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                            </div>
+                            <div class="col-md-4">
+                                <label for="potongan_telat_30_60" class="small">Telat 30&ndash;60 Menit</label>
+                                <input type="number" step="0.01" min="0" name="potongan_telat_30_60" id="potongan_telat_30_60"
+                                    class="form-control @error('potongan_telat_30_60') is-invalid @enderror"
+                                    value="{{ old('potongan_telat_30_60', 0) }}" required>
+                                @error('potongan_telat_30_60') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                            </div>
+                            <div class="col-md-4">
+                                <label for="potongan_telat_60_lebih" class="small">Telat &gt;60 Menit</label>
+                                <input type="number" step="0.01" min="0" name="potongan_telat_60_lebih" id="potongan_telat_60_lebih"
+                                    class="form-control @error('potongan_telat_60_lebih') is-invalid @enderror"
+                                    value="{{ old('potongan_telat_60_lebih', 0) }}" required>
+                                @error('potongan_telat_60_lebih') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                            </div>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label>Status</label><br>

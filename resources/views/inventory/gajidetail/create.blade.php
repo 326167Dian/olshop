@@ -20,10 +20,11 @@
                         <div class="col-md-6 form-group">
                             <label for="id_gaji">Nama Karyawan</label>
                             <select class="form-control @error('id_gaji') is-invalid @enderror" name="id_gaji"
-                                id="id_gaji" required onchange="hitungGajiPokok()">
+                                id="id_gaji" required onchange="hitungGajiPokok(); hitungJumlahHariOtomatis();">
                                 <option value="">-- Pilih Karyawan --</option>
                                 @foreach ($karyawan as $k)
-                                    <option value="{{ $k->id_gaji }}" data-gaji-harian="{{ $k->gaji_harian }}"
+                                    <option value="{{ $k->id_gaji }}" data-id-admin="{{ $k->id_admin }}"
+                                        data-gaji-harian="{{ $k->gaji_harian }}"
                                         data-transportasi-harian="{{ $k->transportasi_harian }}"
                                         {{ (old('id_gaji', $preselectIdGaji) == $k->id_gaji) ? 'selected' : '' }}>
                                         {{ $k->admin->nama_lengkap }} ({{ $k->admin->username }})
@@ -61,17 +62,22 @@
                         <div class="col-md-3 form-group">
                             <label for="tgl_awal">Tanggal Awal</label>
                             <input type="date" name="tgl_awal" id="tgl_awal"
-                                class="form-control @error('tgl_awal') is-invalid @enderror" value="{{ old('tgl_awal') }}" required>
+                                class="form-control @error('tgl_awal') is-invalid @enderror" value="{{ old('tgl_awal') }}" required
+                                onchange="hitungJumlahHariOtomatis()">
                             @error('tgl_awal') <span class="invalid-feedback">{{ $message }}</span> @enderror
                         </div>
                         <div class="col-md-3 form-group">
                             <label for="tgl_akhir">Tanggal Akhir</label>
                             <input type="date" name="tgl_akhir" id="tgl_akhir"
-                                class="form-control @error('tgl_akhir') is-invalid @enderror" value="{{ old('tgl_akhir') }}" required>
+                                class="form-control @error('tgl_akhir') is-invalid @enderror" value="{{ old('tgl_akhir') }}" required
+                                onchange="hitungJumlahHariOtomatis()">
                             @error('tgl_akhir') <span class="invalid-feedback">{{ $message }}</span> @enderror
                         </div>
                         <div class="col-md-2 form-group">
-                            <label for="jumlah_hari">Jumlah Hari</label>
+                            <label for="jumlah_hari">
+                                Jumlah Hari
+                                <button type="button" class="btn btn-link btn-sm p-0 align-baseline" onclick="bukaDetailKehadiran()">Detail</button>
+                            </label>
                             <input type="number" step="1" min="0" name="jumlah_hari" id="jumlah_hari"
                                 class="form-control @error('jumlah_hari') is-invalid @enderror"
                                 value="{{ old('jumlah_hari', 0) }}" required oninput="hitungGajiPokok()">
@@ -124,6 +130,20 @@
 
                     <div class="row">
                         <div class="col-md-6 form-group">
+                            <label for="potongan_telat">
+                                Potongan Telat
+                                <button type="button" class="btn btn-link btn-sm p-0 align-baseline" onclick="bukaDetailKehadiran()">Detail</button>
+                            </label>
+                            <input type="number" step="0.01" min="0" name="potongan_telat" id="potongan_telat"
+                                class="form-control @error('potongan_telat') is-invalid @enderror" value="{{ old('potongan_telat') }}"
+                                placeholder="Kosongkan untuk hitung otomatis">
+                            <small class="text-muted">Kosongkan untuk dihitung otomatis dari Kehadiran (keterlambatan) sesuai Tanggal Awal &amp; Akhir di atas.</small>
+                            @error('potongan_telat') <span class="invalid-feedback d-block">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 form-group">
                             <label for="disetujui_oleh">Disetujui Oleh</label>
                             <select class="form-control @error('disetujui_oleh') is-invalid @enderror" name="disetujui_oleh">
                                 <option value="">-- Belum Disetujui --</option>
@@ -151,6 +171,39 @@
                         var hari = parseFloat(document.getElementById('jumlah_hari').value) || 0;
                         document.getElementById('gaji_pokok').value = (gajiHarian * hari).toFixed(2);
                         document.getElementById('transportasi').value = (transportasiHarian * hari).toFixed(2);
+                    }
+
+                    function ambilParamKehadiran() {
+                        var opt = document.getElementById('id_gaji').selectedOptions[0];
+                        var idAdmin = opt ? opt.getAttribute('data-id-admin') : '';
+                        var tglAwal = document.getElementById('tgl_awal').value;
+                        var tglAkhir = document.getElementById('tgl_akhir').value;
+
+                        return (idAdmin && tglAwal && tglAkhir) ? { idAdmin: idAdmin, tglAwal: tglAwal, tglAkhir: tglAkhir } : null;
+                    }
+
+                    function hitungJumlahHariOtomatis() {
+                        var p = ambilParamKehadiran();
+                        if (!p) {
+                            return;
+                        }
+
+                        fetch("{{ route('inventory.gajidetail.jumlah-hari-otomatis') }}?id_admin=" + p.idAdmin + "&tgl_awal=" + p.tglAwal + "&tgl_akhir=" + p.tglAkhir)
+                            .then(function (res) { return res.json(); })
+                            .then(function (data) {
+                                document.getElementById('jumlah_hari').value = data.jumlah_hari;
+                                hitungGajiPokok();
+                            });
+                    }
+
+                    function bukaDetailKehadiran() {
+                        var p = ambilParamKehadiran();
+                        if (!p) {
+                            alert('Pilih karyawan dan Tanggal Awal/Akhir terlebih dahulu.');
+                            return;
+                        }
+
+                        window.open("{{ route('inventory.gajidetail.rincian-kehadiran') }}?id_admin=" + p.idAdmin + "&tgl_awal=" + p.tglAwal + "&tgl_akhir=" + p.tglAkhir, '_blank');
                     }
 
                     @if ($preselectIdGaji > 0)

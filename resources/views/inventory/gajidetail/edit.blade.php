@@ -31,18 +31,23 @@
                         <label for="tgl_awal">Tanggal Awal</label>
                         <input type="date" name="tgl_awal" id="tgl_awal"
                             class="form-control @error('tgl_awal') is-invalid @enderror"
-                            value="{{ old('tgl_awal', optional($slip->tgl_awal)->format('Y-m-d')) }}" required>
+                            value="{{ old('tgl_awal', optional($slip->tgl_awal)->format('Y-m-d')) }}" required
+                            onchange="hitungJumlahHariOtomatis()">
                         @error('tgl_awal') <span class="invalid-feedback">{{ $message }}</span> @enderror
                     </div>
                     <div class="col-md-3 form-group">
                         <label for="tgl_akhir">Tanggal Akhir</label>
                         <input type="date" name="tgl_akhir" id="tgl_akhir"
                             class="form-control @error('tgl_akhir') is-invalid @enderror"
-                            value="{{ old('tgl_akhir', optional($slip->tgl_akhir)->format('Y-m-d')) }}" required>
+                            value="{{ old('tgl_akhir', optional($slip->tgl_akhir)->format('Y-m-d')) }}" required
+                            onchange="hitungJumlahHariOtomatis()">
                         @error('tgl_akhir') <span class="invalid-feedback">{{ $message }}</span> @enderror
                     </div>
                     <div class="col-md-2 form-group">
-                        <label for="jumlah_hari">Jumlah Hari</label>
+                        <label for="jumlah_hari">
+                            Jumlah Hari
+                            <button type="button" class="btn btn-link btn-sm p-0 align-baseline" onclick="bukaDetailKehadiran()">Detail</button>
+                        </label>
                         <input type="number" step="1" min="0" name="jumlah_hari" id="jumlah_hari"
                             class="form-control @error('jumlah_hari') is-invalid @enderror"
                             value="{{ old('jumlah_hari', $slip->jumlah_hari) }}" required oninput="hitungGajiPokok()">
@@ -98,6 +103,20 @@
 
                 <div class="row">
                     <div class="col-md-6 form-group">
+                        <label for="potongan_telat">
+                            Potongan Telat
+                            <button type="button" class="btn btn-link btn-sm p-0 align-baseline" onclick="bukaDetailKehadiran()">Detail</button>
+                        </label>
+                        <input type="number" step="0.01" min="0" name="potongan_telat" id="potongan_telat"
+                            class="form-control @error('potongan_telat') is-invalid @enderror"
+                            value="{{ old('potongan_telat', $slip->potongan_telat) }}">
+                        <small class="text-muted">Kosongkan lalu simpan untuk dihitung ulang otomatis dari Kehadiran (keterlambatan).</small>
+                        @error('potongan_telat') <span class="invalid-feedback d-block">{{ $message }}</span> @enderror
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 form-group">
                         <label for="disetujui_oleh">Disetujui Oleh</label>
                         <select class="form-control @error('disetujui_oleh') is-invalid @enderror" name="disetujui_oleh">
                             <option value="">-- Belum Disetujui --</option>
@@ -118,12 +137,40 @@
             </form>
 
             <script>
+                var ID_ADMIN_SLIP = {{ (int) $slip->id_admin }};
+
                 function hitungGajiPokok() {
                     var gajiHarian = {{ (float) ($slip->gaji->gaji_harian ?? 0) }};
                     var transportasiHarian = {{ (float) ($slip->gaji->transportasi_harian ?? 0) }};
                     var hari = parseFloat(document.getElementById('jumlah_hari').value) || 0;
                     document.getElementById('gaji_pokok').value = (gajiHarian * hari).toFixed(2);
                     document.getElementById('transportasi').value = (transportasiHarian * hari).toFixed(2);
+                }
+
+                function hitungJumlahHariOtomatis() {
+                    var tglAwal = document.getElementById('tgl_awal').value;
+                    var tglAkhir = document.getElementById('tgl_akhir').value;
+                    if (!tglAwal || !tglAkhir) {
+                        return;
+                    }
+
+                    fetch("{{ route('inventory.gajidetail.jumlah-hari-otomatis') }}?id_admin=" + ID_ADMIN_SLIP + "&tgl_awal=" + tglAwal + "&tgl_akhir=" + tglAkhir)
+                        .then(function (res) { return res.json(); })
+                        .then(function (data) {
+                            document.getElementById('jumlah_hari').value = data.jumlah_hari;
+                            hitungGajiPokok();
+                        });
+                }
+
+                function bukaDetailKehadiran() {
+                    var tglAwal = document.getElementById('tgl_awal').value;
+                    var tglAkhir = document.getElementById('tgl_akhir').value;
+                    if (!tglAwal || !tglAkhir) {
+                        alert('Isi Tanggal Awal/Akhir terlebih dahulu.');
+                        return;
+                    }
+
+                    window.open("{{ route('inventory.gajidetail.rincian-kehadiran') }}?id_admin=" + ID_ADMIN_SLIP + "&tgl_awal=" + tglAwal + "&tgl_akhir=" + tglAkhir, '_blank');
                 }
             </script>
         </div>

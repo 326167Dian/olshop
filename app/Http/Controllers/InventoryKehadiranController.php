@@ -202,20 +202,40 @@ class InventoryKehadiranController extends Controller
             'jarak_pulang_meter' => $lokasi['jarak'],
         ]);
 
-        $jamLembur = Absensi::hitungJamLembur($absensi->shift, $jamPulang);
-        if ($jamLembur > 0) {
+        // Shift tambahan (ke-2+) di tanggal yang sama -- SATU-SATUNYA kasus yang
+        // otomatis tercatat sebagai lembur, flat 1x "Tarif Lembur 1 Shift"
+        // (gaji.rate_lembur, lihat hitungLemburOtomatis()) TANPA peduli berapa jam
+        // kerjanya (jam_lembur cuma disimpan buat informasi di Rincian Kehadiran).
+        // Shift TUNGGAL yang cuma pulang beberapa menit/jam lewat jadwalnya sendiri
+        // TIDAK lagi otomatis dicatat sebagai lembur (dulu begitu, ternyata cuma
+        // menghasilkan angka receh 2-20 menit yang tidak berarti) -- kalau memang ada
+        // lembur nyata di luar pola shift tambahan, pemilik input manual lewat menu
+        // Kehadiran Pegawai > Lembur (otomatis disetujui, dibayar per jam seperti
+        // biasa, TIDAK terpengaruh perubahan ini).
+        $adaShiftLainSelesai = Absensi::where('id_admin', $admin->id_admin)
+            ->where('tanggal', $hariIni)
+            ->where('id_absensi', '!=', $absensi->id_absensi)
+            ->whereNotNull('jam_masuk')
+            ->whereNotNull('jam_pulang')
+            ->exists();
+
+        $jamLembur = 0;
+        if ($adaShiftLainSelesai) {
+            $jamLembur = Absensi::hitungDurasiJam($absensi->jam_masuk, $jamPulang);
+
             Lembur::create([
                 'id_admin' => $admin->id_admin,
                 'id_absensi' => $absensi->id_absensi,
                 'tanggal' => $hariIni,
                 'jam_lembur' => $jamLembur,
+                'tipe' => 'per_shift',
                 'sumber' => 'otomatis',
                 'status_approval' => 'diajukan',
-                'keterangan' => 'Otomatis dari selisih jam pulang check-out vs jadwal shift.',
+                'keterangan' => 'Otomatis: shift tambahan (bukan shift pertama) di tanggal yang sama.',
                 'dicatat_oleh' => null,
             ]);
         }
 
-        return redirect()->route('inventory.kehadiran.index')->with('success', 'Check-out berhasil dicatat.' . ($jamLembur > 0 ? " Lembur $jamLembur jam tercatat, menunggu approval pemilik." : ''));
+        return redirect()->route('inventory.kehadiran.index')->with('success', 'Check-out berhasil dicatat.' . ($jamLembur > 0 ? ' Tercatat sebagai shift tambahan (lembur), menunggu approval pemilik.' : ''));
     }
 }

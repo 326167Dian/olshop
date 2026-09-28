@@ -61,6 +61,9 @@ class InventoryGajiController extends Controller
             'gaji_harian' => ['required', 'numeric', 'min:0'],
             'transportasi_harian' => ['required', 'numeric', 'min:0'],
             'rate_lembur' => ['required', 'numeric', 'min:0'],
+            'potongan_telat_15_30' => ['required', 'numeric', 'min:0'],
+            'potongan_telat_30_60' => ['required', 'numeric', 'min:0'],
+            'potongan_telat_60_lebih' => ['required', 'numeric', 'min:0'],
             'status_aktif' => ['required', 'in:0,1'],
         ]);
 
@@ -96,6 +99,9 @@ class InventoryGajiController extends Controller
             'gaji_harian' => ['required', 'numeric', 'min:0'],
             'transportasi_harian' => ['required', 'numeric', 'min:0'],
             'rate_lembur' => ['required', 'numeric', 'min:0'],
+            'potongan_telat_15_30' => ['required', 'numeric', 'min:0'],
+            'potongan_telat_30_60' => ['required', 'numeric', 'min:0'],
+            'potongan_telat_60_lebih' => ['required', 'numeric', 'min:0'],
             'status_aktif' => ['required', 'in:0,1'],
         ]);
 
