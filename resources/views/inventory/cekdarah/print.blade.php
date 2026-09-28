@@ -69,10 +69,55 @@
         table.ref td.label {
             text-align: left;
         }
+
+        .abnormal {
+            color: #d00000;
+            font-weight: bold;
+        }
     </style>
 </head>
 
 <body>
+    @php
+        $angka = function ($value) {
+            return is_numeric($value) ? (float) $value : null;
+        };
+
+        $glukosaPuasa = $angka($cekdarah->gula);
+        $glukosa2pp = $angka($cekdarah->gula_2pp);
+        $asamUrat = $angka($cekdarah->asamurat);
+        $kolesterol = $angka($cekdarah->kolesterol);
+
+        $tensiParts = explode('/', (string) $cekdarah->tensi);
+        $sistolik = isset($tensiParts[0]) ? $angka(trim($tensiParts[0])) : null;
+        $diastolik = isset($tensiParts[1]) ? $angka(trim($tensiParts[1])) : null;
+
+        $glukosaPuasaAbnormal = $glukosaPuasa !== null && $glukosaPuasa > 125;
+        $glukosa2ppAbnormal = $glukosa2pp !== null && $glukosa2pp > 200;
+        $kolesterolAbnormal = $kolesterol !== null && $kolesterol > 200;
+        $tensiAbnormal = ($sistolik !== null && $sistolik > 130) || ($diastolik !== null && $diastolik > 85);
+
+        // Batas atas asam urat mengikuti tabel referensi di bawah (Usia x Jenis Kelamin) --
+        // butuh tanggal_lahir & jenis_kelamin pelanggan, kalau salah satu tidak ada maka
+        // tidak bisa dinilai (tidak ditandai merah).
+        $asamUratBatas = null;
+        $pelanggan = $cekdarah->pelanggan;
+
+        if ($pelanggan && $pelanggan->tanggal_lahir) {
+            $usia = \Illuminate\Support\Carbon::parse($pelanggan->tanggal_lahir)->age;
+            $isPria = strtoupper($pelanggan->jenis_kelamin ?? '') === 'PRIA';
+
+            if ($usia < 18) {
+                $asamUratBatas = 5.5;
+            } elseif ($usia <= 40) {
+                $asamUratBatas = $isPria ? 7.5 : 6.5;
+            } else {
+                $asamUratBatas = $isPria ? 8.5 : 8;
+            }
+        }
+
+        $asamUratAbnormal = $asamUrat !== null && $asamUratBatas !== null && $asamUrat > $asamUratBatas;
+    @endphp
     <div class="center">
         <div class="title">{{ $setheader->satu ?? '' }}</div>
         <div>{{ $setheader->dua ?? '' }}</div>
@@ -98,20 +143,24 @@
             <td>: {{ $cekdarah->pelanggan->nm_pelanggan ?? '-' }}</td>
         </tr>
         <tr>
-            <td class="label">Glukosa</td>
-            <td>: {{ $cekdarah->gula }} mg/dl</td>
+            <td class="label">Glukosa Puasa</td>
+            <td class="{{ $glukosaPuasaAbnormal ? 'abnormal' : '' }}">: {{ $cekdarah->gula }} mg/dl</td>
+        </tr>
+        <tr>
+            <td class="label">Glukosa 2 PP</td>
+            <td class="{{ $glukosa2ppAbnormal ? 'abnormal' : '' }}">: {{ $cekdarah->gula_2pp }} mg/dl</td>
         </tr>
         <tr>
             <td class="label">Asam Urat</td>
-            <td>: {{ $cekdarah->asamurat }} mg/dl</td>
+            <td class="{{ $asamUratAbnormal ? 'abnormal' : '' }}">: {{ $cekdarah->asamurat }} mg/dl</td>
         </tr>
         <tr>
             <td class="label">Kolesterol</td>
-            <td>: {{ $cekdarah->kolesterol }} mg/dl</td>
+            <td class="{{ $kolesterolAbnormal ? 'abnormal' : '' }}">: {{ $cekdarah->kolesterol }} mg/dl</td>
         </tr>
         <tr>
             <td class="label">Tensi</td>
-            <td>: {{ $cekdarah->tensi }} mmHg</td>
+            <td class="{{ $tensiAbnormal ? 'abnormal' : '' }}">: {{ $cekdarah->tensi }} mmHg</td>
         </tr>
     </table>
 

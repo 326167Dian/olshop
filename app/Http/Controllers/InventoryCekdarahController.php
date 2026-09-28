@@ -38,6 +38,7 @@ class InventoryCekdarahController extends Controller
         $validated = $request->validate([
             'id_pelanggan' => 'required|exists:pelanggan,id_pelanggan',
             'gula' => 'required|string|max:50',
+            'gula_2pp' => 'nullable|string|max:50',
             'asamurat' => 'required|string|max:50',
             'kolesterol' => 'required|string|max:50',
             'tensi' => 'required|string|max:50',
@@ -65,6 +66,7 @@ class InventoryCekdarahController extends Controller
     {
         $validated = $request->validate([
             'gula' => 'required|string|max:50',
+            'gula_2pp' => 'nullable|string|max:50',
             'asamurat' => 'required|string|max:50',
             'kolesterol' => 'required|string|max:50',
             'tensi' => 'required|string|max:50',

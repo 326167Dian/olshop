@@ -17,7 +17,8 @@
                         <th>No</th>
                         <th>Nama Pasien</th>
                         <th>Petugas</th>
-                        <th>Glukosa</th>
+                        <th>Glukosa Puasa</th>
+                        <th>Glukosa 2 PP</th>
                         <th>Asam Urat</th>
                         <th>Kolesterol</th>
                         <th>Tensi</th>
@@ -32,6 +33,7 @@
                             <td>{{ $row->pelanggan->nm_pelanggan ?? '-' }}</td>
                             <td>{{ $row->petugas }}</td>
                             <td>{{ $row->gula }}</td>
+                            <td>{{ $row->gula_2pp }}</td>
                             <td>{{ $row->asamurat }}</td>
                             <td>{{ $row->kolesterol }}</td>
                             <td>{{ $row->tensi }}</td>

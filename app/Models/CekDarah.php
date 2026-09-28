@@ -13,6 +13,7 @@ class CekDarah extends Model
     protected $fillable = [
         'id_pelanggan',
         'gula',
+        'gula_2pp',
         'asamurat',
         'kolesterol',
         'tensi',
