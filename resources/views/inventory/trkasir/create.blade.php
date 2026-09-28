@@ -10,7 +10,7 @@
         <div class="card-body">
             <input type="hidden" id="kd_trkasir" value="{{ $kdTransaksi }}">
             <input type="hidden" id="id_admin" value="{{ $admin->id_admin }}">
-            <input type="hidden" id="id_pelanggan" value="0">
+            <input type="hidden" id="id_pelanggan" value="{{ $idPelangganAwal ?? 0 }}">
             <input type="hidden" id="tlp_pelanggan" value="">
             <input type="hidden" id="alamat_pelanggan" value="">
             <input type="hidden" id="max_poin" value="0">
@@ -49,7 +49,7 @@
                     <div class="form-group">
                         <label>Pelanggan</label>
                         <div class="input-group">
-                            <input type="text" class="form-control" id="nm_pelanggan" readonly>
+                            <input type="text" class="form-control" id="nm_pelanggan" value="{{ $nmPelangganAwal ?? '' }}" readonly>
                             <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalPelanggan"><i class="fa fa-search"></i></button>
                             <button type="button" class="btn btn-outline-danger" id="btnHapusPelanggan"><i class="fa fa-times"></i></button>
                         </div>

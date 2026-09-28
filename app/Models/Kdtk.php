@@ -13,6 +13,8 @@ class Kdtk extends Model
     protected $fillable = [
         'kd_trkasir',
         'id_admin',
+        'id_pelanggan',
+        'nm_pelanggan',
         'stt_kdtk',
     ];
 }

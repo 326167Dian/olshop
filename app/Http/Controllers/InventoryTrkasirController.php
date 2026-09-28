@@ -718,9 +718,14 @@ class InventoryTrkasirController extends Controller
                 ->with('error', 'Shift kasir belum dibuka, Silahkan buka shift kasir terlebih dahulu !');
         }
 
+        $kdTransaksi = $this->resolveKdtk($admin->id_admin);
+        $kdtk = Kdtk::where('kd_trkasir', $kdTransaksi)->first();
+
         return view('inventory.trkasir.create', [
             'judul' => 'Inventory',
-            'kdTransaksi' => $this->resolveKdtk($admin->id_admin),
+            'kdTransaksi' => $kdTransaksi,
+            'idPelangganAwal' => $kdtk->id_pelanggan ?? 0,
+            'nmPelangganAwal' => $kdtk->nm_pelanggan ?? '',
             'admin' => $admin,
             'petugasList' => Admin::where('id_admin', '!=', $admin->id_admin)->orderBy('nama_lengkap')->get(['id_admin', 'nama_lengkap']),
             'carabayarList' => CaraBayar::orderBy('urutan')->get(),
@@ -804,7 +809,11 @@ class InventoryTrkasirController extends Controller
      * $admin di sini tetap dipakai untuk jejak audit qty (catatUbahQty()), bukan atribusi
      * komisi.
      */
-    private function tambahBarang(array $validated, Admin $admin, Admin $petugas, float $disc, string $resep): void
+    /**
+     * Publik supaya bisa dipanggil modul lain (mis. Cek Darah) yang perlu menambahkan
+     * barang/jasa ke draft keranjang kasir tanpa lewat HTTP endpoint AJAX.
+     */
+    public function tambahBarang(array $validated, Admin $admin, Admin $petugas, float $disc, string $resep): void
     {
         $qty = (float) $validated['qty_dtrkasir'];
         $hrgJual = (float) $validated['hrgjual_dtrkasir'];
@@ -888,7 +897,8 @@ class InventoryTrkasirController extends Controller
         }
     }
 
-    private function tambahBundle(array $validated, Admin $admin, Admin $petugas, float $disc): void
+    /** Publik -- lihat catatan di tambahBarang(). */
+    public function tambahBundle(array $validated, Admin $admin, Admin $petugas, float $disc): void
     {
         $bundle = Bundle::where('kd_bundle', $validated['kd_barang'])->firstOrFail();
         $components = BundleDetail::where('kd_bundle', $bundle->kd_bundle)->get();
@@ -2389,10 +2399,22 @@ class InventoryTrkasirController extends Controller
             : 'inventory.trkasir.';
     }
 
-    private function resolveKdtk(int $idAdmin): string
+    /**
+     * $idPelanggan/$nmPelanggan: dipakai modul lain (mis. Cek Darah) yang perlu
+     * "menitipkan" pelanggan ke draft SEBELUM kasir membuka layar Tambah Penjualan --
+     * lihat migrasi add_pelanggan_to_kdtk_table. Kalau draft yang ditemukan/dibuat sudah
+     * punya pelanggan lain (mis. kasir sedang melayani transaksi berbeda), nilai lama
+     * TIDAK ditimpa -- item tetap ditambahkan ke draft yang sama, tapi pelanggannya tetap
+     * yang sudah dipilih kasir. Dipanggil publik (bukan cuma dari create() di kelas ini).
+     */
+    public function resolveKdtk(int $idAdmin, ?int $idPelanggan = null, ?string $nmPelanggan = null): string
     {
         $existing = Kdtk::where('id_admin', $idAdmin)->where('stt_kdtk', 'ON')->orderByDesc('id_kdtk')->first();
         if ($existing) {
+            if ($idPelanggan && empty($existing->id_pelanggan)) {
+                $existing->update(['id_pelanggan' => $idPelanggan, 'nm_pelanggan' => $nmPelanggan]);
+            }
+
             return $existing->kd_trkasir;
         }
 
@@ -2401,7 +2423,13 @@ class InventoryTrkasirController extends Controller
             $kode = 'TKP-' . now()->addSecond()->format('dmyHis');
         }
 
-        Kdtk::create(['kd_trkasir' => $kode, 'id_admin' => $idAdmin, 'stt_kdtk' => 'ON']);
+        Kdtk::create([
+            'kd_trkasir' => $kode,
+            'id_admin' => $idAdmin,
+            'id_pelanggan' => $idPelanggan,
+            'nm_pelanggan' => $nmPelanggan,
+            'stt_kdtk' => 'ON',
+        ]);
 
         return $kode;
     }
