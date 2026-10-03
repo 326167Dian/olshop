@@ -140,8 +140,12 @@ class InventoryController extends Controller
      *
      * "Bulan Dipilih" dibatasi sampai hari ini kalau bulan yang dipilih adalah
      * bulan berjalan (biar tidak menampilkan hari-hari yang belum terjadi
-     * sebagai 0 dan mendistorsi grafik/total), TAPI "Bulan Lalu" SELALU bulan
-     * penuh -- lihat komentar di titik pembentukan $dataBulanLalu di bawah.
+     * sebagai 0 dan mendistorsi grafik/total). "Bulan Lalu" ikut dibatasi ke
+     * jumlah hari yang SAMA (akumulasi tanggal yang sama, mis. 1-4 lawan 1-4),
+     * BUKAN selalu 1 bulan penuh -- lihat komentar di titik pembentukan
+     * $akhirBulanSebelumnyaDibatasi di bawah untuk kenapa ini aman dari bug
+     * lama (2026-09-17) yang jadi alasan "Bulan Lalu" sempat dibuat selalu
+     * penuh.
      */
     public function salesChartData(Request $request)
     {
@@ -158,12 +162,29 @@ class InventoryController extends Controller
 
         $awalBulan = Carbon::create($tahun, $bulan, 1)->startOfDay();
         $akhirBulanPenuh = $awalBulan->copy()->endOfMonth()->startOfDay();
-        $akhirPeriode = ($bulan === now()->month && $tahun === now()->year)
-            ? now()->startOfDay()
-            : $akhirBulanPenuh;
+        $sedangBerjalan = ($bulan === now()->month && $tahun === now()->year);
+        $akhirPeriode = $sedangBerjalan ? now()->startOfDay() : $akhirBulanPenuh;
 
         $awalBulanSebelumnya = $awalBulan->copy()->subMonthNoOverflow()->startOfMonth();
         $akhirBulanSebelumnya = $awalBulanSebelumnya->copy()->endOfMonth()->startOfDay();
+
+        // Dibatasi ke jumlah hari yang sama dengan "Bulan Dipilih", supaya
+        // perbandingan adil (akumulasi tanggal yang sama) -- TAPI HANYA kalau
+        // "Bulan Dipilih" adalah bulan yang sedang berjalan (data parsial, belum
+        // genap sebulan). Kalau "Bulan Dipilih" sudah lewat PENUH, "Bulan Lalu"
+        // tetap bulan penuh apa adanya (biar tidak balik ke bug 2026-09-17) --
+        // sengaja TIDAK dicocokkan lewat jumlah hari di kasus ini, karena bulan
+        // yang dipilih & bulan sebelumnya bisa beda jumlah hari (mis. September
+        // 30 hari vs Agustus 31 hari), yang kalau dipaksa sama jumlah harinya
+        // justru memotong Agustus jadi cuma 30 hari padahal seharusnya penuh.
+        $akhirBulanSebelumnyaDibatasi = $akhirBulanSebelumnya->copy();
+        if ($sedangBerjalan) {
+            $jumlahHariDipilih = $awalBulan->diffInDays($akhirPeriode) + 1;
+            $akhirBulanSebelumnyaDibatasi = $awalBulanSebelumnya->copy()->addDays($jumlahHariDipilih - 1);
+            if ($akhirBulanSebelumnyaDibatasi->gt($akhirBulanSebelumnya)) {
+                $akhirBulanSebelumnyaDibatasi = $akhirBulanSebelumnya->copy();
+            }
+        }
 
         if ($tipe === 'swamedikasi') {
             $judulTipe = 'Swamedikasi';
@@ -227,17 +248,16 @@ class InventoryController extends Controller
             $cursor->addDay();
         }
 
-        // "Bulan Lalu" SENGAJA memakai rentang bulan sebelumnya PENUH (bukan
-        // dibatasi $akhirPeriode, yang hanya sampai "hari ini" kalau bulan yang
-        // dipilih adalah bulan berjalan) -- kalau ikut dibatasi, total & grafik
-        // "Bulan Lalu" cuma menjumlah tanggal 1 s.d. hari-ini-bulan-lalu,
-        // membuat "Total Bulan Lalu" jauh lebih kecil dari total bulan itu yang
-        // sebenarnya (bug yang dilaporkan user 2026-09-17: bulan lalu tampil
-        // Rp 5.000, padahal totalnya yang benar Rp 2.468.500 kalau bulan itu
-        // dipilih langsung). Perbandingan "Bulan Lalu" harus selalu bulan penuh.
+        // Dipotong ke $akhirBulanSebelumnyaDibatasi (akumulasi tanggal yang sama
+        // dengan "Bulan Dipilih", lihat komentar di titik pembentukannya) -- untuk
+        // bulan yang sudah lewat penuh ini otomatis sama dengan bulan penuh juga
+        // (tidak mengubah kasus yang jadi alasan bug 2026-09-17: bulan lalu tampil
+        // Rp 5.000 padahal benar Rp 2.468.500 kalau bulan itu dipilih langsung --
+        // itu terjadi karena dulu dipotong ke tanggal hari ini sungguhan, BUKAN ke
+        // hari-ke-N yang sejajar dengan bulan yang sedang dipilih).
         $dataBulanLalu = [];
         $cursorPrev = $awalBulanSebelumnya->copy();
-        while ($cursorPrev->lte($akhirBulanSebelumnya)) {
+        while ($cursorPrev->lte($akhirBulanSebelumnyaDibatasi)) {
             $dataBulanLalu[] = [
                 'hari' => $cursorPrev->format('d'),
                 'nilai' => $mapNilaiPrevByHari[$cursorPrev->format('d')] ?? 0,

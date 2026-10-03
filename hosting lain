@@ -1,0 +1,5 @@
+cat >> ~/.bashrc <<'EOF'
+alias php83='/opt/alt/php83/usr/bin/php'
+alias composer83='/opt/alt/php83/usr/bin/php /usr/local/bin/composer2'
+alias artisan='/opt/alt/php83/usr/bin/php artisan'
+EOF
