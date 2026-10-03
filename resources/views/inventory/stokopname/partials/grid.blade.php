@@ -8,7 +8,7 @@
             @if ($isPemilik)
                 <th class="text-center">Stok Sistem</th>
             @endif
-            <th class="text-center">Stok Fisik</th>
+            <th class="text-center" style="min-width: 96px;">Stok Fisik</th>
             <th class="text-center">Exp Date</th>
             <th class="text-center">Jumlah</th>
             <th class="text-center">Submit</th>
@@ -25,8 +25,8 @@
                 @if ($isPemilik)
                     <td class="text-center">{{ $r->selisih }}</td>
                 @endif
-                <td class="text-center">
-                    <input type="number" min="0" class="form-control text-center" id="stok_fisik_{{ $no }}" value="0">
+                <td class="text-center" style="min-width: 96px;">
+                    <input type="number" min="0" class="form-control text-center" style="min-width: 80px;" id="stok_fisik_{{ $no }}" value="0">
                 </td>
                 <td class="text-center">
                     <input type="date" class="form-control text-center" id="exp_date_{{ $no }}">
