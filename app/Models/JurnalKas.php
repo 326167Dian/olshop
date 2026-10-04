@@ -15,6 +15,7 @@ class JurnalKas extends Model
         'ket',
         'petugas',
         'idjenis',
+        'kd_referensi',
         'debit',
         'kredit',
         'carabayar',

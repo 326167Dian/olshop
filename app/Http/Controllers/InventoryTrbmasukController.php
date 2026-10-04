@@ -13,6 +13,7 @@ use App\Models\SupplierOrderDetail;
 use App\Models\Trbmasuk;
 use App\Models\TrbmasukDetail;
 use App\Models\TrbmasukDetailHist;
+use App\Services\JurnalPembayaranDistributorService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -138,6 +139,14 @@ class InventoryTrbmasukController extends Controller
         unset($validated['kd_orders']);
         $trbmasuk->update($validated);
 
+        app(JurnalPembayaranDistributorService::class)->sinkron(
+            $trbmasuk->kd_trbmasuk,
+            $validated['nm_supplier'],
+            $validated['carabayar'],
+            (float) $validated['ttl_trbmasuk'],
+            Auth::guard('admin')->user()->nama_lengkap
+        );
+
         return redirect()->route('inventory.byrkredit.index')->with('success', 'Transaksi barang masuk berhasil diperbarui.');
     }
 
@@ -176,6 +185,16 @@ class InventoryTrbmasukController extends Controller
             KartuStok::where('kode_transaksi', $trbmasuk->kd_trbmasuk)->delete();
             $trbmasuk->delete();
         });
+
+        // 'BATAL' memaksa jalur hapus di sinkron() -- menghapus entri jurnal pembayaran
+        // distributor yang terhubung (kalau transaksi ini sudah LUNAS) & kembalikan saldo.
+        app(JurnalPembayaranDistributorService::class)->sinkron(
+            $trbmasuk->kd_trbmasuk,
+            $trbmasuk->nm_supplier,
+            'BATAL',
+            0,
+            Auth::guard('admin')->user()->nama_lengkap
+        );
 
         return redirect()->route('inventory.trbmasuk.index')->with('success', 'Transaksi barang masuk berhasil dihapus.');
     }
@@ -385,6 +404,14 @@ class InventoryTrbmasukController extends Controller
                 ->update(['stt_kdbm' => 'OFF']);
         });
 
+        app(JurnalPembayaranDistributorService::class)->sinkron(
+            $validated['kd_trbmasuk'],
+            $validated['nm_supplier'],
+            $validated['carabayar'],
+            (float) $validated['ttl_trbmasuk'],
+            $admin->nama_lengkap
+        );
+
         return redirect()->route('inventory.trbmasuk.index')->with('success', 'Transaksi barang masuk berhasil disimpan.');
     }
 
@@ -427,6 +454,14 @@ class InventoryTrbmasukController extends Controller
             // bergantung pada kolom ini -- selalu dihitung langsung dari ordersdetail.masuk.
             SupplierOrder::where('kd_trbmasuk', $validated['kd_orders'])->update(['masuk' => '0']);
         });
+
+        app(JurnalPembayaranDistributorService::class)->sinkron(
+            $validated['kd_trbmasuk'],
+            $validated['nm_supplier'],
+            $validated['carabayar'],
+            (float) $validated['ttl_trbmasuk'],
+            $admin->nama_lengkap
+        );
 
         return redirect()->route('inventory.trbmasuk.index')->with('success', 'Transaksi terima barang berhasil disimpan.');
     }

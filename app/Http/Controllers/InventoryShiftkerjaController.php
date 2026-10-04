@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\CaraBayar;
+use App\Models\JurnalKas;
 use App\Models\NamaShift;
 use App\Models\Setheader;
 use App\Models\WaktuKerja;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -32,6 +34,10 @@ class InventoryShiftkerjaController extends Controller
      * sengaja tidak butuh id, langsung mencari shift 'ON' hari ini di server (bukan
      * dipercayakan dari input tersembunyi form seperti legacy, mengurangi risiko baris yang
      * salah ikut tertutup kalau ada manipulasi form).
+     *
+     * Tutup Kasir otomatis mencatat pendapatan shift itu ke Jurnal Kas (lihat
+     * catatPendapatanKeJurnal()), dipisah TUNAI/TRANSFER, persis mengikuti logika
+     * act=update_waktukerja di aksi_shiftkerja.php.
      */
     public function index()
     {
@@ -148,7 +154,55 @@ class InventoryShiftkerjaController extends Controller
             'saldoakhir' => $validated['saldoakhir'],
         ]);
 
+        $this->catatPendapatanKeJurnal($waktuKerja);
+
         return redirect()->route('inventory.shiftkerja.index')->with('success', 'Kasir berhasil ditutup.');
+    }
+
+    /**
+     * Catat pendapatan shift ini ke Jurnal Kas, dipisah TUNAI dan TRANSFER, mengikuti
+     * act=update_waktukerja di aksi_shiftkerja.php. idjenis=1 "Pendapatan Harian
+     * Apotek" (tipe=2/kredit) -- id_carabayar 1=TUNAI, 2=TRANSFER, sama seperti
+     * konvensi `carabayar` di seluruh modul Kasir. Cara bayar dengan total 0 (tidak
+     * ada penjualan) dilewati, sama seperti legacy. Saldo `kas` direkonsiliasi lewat
+     * InventoryJurnalkasController::recomputeSaldo() (SUM kredit - SUM debit),
+     * bukan ditambah manual, supaya konsisten dengan modul Jurnal Kas yang sudah ada.
+     */
+    private function catatPendapatanKeJurnal(WaktuKerja $waktuKerja): void
+    {
+        $namaShift = NamaShift::where('shift', $waktuKerja->shift)->value('nama_shift')
+            ?? ($waktuKerja->shift == 1 ? 'Pagi' : 'Sore');
+        $tanggalIndo = Carbon::parse($waktuKerja->tanggal)->translatedFormat('j F Y');
+        $ket = 'shift ' . strtolower($namaShift) . ' ' . $tanggalIndo;
+
+        $carabayarMap = [1 => 'TUNAI', 2 => 'TRANSFER'];
+        $adaPendapatan = false;
+
+        foreach ($carabayarMap as $idCarabayar => $carabayar) {
+            $total = (float) DB::table('trkasir')
+                ->where('shift', $waktuKerja->shift)
+                ->where('tgl_trkasir', $waktuKerja->tanggal)
+                ->where('id_carabayar', $idCarabayar)
+                ->sum('ttl_trkasir');
+
+            if ($total > 0) {
+                JurnalKas::create([
+                    'tanggal' => now()->toDateString(),
+                    'ket' => $ket,
+                    'petugas' => $waktuKerja->petugastutup,
+                    'idjenis' => 1,
+                    'debit' => 0,
+                    'kredit' => $total,
+                    'carabayar' => $carabayar,
+                    'current' => now(),
+                ]);
+                $adaPendapatan = true;
+            }
+        }
+
+        if ($adaPendapatan) {
+            app(InventoryJurnalkasController::class)->recomputeSaldo();
+        }
     }
 
     /**

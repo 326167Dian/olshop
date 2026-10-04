@@ -428,7 +428,11 @@ class InventoryJurnalkasController extends Controller
         ];
     }
 
-    private function recomputeSaldo(): void
+    /**
+     * Publik supaya bisa dipanggil modul lain (mis. Tutup Kasir/Shift Kerja) yang
+     * ikut menulis baris `jurnal` di luar form manual Jurnal Kas ini.
+     */
+    public function recomputeSaldo(): void
     {
         $totals = JurnalKas::selectRaw('COALESCE(SUM(kredit),0) as kr, COALESCE(SUM(debit),0) as db')->first();
         Kas::where('id_kas', 1)->update(['saldo' => (float) $totals->kr - (float) $totals->db]);

@@ -74,9 +74,9 @@
         <div class="mb-2">
             <label class="form-label fw-bold">Cara Bayar</label>
             <select class="form-control" id="carabayar">
-                <option value="KREDIT">KREDIT</option>
-                <option value="LUNAS">TUNAI</option>
-                <option value="KONSINYASI">KONSINYASI</option>
+                <option value="KREDIT" {{ ($header->carabayar ?? 'KREDIT') === 'KREDIT' ? 'selected' : '' }}>KREDIT</option>
+                <option value="LUNAS" {{ ($header->carabayar ?? '') === 'LUNAS' ? 'selected' : '' }}>TUNAI</option>
+                <option value="KONSINYASI" {{ ($header->carabayar ?? '') === 'KONSINYASI' ? 'selected' : '' }}>KONSINYASI</option>
             </select>
         </div>
     </div>

@@ -15,6 +15,7 @@ use App\Models\Trbmasuk;
 use App\Models\TrbmasukDetail;
 use App\Models\TrbmasukDetailHist;
 use App\Models\TrxOrders;
+use App\Services\JurnalPembayaranDistributorService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -198,6 +199,16 @@ class InventoryTrbmasukPbfController extends Controller
             KartuStok::where('kode_transaksi', $trbmasuk->kd_trbmasuk)->delete();
             $trbmasuk->delete();
         });
+
+        // 'BATAL' memaksa jalur hapus di sinkron() -- menghapus entri jurnal pembayaran
+        // distributor yang terhubung (kalau transaksi ini sudah LUNAS) & kembalikan saldo.
+        app(JurnalPembayaranDistributorService::class)->sinkron(
+            $trbmasuk->kd_trbmasuk,
+            $trbmasuk->nm_supplier,
+            'BATAL',
+            0,
+            Auth::guard('admin')->user()->nama_lengkap
+        );
 
         return redirect()->route('inventory.trbmasukpbf.index')->with('success', 'Transaksi barang masuk berhasil dihapus.');
     }
@@ -477,6 +488,14 @@ class InventoryTrbmasukPbfController extends Controller
                 ->update(['stt_kdbm' => 'OFF']);
         });
 
+        app(JurnalPembayaranDistributorService::class)->sinkron(
+            $validated['kd_trbmasuk'],
+            $validated['nm_supplier'],
+            $validated['carabayar'],
+            (float) $validated['ttl_trbmasuk'],
+            $admin->nama_lengkap
+        );
+
         return redirect()->route('inventory.trbmasukpbf.index')->with('success', 'Transaksi barang masuk berhasil disimpan.');
     }
 
@@ -490,6 +509,14 @@ class InventoryTrbmasukPbfController extends Controller
 
         $validated = $this->validateHeader($request, $trbmasuk);
         $trbmasuk->update($validated);
+
+        app(JurnalPembayaranDistributorService::class)->sinkron(
+            $trbmasuk->kd_trbmasuk,
+            $validated['nm_supplier'],
+            $validated['carabayar'],
+            (float) $validated['ttl_trbmasuk'],
+            Auth::guard('admin')->user()->nama_lengkap
+        );
 
         return redirect()->route('inventory.trbmasukpbf.index')->with('success', 'Transaksi barang masuk berhasil diperbarui.');
     }
@@ -740,6 +767,14 @@ class InventoryTrbmasukPbfController extends Controller
             SupplierOrder::where('kd_trbmasuk', $validated['kd_orders'])->update(['masuk' => '0']);
         });
 
+        app(JurnalPembayaranDistributorService::class)->sinkron(
+            $validated['kd_trbmasuk'],
+            $validated['nm_supplier'],
+            $validated['carabayar'],
+            (float) $validated['ttl_trbmasuk'],
+            $admin->nama_lengkap
+        );
+
         return redirect()->route('inventory.trbmasukpbf.index')->with('success', 'Transaksi terima barang berhasil disimpan.');
     }
 
@@ -850,15 +885,30 @@ class InventoryTrbmasukPbfController extends Controller
 
         $admin = Auth::guard('admin')->user();
 
-        Trbmasuk::whereIn('kd_trbmasuk', $validated['kode'])
+        // Loop per baris (bukan whereIn()->update() massal) -- mengikuti
+        // ubah_status_lunas.php, karena tiap transaksi perlu disinkronkan ke jurnal
+        // dengan nominal (ttl_trbmasuk) masing-masing, tidak bisa dibatch satu query.
+        $trbmasukList = Trbmasuk::whereIn('kd_trbmasuk', $validated['kode'])
             ->where('jenis', 'pbf')
-            ->update([
+            ->get();
+
+        foreach ($trbmasukList as $trbmasuk) {
+            $trbmasuk->update([
                 'carabayar' => 'LUNAS',
                 'tgl_lunas' => now()->toDateString(),
                 'petugas_lunas' => $admin->nama_lengkap,
             ]);
 
-        return back()->with('success', count($validated['kode']) . ' transaksi berhasil ditandai LUNAS.');
+            app(JurnalPembayaranDistributorService::class)->sinkron(
+                $trbmasuk->kd_trbmasuk,
+                $trbmasuk->nm_supplier,
+                'LUNAS',
+                (float) $trbmasuk->ttl_trbmasuk,
+                $admin->nama_lengkap
+            );
+        }
+
+        return back()->with('success', $trbmasukList->count() . ' transaksi berhasil ditandai LUNAS.');
     }
 
     // ==================== FILTER JATUH TEMPO ====================
