@@ -432,9 +432,17 @@ class InventoryJurnalkasController extends Controller
      * Publik supaya bisa dipanggil modul lain (mis. Tutup Kasir/Shift Kerja) yang
      * ikut menulis baris `jurnal` di luar form manual Jurnal Kas ini.
      */
+    /**
+     * Saldo dihitung ulang HANYA dari jurnal bulan berjalan (bukan sepanjang riwayat) --
+     * SALDO otomatis "reset" ke 0 tiap awal bulan baru, karena belum ada baris jurnal di
+     * bulan itu untuk dijumlahkan, tanpa perlu proses tutup buku/reset eksplisit apa pun.
+     */
     public function recomputeSaldo(): void
     {
-        $totals = JurnalKas::selectRaw('COALESCE(SUM(kredit),0) as kr, COALESCE(SUM(debit),0) as db')->first();
+        $totals = JurnalKas::where('tanggal', '>=', now()->startOfMonth()->toDateString())
+            ->selectRaw('COALESCE(SUM(kredit),0) as kr, COALESCE(SUM(debit),0) as db')
+            ->first();
+
         Kas::where('id_kas', 1)->update(['saldo' => (float) $totals->kr - (float) $totals->db]);
     }
 
