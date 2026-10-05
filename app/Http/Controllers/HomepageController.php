@@ -8,6 +8,7 @@ use App\Models\JenisObat;
 use App\Models\Product;
 use App\Models\Category;
 use App\Models\Article;
+use App\Models\VideoEdukasi;
 use App\Models\CompanySetting;
 use App\Models\Banner;
 use App\Models\PageVisit;
@@ -31,6 +32,7 @@ class HomepageController extends Controller
         $banners = Banner::where('status', 'active')->get();
 
         $articles = Article::where('status', 'published')->orderBy('created_at', 'desc')->paginate(3);
+        $videos = VideoEdukasi::where('status', 'published')->orderBy('created_at', 'desc')->take(3)->get();
 
         // Catat kunjungan halaman utama untuk melihat efektivitas konten
         PageVisit::create([
@@ -40,7 +42,7 @@ class HomepageController extends Controller
         ]);
         $visitorCount = PageVisit::where('page', 'home-page')->count();
 
-        return view('frontend.dashboard.index', compact('companySetting', 'databarang', 'produkTerlaris', 'jenisobat', 'kategori', 'articles', 'diskonbarang', 'banners', 'visitorCount'));
+        return view('frontend.dashboard.index', compact('companySetting', 'databarang', 'produkTerlaris', 'jenisobat', 'kategori', 'articles', 'videos', 'diskonbarang', 'banners', 'visitorCount'));
     }
 
     /**

@@ -9,6 +9,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HomepageController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ArticleController;
+use App\Http\Controllers\VideoEdukasiController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\CompanySettingController;
 use App\Http\Controllers\BannerController;
@@ -110,6 +111,9 @@ Route::get('/produk/cari', [ProductController::class, 'search'])->name('produk.s
 Route::get('/artikel/all', [ArticleController::class, 'indexFrontend'])->name('artikel.all');
 Route::get('/artikel/{slug}', [ArticleController::class, 'show'])->name('article.show');
 
+Route::get('/video-edukasi/all', [VideoEdukasiController::class, 'indexFrontend'])->name('video-edukasi.all');
+Route::get('/video-edukasi/{slug}', [VideoEdukasiController::class, 'show'])->name('video-edukasi.show');
+
 
 
 
@@ -186,6 +190,15 @@ Route::prefix('/backend')->middleware('auth:admin')->group(function () {
     Route::put('/article/{article}', [ArticleController::class, 'update'])->name('article.update');
     Route::delete('/article/{article}', [ArticleController::class, 'destroy'])->name('article.destroy');
     Route::get('/article-data', [ArticleController::class, 'data'])->name('backend.article.data');
+
+    // Video Edukasi
+    Route::get('/video-edukasi', [VideoEdukasiController::class, 'index'])->name('video-edukasi.index');
+    Route::get('/video-edukasi/create', [VideoEdukasiController::class, 'create'])->name('video-edukasi.create');
+    Route::post('/video-edukasi', [VideoEdukasiController::class, 'store'])->name('video-edukasi.store');
+    Route::get('/video-edukasi/{videoEdukasi}/edit', [VideoEdukasiController::class, 'edit'])->name('video-edukasi.edit');
+    Route::put('/video-edukasi/{videoEdukasi}', [VideoEdukasiController::class, 'update'])->name('video-edukasi.update');
+    Route::delete('/video-edukasi/{videoEdukasi}', [VideoEdukasiController::class, 'destroy'])->name('video-edukasi.destroy');
+    Route::get('/video-edukasi-data', [VideoEdukasiController::class, 'data'])->name('video-edukasi.data');
 
 
     // pesanan proses

@@ -181,6 +181,12 @@
                                     <span class="nav-menu-item-title">Artikel</span>
                                 </a>
                             </li>
+                            <li class="nav-menu-item {{ in_array(Route::currentRouteName(), ['video-edukasi.index', 'video-edukasi.create', 'video-edukasi.edit']) ? 'active' : '' }}">
+                                <a href="{{ route('video-edukasi.index') }}">
+                                    <i class="feather icon-video"></i>
+                                    <span class="nav-menu-item-title">Video Edukasi</span>
+                                </a>
+                            </li>
                         </ul>
                     </li>
 

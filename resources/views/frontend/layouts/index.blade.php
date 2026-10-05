@@ -274,6 +274,12 @@
                             </a>
                         </li>
                         <li>
+                            <a href="{{ route('video-edukasi.all') }}"
+                                class="{{ request()->routeIs('video-edukasi.all', 'video-edukasi.show') ? 'active' : '' }}">
+                                Video Edukasi
+                            </a>
+                        </li>
+                        <li>
                             <a href="{{ route('artikel.all') }}"
                                 class="{{ request()->routeIs('artikel.all', 'article.show') ? 'active' : '' }}">
                                 Artikel
