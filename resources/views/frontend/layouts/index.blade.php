@@ -160,6 +160,11 @@
                                         </a>
                                     </li>
                                     <li>
+                                        <a href="{{ route('customer.cekdarah.index') }}">
+                                            <i class="fa fa-heartbeat me-2"></i> History Cek Darah
+                                        </a>
+                                    </li>
+                                    <li>
                                         <a href="#"
                                             onclick="event.preventDefault(); document.getElementById('logoutForm').submit();">
                                             <i class="fa fa-unlock-alt me-2"></i> Logout

@@ -12,6 +12,7 @@ class Pelanggan extends Model
 
     protected $fillable = [
         'nm_pelanggan',
+        'email',
         'jenis_kelamin',
         'tanggal_lahir',
         'tlp_pelanggan',
@@ -20,4 +21,9 @@ class Pelanggan extends Model
         'unit',
         'total_poin',
     ];
+
+    public function cekDarah()
+    {
+        return $this->hasMany(CekDarah::class, 'id_pelanggan', 'id_pelanggan');
+    }
 }

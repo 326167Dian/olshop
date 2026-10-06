@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\CustomerCekDarahController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\OrderController;
@@ -121,6 +122,10 @@ Route::middleware('is.customer')->group(function () {
     //route untuk Menampilkan halaman Akun Customer
     Route::get('/customer/akun/{id}', [CustomerController::class, 'akun'])->name('customer.akun');
     Route::put('/customer/updateakun/{id}', [CustomerController::class, 'updateAkun'])->name('customer.updateakun');
+    // History Cek Darah (self-service, ditautkan ke tabel pelanggan lewat email)
+    Route::get('/customer/cek-darah', [CustomerCekDarahController::class, 'index'])->name('customer.cekdarah.index');
+    Route::post('/customer/cek-darah/link', [CustomerCekDarahController::class, 'link'])->name('customer.cekdarah.link');
+    Route::get('/customer/cek-darah/{id}', [CustomerCekDarahController::class, 'detail'])->name('customer.cekdarah.detail');
     // Route untuk menambahkan produk ke keranjang 
     Route::post('add-to-cart/{id}', [OrderController::class, 'addToCart'])->name('order.addToCart');
     Route::get('cart', [OrderController::class, 'viewCart'])->name('order.cart');
