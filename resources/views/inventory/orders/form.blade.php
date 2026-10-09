@@ -11,7 +11,7 @@
             <input type="hidden" id="kd_trbmasuk" value="{{ $kdTransaksi }}">
             <input type="hidden" id="id_trbmasuk" value="{{ $order?->id_trbmasuk ?? '' }}">
             <input type="hidden" id="petugas" value="{{ $petugas }}">
-            <input type="hidden" id="id_supplier" value="{{ $order?->id_supplier ?? '' }}">
+            <input type="hidden" id="id_supplier" value="{{ $order?->id_supplier ?? $prefillSupplier?->id_supplier ?? '' }}">
 
             <div class="row">
                 <div class="col-lg-6">
@@ -28,18 +28,18 @@
                         <label>Supplier</label>
                         <div class="input-group">
                             <input type="text" class="form-control" id="nm_supplier" required disabled
-                                value="{{ $order?->nm_supplier ?? '' }}">
+                                value="{{ $order?->nm_supplier ?? $prefillSupplier?->nm_supplier ?? '' }}">
                             <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal"
                                 data-bs-target="#modalSupplier"><i class="fa fa-search"></i></button>
                         </div>
                     </div>
                     <div class="form-group">
                         <label>Telepon</label>
-                        <input type="text" class="form-control" id="tlp_supplier" value="{{ $order?->tlp_supplier ?? '' }}">
+                        <input type="text" class="form-control" id="tlp_supplier" value="{{ $order?->tlp_supplier ?? $prefillSupplier?->tlp_supplier ?? '' }}">
                     </div>
                     <div class="form-group">
                         <label>Alamat</label>
-                        <textarea class="form-control" id="alamat_supplier" rows="2">{{ $order?->alamat_trbmasuk ?? '' }}</textarea>
+                        <textarea class="form-control" id="alamat_supplier" rows="2">{{ $order?->alamat_trbmasuk ?? $prefillSupplier?->alamat_supplier ?? '' }}</textarea>
                     </div>
                     <div class="form-group">
                         <label>Jenis Pesanan</label>

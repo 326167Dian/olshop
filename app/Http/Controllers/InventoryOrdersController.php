@@ -120,14 +120,21 @@ class InventoryOrdersController extends Controller
         return '#f8d7da';
     }
 
-    public function create()
+    public function create(Request $request)
     {
         $admin = Auth::guard('admin')->user();
+
+        // Prefill supplier kalau datang dari redirect "ADD TO ORDER" di halaman Stok
+        // Kritis (lihat InventoryStokKritisController::addToOrder()) -- satu surat
+        // pesanan hanya untuk satu supplier, jadi dropdown pencarian supplier manual
+        // di form ini tidak perlu dipakai lagi kalau supplier sudah dipilih di sana.
+        $idSupplier = $request->query('id_supplier');
 
         return view('inventory.orders.form', array_merge($this->sharedFormData(), [
             'order' => null,
             'kdTransaksi' => $this->resolveOpenKode($admin->id_admin),
             'petugas' => $admin->nama_lengkap,
+            'prefillSupplier' => $idSupplier ? Supplier::find($idSupplier) : null,
         ]));
     }
 
@@ -146,6 +153,7 @@ class InventoryOrdersController extends Controller
             'judul' => 'Inventory',
             'satuanList' => Satuan::orderBy('nm_satuan')->get(),
             'supplierList' => Supplier::orderBy('nm_supplier')->get(['id_supplier', 'nm_supplier', 'tlp_supplier', 'alamat_supplier']),
+            'prefillSupplier' => null,
         ];
     }
 

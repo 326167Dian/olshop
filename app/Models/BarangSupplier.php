@@ -13,6 +13,7 @@ class BarangSupplier extends Model
     protected $fillable = [
         'id_supplier',
         'id_barang',
+        'kd_barang',
         'hrgsat_brgsupplier',
     ];
 

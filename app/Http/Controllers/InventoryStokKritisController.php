@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BarangSupplier;
 use App\Models\Kdbm;
 use App\Models\Product;
 use App\Models\SupplierOrderDetail;
@@ -92,14 +93,26 @@ class InventoryStokKritisController extends Controller
             ->where('t30', '>', 0)
             ->whereRaw('stok_barang <= (0.25 * t30)')
             ->orderBy('nm_barang')
-            ->get(['id_barang', 'kd_barang', 'nm_barang', 'jenisobat', 'stok_barang', 'sat_barang', 't30', 'q30'])
-            ->map(function ($barang) {
-                $barang->sfc_max30 = (float) $barang->t30 - (float) $barang->stok_barang;
-                $barang->sfc_max_week = round(((float) $barang->q30 - (float) $barang->stok_barang) / 4);
-                [$barang->kategori_label, $barang->kategori_color] = $this->kategori((int) $barang->t30);
+            ->get(['id_barang', 'kd_barang', 'nm_barang', 'jenisobat', 'stok_barang', 'sat_barang', 't30', 'q30']);
 
-                return $barang;
-            });
+        // Opsi supplier per baris (dropdown "Supplier" di samping kolom Nama Barang)
+        // HANYA diambil dari barang_supplier -- supplier yang belum pernah tercatat
+        // menjual barang apa pun ke apotek ini tidak akan muncul di dropdown mana pun.
+        $supplierOptions = DB::table('barang_supplier as bs')
+            ->join('supplier as s', 's.id_supplier', '=', 'bs.id_supplier')
+            ->whereIn('bs.id_barang', $rows->pluck('id_barang'))
+            ->orderBy('s.nm_supplier')
+            ->get(['bs.id_barang', 's.id_supplier', 's.nm_supplier'])
+            ->groupBy('id_barang');
+
+        $rows = $rows->map(function ($barang) use ($supplierOptions) {
+            $barang->sfc_max30 = (float) $barang->t30 - (float) $barang->stok_barang;
+            $barang->sfc_max_week = round(((float) $barang->q30 - (float) $barang->stok_barang) / 4);
+            [$barang->kategori_label, $barang->kategori_color] = $this->kategori((int) $barang->t30);
+            $barang->supplier_options = $supplierOptions->get($barang->id_barang, collect());
+
+            return $barang;
+        });
 
         return view('inventory.stok-kritis.estimasi', [
             'judul' => 'Inventory',
@@ -161,6 +174,10 @@ class InventoryStokKritisController extends Controller
         $validated = $request->validate([
             'kd_barang' => 'required|array|min:1',
             'kd_barang.*' => 'string|exists:barang,kd_barang',
+            // Satu surat pesanan hanya untuk satu supplier -- dipilih per baris di
+            // halaman Estimasi (dropdown Supplier), lalu divalidasi sama di JS sebelum
+            // form ini dikirim (lihat estimasi.blade.php).
+            'id_supplier' => 'required|integer|exists:supplier,id_supplier',
         ]);
 
         $barangList = Product::whereIn('kd_barang', $validated['kd_barang'])->get()->keyBy('kd_barang');
@@ -169,6 +186,9 @@ class InventoryStokKritisController extends Controller
             $barang = $barangList->get($kdBarang);
             if (!$barang || (float) $barang->konversi <= 0) {
                 return back()->withErrors(['kd_barang' => 'Konversi harus lebih besar dari 0 untuk item ' . ($barang->nm_barang ?? $kdBarang) . '.']);
+            }
+            if (!BarangSupplier::where('id_supplier', $validated['id_supplier'])->where('id_barang', $barang->id_barang)->exists()) {
+                return back()->withErrors(['id_supplier' => 'Supplier terpilih tidak terdaftar menjual barang ' . $barang->nm_barang . '.']);
             }
         }
 
@@ -202,7 +222,8 @@ class InventoryStokKritisController extends Controller
             }
         });
 
-        return redirect()->route('inventory.orders.create')->with('success', 'Item berhasil ditambahkan ke draft pesanan.');
+        return redirect()->route('inventory.orders.create', ['id_supplier' => $validated['id_supplier']])
+            ->with('success', 'Item berhasil ditambahkan ke draft pesanan.');
     }
 
     /** Duplikasi sengaja dari InventoryOrdersController::resolveOpenKode() -- lihat catatan kelas. */

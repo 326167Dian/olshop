@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Batch;
+use App\Models\BarangSupplier;
 use App\Models\KartuStok;
 use App\Models\Kdbm;
 use App\Models\Product;
@@ -487,6 +488,8 @@ class InventoryTrbmasukPbfController extends Controller
                 ->where('id_resto', 'pusat')
                 ->where('kd_trbmasuk', $validated['kd_trbmasuk'])
                 ->update(['stt_kdbm' => 'OFF']);
+
+            $this->syncBarangSupplier($validated['kd_trbmasuk'], $validated['id_supplier']);
         });
 
         app(JurnalPembayaranDistributorService::class)->sinkron(
@@ -510,6 +513,8 @@ class InventoryTrbmasukPbfController extends Controller
 
         $validated = $this->validateHeader($request, $trbmasuk);
         $trbmasuk->update($validated);
+
+        $this->syncBarangSupplier($trbmasuk->kd_trbmasuk, $validated['id_supplier']);
 
         app(JurnalPembayaranDistributorService::class)->sinkron(
             $trbmasuk->kd_trbmasuk,
@@ -766,6 +771,8 @@ class InventoryTrbmasukPbfController extends Controller
                 ->update(['stt_kdbm' => 'OFF']);
 
             SupplierOrder::where('kd_trbmasuk', $validated['kd_orders'])->update(['masuk' => '0']);
+
+            $this->syncBarangSupplier($validated['kd_trbmasuk'], $validated['id_supplier']);
         });
 
         app(JurnalPembayaranDistributorService::class)->sinkron(
@@ -1130,6 +1137,31 @@ class InventoryTrbmasukPbfController extends Controller
     }
 
     // ==================== HELPER PRIVAT ====================
+
+    /**
+     * Catat/perbarui harga beli terakhir supplier untuk tiap barang di transaksi
+     * kd_trbmasuk ini ke tabel barang_supplier, supaya bisa dicek barang apa saja
+     * yang pernah dijual supplier tersebut. Baris digabung per (id_supplier,
+     * id_barang) -- kalau sudah ada, cuma hrgsat_brgsupplier (dan kd_barang) yang
+     * diperbarui, tidak membuat baris baru.
+     */
+    private function syncBarangSupplier(string $kdTrbmasuk, int $idSupplier): void
+    {
+        $details = TrbmasukDetail::where('kd_trbmasuk', $kdTrbmasuk)->get();
+
+        foreach ($details as $detail) {
+            BarangSupplier::updateOrCreate(
+                [
+                    'id_supplier' => $idSupplier,
+                    'id_barang' => $detail->id_barang,
+                ],
+                [
+                    'kd_barang' => $detail->kd_barang,
+                    'hrgsat_brgsupplier' => $detail->hrgsat_dtrbmasuk,
+                ]
+            );
+        }
+    }
 
     private function validateHeader(Request $request, ?Trbmasuk $existing = null): array
     {

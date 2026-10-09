@@ -126,6 +126,7 @@ class InventorySupplierController extends Controller
         BarangSupplier::create([
             'id_supplier' => $supplier->id_supplier,
             'id_barang' => $barang->id_barang,
+            'kd_barang' => $barang->kd_barang,
             'hrgsat_brgsupplier' => 0,
         ]);
 
