@@ -12,6 +12,7 @@
                 <th>Sat Retail</th>
                 <th>Konversi</th>
                 <th>Qty Grosir</th>
+                <th>Rasio</th>
                 <th>Sat Grosir</th>
                 <th>Hrg Beli</th>
                 <th>Total</th>
@@ -32,6 +33,9 @@
                             class="form-control form-control-sm edit-qtygrosir" style="width:80px; display:inline-block;"
                             data-id-dtrbmasuk="{{ $row->id_dtrbmasuk }}" value="{{ $row->qtygrosir_dtrbmasuk }}">
                     </td>
+                    <td class="text-end {{ $row->rasio !== null && $row->rasio > 200 ? 'text-danger fw-bold' : '' }}">
+                        {{ $row->rasio !== null ? number_format($row->rasio, 2, ',', '.') . '%' : '-' }}
+                    </td>
                     <td class="text-center">{{ $row->satgrosir_dtrbmasuk }}</td>
                     <td class="text-end">{{ number_format($row->hrgsat_dtrbmasuk, 0, ',', '.') }}</td>
                     <td class="text-end">{{ number_format($row->hrgttl_dtrbmasuk, 0, ',', '.') }}</td>
@@ -42,7 +46,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="11" class="text-center">Belum ada item.</td>
+                    <td colspan="12" class="text-center">Belum ada item.</td>
                 </tr>
             @endforelse
         </tbody>
@@ -111,7 +115,9 @@
                     $input.data('original-value', val);
                     var $row = $input.closest('tr');
                     $row.find('td').eq(3).text(resp.qty_dtrbmasuk);
-                    $row.find('td').eq(9).text(resp.hrgttl_dtrbmasuk);
+                    var $rasioCell = $row.find('td').eq(7);
+                    $rasioCell.text(resp.rasio).toggleClass('text-danger fw-bold', !!resp.rasio_tinggi);
+                    $row.find('td').eq(10).text(resp.hrgttl_dtrbmasuk);
                     document.getElementById('ttl_trkasir').value = resp.subtotal;
                     hitungDiskon();
                 });

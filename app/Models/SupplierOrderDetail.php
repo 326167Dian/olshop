@@ -16,6 +16,7 @@ class SupplierOrderDetail extends Model
         'kd_barang',
         'nmbrg_dtrbmasuk',
         'qty_dtrbmasuk',
+        'rasio',
         'sat_dtrbmasuk',
         'hnasat_dtrbmasuk',
         'diskon',

@@ -39,7 +39,7 @@ class InventoryOrdersController extends Controller
 
     public function data()
     {
-        $query = SupplierOrder::query()->where('id_resto', 'pesan')->select([
+        $query = SupplierOrder::query()->where('id_resto', 'pesan')->orderByDesc('id_trbmasuk')->select([
             'id_trbmasuk', 'petugas', 'kd_trbmasuk', 'tgl_trbmasuk', 'nm_supplier',
             'ket_trbmasuk', 'ttl_trbmasuk', 'dp_bayar', 'sisa_bayar',
         ]);
@@ -47,6 +47,12 @@ class InventoryOrdersController extends Controller
         return DataTables::of($query)
             ->addIndexColumn()
             ->editColumn('tgl_trbmasuk', fn ($row) => $row->tgl_trbmasuk?->format('Y-m-d'))
+            ->editColumn('sisa_bayar', function ($row) {
+                $nilai = number_format($row->sisa_bayar, 0, ',', '.');
+                $warna = $this->warnaRasioPesanan($row->kd_trbmasuk);
+
+                return '<span class="d-block text-end px-2 py-1 rounded" style="background-color:' . $warna . ';">' . $nilai . '</span>';
+            })
             ->addColumn('belum_diproses', function ($row) {
                 return SupplierOrderDetail::where('kd_trbmasuk', $row->kd_trbmasuk)->where('masuk', '1')->count();
             })
@@ -72,8 +78,46 @@ class InventoryOrdersController extends Controller
                     </div>
                 </div>';
             })
-            ->rawColumns(['aksi'])
+            ->rawColumns(['sisa_bayar', 'aksi'])
             ->make(true);
+    }
+
+    /**
+     * Warna background sel "Total Bayar" di listing Pesan Barang, berdasarkan
+     * proporsi item pesanan yang Rasio-nya (lihat hitungRasio()) > 200% --
+     * dihitung dari data `rasio` yang SUDAH tersimpan di ordersdetail (snapshot
+     * saat baris dibuat), bukan dihitung ulang -- jadi warnanya stabil mengikuti
+     * kondisi stok/Q30 pada saat surat pesanan itu dibuat.
+     *
+     * - Putih: tidak ada satu pun item di pesanan ini yang punya data rasio
+     *   (pesanan lama dari sebelum fitur Rasio ada, atau semua Q30=0).
+     * - Hijau: semua item yang punya data rasio nilainya < 200%.
+     * - Kuning: 1-50% dari item yang punya data rasio nilainya > 200%.
+     * - Merah: lebih dari 50% dari item yang punya data rasio nilainya > 200%.
+     */
+    private function warnaRasioPesanan(string $kdTrbmasuk): string
+    {
+        $rasioAda = SupplierOrderDetail::where('kd_trbmasuk', $kdTrbmasuk)->whereNotNull('rasio')->count();
+
+        if ($rasioAda === 0) {
+            return '#ffffff';
+        }
+
+        $rasioTinggi = SupplierOrderDetail::where('kd_trbmasuk', $kdTrbmasuk)
+            ->whereNotNull('rasio')
+            ->where('rasio', '>', 200)
+            ->count();
+
+        $persenTinggi = $rasioTinggi / $rasioAda * 100;
+
+        if ($persenTinggi <= 0) {
+            return '#d4edda';
+        }
+        if ($persenTinggi <= 50) {
+            return '#fff3cd';
+        }
+
+        return '#f8d7da';
     }
 
     public function create()
@@ -201,11 +245,14 @@ class InventoryOrdersController extends Controller
             ->where('kd_trbmasuk', $validated['kd_trbmasuk'])
             ->first();
 
+        $barang = Product::find($validated['id_barang']);
+
         if ($existing) {
             $ttlQty = $existing->qty_dtrbmasuk + $validated['qty_dtrbmasuk'];
 
             $existing->update([
                 'qty_dtrbmasuk' => $ttlQty,
+                'rasio' => $this->hitungRasio($ttlQty, $barang),
                 'hrgsat_dtrbmasuk' => $validated['hrgsat_dtrbmasuk'],
                 'hrgttl_dtrbmasuk' => $ttlQty * $validated['hrgsat_dtrbmasuk'],
                 'satgrosir_dtrbmasuk' => $validated['satgrosir_dtrbmasuk'],
@@ -215,14 +262,13 @@ class InventoryOrdersController extends Controller
                 'masuk' => '1',
             ]);
         } else {
-            $barang = Product::find($validated['id_barang']);
-
             SupplierOrderDetail::create([
                 'kd_trbmasuk' => $validated['kd_trbmasuk'],
                 'id_barang' => $validated['id_barang'],
                 'kd_barang' => $validated['kd_barang'],
                 'nmbrg_dtrbmasuk' => $validated['nmbrg_dtrbmasuk'],
                 'qty_dtrbmasuk' => $validated['qty_dtrbmasuk'],
+                'rasio' => $this->hitungRasio($validated['qty_dtrbmasuk'], $barang),
                 'sat_dtrbmasuk' => $validated['sat_dtrbmasuk'],
                 'konversi' => $validated['konversi'],
                 'hrgsat_dtrbmasuk' => $validated['hrgsat_dtrbmasuk'],
@@ -273,10 +319,12 @@ class InventoryOrdersController extends Controller
 
         $qtyDtrbmasuk = $detail->konversi * $validated['qtygrosir_dtrbmasuk'];
         $hrgttlDtrbmasuk = $detail->hrgsat_dtrbmasuk * $qtyDtrbmasuk;
+        $rasio = $this->hitungRasio($qtyDtrbmasuk, $detail->barang);
 
         $detail->update([
             'qtygrosir_dtrbmasuk' => $validated['qtygrosir_dtrbmasuk'],
             'qty_dtrbmasuk' => $qtyDtrbmasuk,
+            'rasio' => $rasio,
             'hrgttl_dtrbmasuk' => $hrgttlDtrbmasuk,
         ]);
 
@@ -289,6 +337,8 @@ class InventoryOrdersController extends Controller
         return response()->json([
             'status' => 'ok',
             'qty_dtrbmasuk' => $qtyText,
+            'rasio' => $rasio === null ? '-' : number_format($rasio, 2, ',', '.') . '%',
+            'rasio_tinggi' => $rasio !== null && $rasio > 200,
             'hrgttl_dtrbmasuk' => number_format($hrgttlDtrbmasuk, 0, ',', '.'),
             'subtotal' => number_format($subtotal, 0, ',', '.'),
         ]);
@@ -439,6 +489,44 @@ class InventoryOrdersController extends Controller
                 ? $order->kd_trbmasuk
                 : strtoupper($jenis) . '-' . substr($order->kd_trbmasuk, 4, 12),
         ]);
+    }
+
+    /**
+     * Rasio stok vs kebutuhan = (qty_dtrbmasuk + barang.stok_barang) / Q30 * 100%,
+     * dipanggil & disimpan setiap baris detail dibuat/diubah (lihat migrasi
+     * add_rasio_to_ordersdetail_table) supaya surat pesanan menunjukkan data AKTUAL
+     * saat dibuat, bukan angka yang terus berubah mengikuti stok/Q30 terkini. Null
+     * kalau Q30=0 (tidak ada penjualan 30 hari terakhir -- rasio tidak bermakna
+     * sebagai persentase, bukan berarti 0%).
+     */
+    private function hitungRasio(float $qtyDtrbmasuk, ?Product $barang): ?float
+    {
+        if (!$barang) {
+            return null;
+        }
+
+        $q30 = $this->hitungQ30($barang->id_barang);
+        if ($q30 <= 0) {
+            return null;
+        }
+
+        return round(($qtyDtrbmasuk + $barang->stok_barang) / $q30 * 100, 2);
+    }
+
+    /**
+     * Total qty_dtrkasir 30 hari terakhir utk satu barang, formula yang sama persis
+     * dipakai supplierItems()/InventoryStokKritisController/InventoryMstokController.
+     */
+    private function hitungQ30(int $idBarang): float
+    {
+        $akhir = now()->toDateString();
+        $awal = now()->subDays(30)->toDateString();
+
+        return (float) DB::table('trkasir_detail')
+            ->join('trkasir', 'trkasir.kd_trkasir', '=', 'trkasir_detail.kd_trkasir')
+            ->whereBetween('trkasir.tgl_trkasir', [$awal, $akhir])
+            ->where('trkasir_detail.id_barang', $idBarang)
+            ->sum('trkasir_detail.qty_dtrkasir');
     }
 
     private function validateHeader(Request $request): array
