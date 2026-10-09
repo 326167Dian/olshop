@@ -57,6 +57,7 @@ class InventoryTrbmasukController extends Controller
         $query = Trbmasuk::query()
             ->where('id_resto', 'pusat')
             ->where('jenis', 'nonpbf')
+            ->orderByDesc('id_trbmasuk')
             ->select(['id_trbmasuk', 'kd_trbmasuk', 'petugas', 'tgl_trbmasuk', 'nm_supplier', 'ket_trbmasuk', 'sisa_bayar', 'carabayar']);
 
         return \Yajra\DataTables\Facades\DataTables::of($query)

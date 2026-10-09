@@ -22,7 +22,7 @@ class Admin extends Authenticatable
     public const PERMISSION_GROUPS = [
         'Data Master' => [
             'mpengguna' => 'Operator',
-            'mheader' => 'Header Struk',
+            'mheader' => 'Pengaturan',
             'mjenisbayar' => 'Jenis Pembayaran',
             'mpelanggan' => 'Pelanggan',
             'msupplier' => 'Supplier',
