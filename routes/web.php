@@ -900,6 +900,7 @@ Route::prefix('inventory')->middleware(['auth:admin', 'admin.active'])->name('in
     // per method di controller anak masing-masing.
     Route::prefix('kehadiran')->middleware('inventory.module:kehadiran')->name('kehadiran.')->group(function () {
         Route::get('/', [InventoryKehadiranController::class, 'index'])->name('index');
+        Route::get('/skema', [InventoryKehadiranController::class, 'skema'])->name('skema.index');
         Route::get('/checkin', [InventoryKehadiranController::class, 'checkinForm'])->name('checkin.form');
         Route::post('/checkin', [InventoryKehadiranController::class, 'checkin'])->name('checkin.store');
         Route::post('/checkout', [InventoryKehadiranController::class, 'checkout'])->name('checkout');

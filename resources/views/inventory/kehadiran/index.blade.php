@@ -117,6 +117,17 @@
                 </div>
             </a>
         </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <a href="{{ route('inventory.kehadiran.skema.index') }}" class="text-decoration-none">
+                <div class="card card-primary text-center h-100">
+                    <div class="card-body">
+                        <i class="fas fa-calendar-week fa-2x mb-2"></i>
+                        <h5>Skema Kehadiran Tiap Bulan</h5>
+                        <span class="text-muted small">Lihat jadwal shift tim per bulan</span>
+                    </div>
+                </div>
+            </a>
+        </div>
     </div>
 
     @if ($isPemilik)

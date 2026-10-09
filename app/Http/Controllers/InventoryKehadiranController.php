@@ -9,6 +9,7 @@ use App\Models\JadwalShift;
 use App\Models\KuotaCuti;
 use App\Models\Lembur;
 use App\Models\MasterShift;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -34,7 +35,7 @@ class InventoryKehadiranController extends Controller
      * tidak pernah tercatat di `waktukerja` -- modul ini melacak KEHADIRAN
      * per pegawai, terpisah dari siapa yang pegang laci kasir.
      */
-    public function index()
+    public function index(Request $request)
     {
         $admin = Auth::guard('admin')->user();
         $hariIni = now()->toDateString();
@@ -63,6 +64,72 @@ class InventoryKehadiranController extends Controller
             'menungguApprovalCuti' => $admin->isPemilik() ? Cuti::where('status', 'diajukan')->count() : 0,
             'menungguApprovalLembur' => $admin->isPemilik() ? Lembur::where('status_approval', 'diajukan')->count() : 0,
         ]);
+    }
+
+    /**
+     * Halaman terpisah "Skema Kehadiran Tiap Bulan" -- tabel mingguan (Senin-Minggu)
+     * per shift berisi nama pegawai yang jadwalnya sudah DISETUJUI, meniru format
+     * roster Excel yang dulu dipakai manual. Halaman sendiri (bukan blok di index),
+     * konsisten dengan Jadwal Shift/Absensi/Lembur/Cuti yang juga masing-masing
+     * punya halaman sendiri.
+     */
+    public function skema(Request $request)
+    {
+        $bulanSkema = (int) $request->query('bulan_skema', now()->month);
+        $tahunSkema = (int) $request->query('tahun_skema', now()->year);
+
+        return view('inventory.kehadiran.skema', [
+            'judul' => 'Inventory',
+            'bulanSkema' => $bulanSkema,
+            'tahunSkema' => $tahunSkema,
+            'mingguSkema' => $this->buildSkemaKehadiranBulanan($bulanSkema, $tahunSkema),
+            'shiftListSkema' => MasterShift::orderBy('jam_masuk')->get(),
+        ]);
+    }
+
+    /**
+     * Data grid untuk halaman Skema Kehadiran Tiap Bulan -- dikelompokkan per
+     * minggu kalender (Senin-Minggu); hari di luar bulan yang dipilih (sisa hari di
+     * minggu pertama/terakhir) tetap tampil sebagai kolom tapi ditandai `dalam_bulan`
+     * false supaya view bisa menampilkannya kosong/pudar, bukan dihilangkan -- jadi
+     * setiap tabel minggu selalu utuh 7 kolom Senin..Minggu seperti referensi Excel.
+     */
+    private function buildSkemaKehadiranBulanan(int $bulan, int $tahun): array
+    {
+        $awalBulan = Carbon::create($tahun, $bulan, 1)->startOfDay();
+        $akhirBulan = $awalBulan->copy()->endOfMonth();
+
+        $jadwalBulanIni = JadwalShift::with('admin')
+            ->whereBetween('tanggal', [$awalBulan->toDateString(), $akhirBulan->toDateString()])
+            ->where('status_approval', 'disetujui')
+            ->get();
+
+        $namaPerTanggalShift = [];
+        foreach ($jadwalBulanIni as $jadwal) {
+            $namaPerTanggalShift[$jadwal->tanggal->toDateString()][$jadwal->id_shift][] = $jadwal->admin->nama_lengkap ?? '-';
+        }
+
+        $mingguAwal = $awalBulan->copy()->startOfWeek(Carbon::MONDAY);
+        $mingguAkhir = $akhirBulan->copy()->endOfWeek(Carbon::SUNDAY);
+
+        $minggu = [];
+        $cursor = $mingguAwal->copy();
+
+        while ($cursor->lte($mingguAkhir)) {
+            $hari = [];
+            for ($i = 0; $i < 7; $i++) {
+                $tanggal = $cursor->copy()->addDays($i);
+                $hari[] = [
+                    'tanggal' => $tanggal,
+                    'dalam_bulan' => $tanggal->month === $bulan && $tanggal->year === $tahun,
+                    'nama_per_shift' => $namaPerTanggalShift[$tanggal->toDateString()] ?? [],
+                ];
+            }
+            $minggu[] = $hari;
+            $cursor->addWeek();
+        }
+
+        return $minggu;
     }
 
     /**

@@ -5,67 +5,143 @@
 @section('content')
     <div class="card card-primary">
         <div class="card-header">
-            <h3 class="card-title">{{ $isPemilik ? 'Jadwalkan Pegawai' : 'Ajukan Jadwal' }}</h3>
+            <h3 class="card-title">{{ $isPemilik ? 'Jadwalkan & Setujui Pegawai' : 'Ajukan Jadwal' }}</h3>
         </div>
-        <form method="POST" action="{{ route('inventory.kehadiran.jadwal.store') }}">
-            @csrf
-            <div class="card-body">
-                @if (!$isPemilik)
-                    <div class="alert alert-info">Pengajuan ini akan menunggu approval Pemilik sebelum dianggap sah.</div>
-                @endif
-
-                <div class="form-group">
-                    <label for="id_admin">Pegawai</label>
-                    <select class="form-control @error('id_admin') is-invalid @enderror" name="id_admin" id="id_admin" required
-                        {{ $isPemilik ? '' : 'disabled' }}>
-                        @foreach ($pegawaiList as $p)
-                            <option value="{{ $p->id_admin }}" {{ old('id_admin') == $p->id_admin ? 'selected' : '' }}>{{ $p->nama_lengkap }} ({{ $p->username }})</option>
-                        @endforeach
-                    </select>
-                    @if (!$isPemilik)
-                        <input type="hidden" name="id_admin" value="{{ $pegawaiList->first()->id_admin ?? '' }}">
-                    @endif
-                    @error('id_admin') <span class="invalid-feedback d-block">{{ $message }}</span> @enderror
+        <div class="card-body">
+            @if (!$isPemilik)
+                <div class="alert alert-info">Pengajuan ini akan menunggu approval Pemilik sebelum dianggap sah. Tanggal yang sudah lewat tidak bisa diajukan lagi.</div>
+            @else
+                <div class="alert alert-info">
+                    Centang = pegawai masuk shift itu. Hapus centang pada sel yang sudah terisi akan membatalkan/menghapus
+                    jadwal tersebut. Klik <b>Simpan</b> untuk langsung menyetujui semua pengajuan yang masih tercentang.
+                    Tanggal yang sudah lewat tidak bisa diubah lagi.
                 </div>
+            @endif
 
-                <div class="form-group">
-                    <label for="id_shift">Shift</label>
-                    <select class="form-control @error('id_shift') is-invalid @enderror" name="id_shift" id="id_shift" required>
-                        <option value="">-- Pilih Shift --</option>
-                        @foreach ($shiftList as $s)
-                            <option value="{{ $s->id_shift }}" {{ old('id_shift') == $s->id_shift ? 'selected' : '' }}>
-                                {{ $s->nama_shift }} ({{ $s->jam_masuk }} - {{ $s->jam_pulang }})
+            <form method="GET" action="{{ route('inventory.kehadiran.jadwal.create') }}" class="row g-2 align-items-end mb-3">
+                <div class="col-md-3 col-sm-6 form-group">
+                    <label for="bulan">Bulan</label>
+                    <select class="form-control" name="bulan" id="bulan">
+                        @for ($b = 1; $b <= 12; $b++)
+                            <option value="{{ $b }}" {{ $b == $bulan ? 'selected' : '' }}>
+                                {{ \App\Models\GajiDetail::namaBulan($b) }}
                             </option>
-                        @endforeach
+                        @endfor
                     </select>
-                    @error('id_shift') <span class="invalid-feedback d-block">{{ $message }}</span> @enderror
+                </div>
+                <div class="col-md-2 col-sm-6 form-group">
+                    <label for="tahun">Tahun</label>
+                    <select class="form-control" name="tahun" id="tahun">
+                        @for ($t = (int) date('Y') - 1; $t <= (int) date('Y') + 1; $t++)
+                            <option value="{{ $t }}" {{ $t == $tahun ? 'selected' : '' }}>{{ $t }}</option>
+                        @endfor
+                    </select>
+                </div>
+                <div class="col-md-2 col-sm-12 form-group">
+                    <button type="submit" class="btn btn-secondary">
+                        <i class="fas fa-sync-alt"></i> Tampilkan
+                    </button>
+                </div>
+            </form>
+
+            @if (!$isPemilik)
+                <p class="text-muted small">
+                    Centang shift &amp; tanggal yang ingin diajukan. Nama pegawai lain yang sudah mengajukan shift
+                    yang sama (walaupun belum disetujui) ditampilkan di bawah kotak centang, supaya shift tidak
+                    menumpuk terlalu banyak pegawai di hari yang sama.
+                </p>
+            @endif
+
+            <form method="POST" action="{{ route('inventory.kehadiran.jadwal.store') }}">
+                @csrf
+                <input type="hidden" name="bulan" value="{{ $bulan }}">
+                <input type="hidden" name="tahun" value="{{ $tahun }}">
+
+                @foreach ($mingguGrid as $hariDalamMinggu)
+                    <div class="table-responsive mb-4">
+                        <table class="table table-bordered table-sm text-center align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 110px;">Shift</th>
+                                    @foreach ($hariDalamMinggu as $hari)
+                                        <th class="{{ $hari['dalam_bulan'] && !$hari['lewat'] ? '' : 'text-muted bg-light' }}">
+                                            {{ $hari['tanggal']->translatedFormat('l') }}<br>
+                                            <span class="fw-normal">{{ $hari['tanggal']->translatedFormat('d F Y') }}</span>
+                                            @if ($hari['dalam_bulan'] && $hari['lewat'])
+                                                <br><span class="badge bg-secondary">Sudah lewat</span>
+                                            @endif
+                                        </th>
+                                    @endforeach
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($shiftList as $shift)
+                                    <tr>
+                                        <td class="fw-bold text-start">{{ $shift->nama_shift }}</td>
+                                        @foreach ($hariDalamMinggu as $hari)
+                                            <td class="{{ $hari['dalam_bulan'] && !$hari['lewat'] ? '' : 'bg-light' }}">
+                                                @if ($hari['dalam_bulan'] && !$hari['lewat'])
+                                                    @if ($isPemilik)
+                                                        @php $perAdmin = $hari['sel'][$shift->id_shift] ?? []; @endphp
+                                                        <div class="text-start">
+                                                            @foreach ($pegawaiAktif as $pegawai)
+                                                                @php $status = $perAdmin[$pegawai->id_admin] ?? null; @endphp
+                                                                <div class="form-check">
+                                                                    <input type="checkbox" class="form-check-input"
+                                                                        id="cell_{{ $hari['tanggal']->toDateString() }}_{{ $shift->id_shift }}_{{ $pegawai->id_admin }}"
+                                                                        name="pilihan[{{ $hari['tanggal']->toDateString() }}][{{ $shift->id_shift }}][{{ $pegawai->id_admin }}]"
+                                                                        value="1" {{ $status ? 'checked' : '' }}>
+                                                                    <label class="form-check-label small"
+                                                                        for="cell_{{ $hari['tanggal']->toDateString() }}_{{ $shift->id_shift }}_{{ $pegawai->id_admin }}">
+                                                                        {{ $pegawai->nama_lengkap }}
+                                                                        @if ($status === 'diajukan')
+                                                                            <span class="badge bg-warning">Diajukan</span>
+                                                                        @endif
+                                                                    </label>
+                                                                </div>
+                                                            @endforeach
+                                                        </div>
+                                                    @else
+                                                        @php $sel = $hari['sel'][$shift->id_shift] ?? null; @endphp
+                                                        @if ($sel && $sel['milik_sendiri'])
+                                                            <input type="checkbox" checked disabled>
+                                                            <div>
+                                                                <span class="badge bg-{{ $sel['milik_sendiri']->status_approval === 'disetujui' ? 'success' : 'warning' }}">
+                                                                    {{ ucfirst($sel['milik_sendiri']->status_approval) }}
+                                                                </span>
+                                                            </div>
+                                                        @else
+                                                            <input type="checkbox"
+                                                                name="pilihan[{{ $hari['tanggal']->toDateString() }}][{{ $shift->id_shift }}][{{ Auth::guard('admin')->id() }}]"
+                                                                value="1">
+                                                        @endif
+
+                                                        @if ($sel && !empty($sel['pegawai_lain']))
+                                                            <div class="small text-muted mt-1">
+                                                                @foreach ($sel['pegawai_lain'] as $nama)
+                                                                    <div>{{ $nama }}</div>
+                                                                @endforeach
+                                                            </div>
+                                                        @endif
+                                                    @endif
+                                                @endif
+                                            </td>
+                                        @endforeach
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endforeach
+
+                <div class="form-group mb-3">
+                    <label for="catatan">Catatan (opsional, berlaku untuk jadwal baru yang dicentang)</label>
+                    <textarea name="catatan" id="catatan" class="form-control" rows="2"></textarea>
                 </div>
 
-                <div class="row">
-                    <div class="col-md-6 form-group">
-                        <label for="tanggal_mulai">Tanggal Mulai</label>
-                        <input type="date" name="tanggal_mulai" id="tanggal_mulai"
-                            class="form-control @error('tanggal_mulai') is-invalid @enderror" value="{{ old('tanggal_mulai') }}" required>
-                        @error('tanggal_mulai') <span class="invalid-feedback">{{ $message }}</span> @enderror
-                    </div>
-                    <div class="col-md-6 form-group">
-                        <label for="tanggal_selesai">Tanggal Selesai</label>
-                        <input type="date" name="tanggal_selesai" id="tanggal_selesai"
-                            class="form-control @error('tanggal_selesai') is-invalid @enderror" value="{{ old('tanggal_selesai') }}" required>
-                        <small class="text-muted">Isi sama dengan Tanggal Mulai untuk satu hari saja, atau rentang untuk jadwal mingguan/bulanan sekaligus.</small>
-                        @error('tanggal_selesai') <span class="invalid-feedback d-block">{{ $message }}</span> @enderror
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="catatan">Catatan</label>
-                    <textarea name="catatan" id="catatan" class="form-control" rows="2">{{ old('catatan') }}</textarea>
-                </div>
-            </div>
-            <div class="card-footer">
                 <a href="{{ route('inventory.kehadiran.jadwal.index') }}" class="btn btn-secondary">Kembali</a>
                 <button type="submit" class="btn btn-primary">Simpan</button>
-            </div>
-        </form>
+            </form>
+        </div>
     </div>
 @endsection
