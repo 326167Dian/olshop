@@ -726,7 +726,7 @@ CREATE TABLE `orders` (
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_AUTO_VALUE_ON_ZERO' */ ;
 DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `update_kdbm_after_order` AFTER INSERT ON `orders` FOR EACH ROW UPDATE kdbm
+/*!50003 CREATE*/ /*!50003 TRIGGER `update_kdbm_after_order` AFTER INSERT ON `orders` FOR EACH ROW UPDATE kdbm
     SET stt_kdbm = 'OFF'
     WHERE kd_trbmasuk = NEW.kd_trbmasuk */;;
 DELIMITER ;
@@ -1120,7 +1120,7 @@ CREATE TABLE `trbmasuk` (
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_AUTO_VALUE_ON_ZERO' */ ;
 DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `update_kdbm_after_trbmasuk` AFTER INSERT ON `trbmasuk` FOR EACH ROW UPDATE kdbm
+/*!50003 CREATE*/ /*!50003 TRIGGER `update_kdbm_after_trbmasuk` AFTER INSERT ON `trbmasuk` FOR EACH ROW UPDATE kdbm
     SET stt_kdbm = 'OFF'
     WHERE kd_trbmasuk = NEW.kd_trbmasuk */;;
 DELIMITER ;
@@ -1227,7 +1227,7 @@ CREATE TABLE `trkasir` (
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_AUTO_VALUE_ON_ZERO' */ ;
 DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `update_kdtk_after_trkasir` AFTER INSERT ON `trkasir` FOR EACH ROW UPDATE kdtk
+/*!50003 CREATE*/ /*!50003 TRIGGER `update_kdtk_after_trkasir` AFTER INSERT ON `trkasir` FOR EACH ROW UPDATE kdtk
     SET stt_kdtk = 'OFF'
     WHERE kd_trkasir = NEW.kd_trkasir */;;
 DELIMITER ;
