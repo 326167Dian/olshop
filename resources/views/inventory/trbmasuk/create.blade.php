@@ -360,8 +360,14 @@
                 headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
                 body: form,
             })
-            .then(function(res) { return res.json(); })
-            .then(function() {
+            .then(function(res) {
+                return res.json().then(function(data) { return { ok: res.ok, data: data }; });
+            })
+            .then(function(result) {
+                if (!result.ok || result.data.status === 'blocked') {
+                    alert(result.data.message || 'Gagal menyimpan detail.');
+                    return;
+                }
                 ['id_barang', 'kd_barang', 'nmbrg_dtrbmasuk', 'qty_dtrbmasuk', 'sat_dtrbmasuk', 'no_batch',
                     'hrgsat_dtrbmasuk', 'hrgjual_dtrbmasuk', 'hrgjual_dtrbmasuk_resep', 'hrgjual_dtrbmasuk_nakes'
                 ].forEach(function(id) { document.getElementById(id).value = ''; });

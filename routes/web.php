@@ -53,6 +53,7 @@ use App\Http\Controllers\InventoryBundleController;
 use App\Http\Controllers\InventoryNeracaController;
 use App\Http\Controllers\InventoryLapkomisiController;
 use App\Http\Controllers\InventoryEvaluasiController;
+use App\Http\Controllers\InventoryFiturController;
 use App\Http\Controllers\InventoryAbsensiController;
 use App\Http\Controllers\InventoryCutiController;
 use App\Http\Controllers\InventoryGajiController;
@@ -267,6 +268,13 @@ Route::prefix('inventory')->middleware(['auth:admin', 'admin.active'])->name('in
     Route::prefix('setheader')->middleware('inventory.module:mheader')->name('setheader.')->group(function () {
         Route::get('/', [InventorySetheaderController::class, 'index'])->name('index');
         Route::put('/', [InventorySetheaderController::class, 'update'])->name('update');
+    });
+
+    // Tidak digerbang flag Admin::PERMISSION_GROUPS -- khusus pemilik + admin.mysifa='Y',
+    // dicek manual di InventoryFiturController (lihat catatan class-nya).
+    Route::prefix('fitur')->name('fitur.')->group(function () {
+        Route::get('/', [InventoryFiturController::class, 'index'])->name('index');
+        Route::put('/{fitur}', [InventoryFiturController::class, 'update'])->name('update');
     });
 
     Route::prefix('carabayar')->middleware('inventory.module:mjenisbayar')->name('carabayar.')->group(function () {

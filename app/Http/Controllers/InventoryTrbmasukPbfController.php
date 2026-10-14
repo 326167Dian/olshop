@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Batch;
 use App\Models\BarangSupplier;
+use App\Models\Fitur;
 use App\Models\KartuStok;
 use App\Models\Kdbm;
 use App\Models\Product;
@@ -256,6 +257,13 @@ class InventoryTrbmasukPbfController extends Controller
             // pesanan yang sama) -- dikosongkan untuk input langsung ('tambah') biasa.
             'kd_orders' => 'nullable|string|max:100',
         ]);
+
+        if (Fitur::melebihiBatasStarter()) {
+            return response()->json([
+                'status' => 'blocked',
+                'message' => 'Silahkan upgrade ke fitur Premium',
+            ], 422);
+        }
 
         $diskon = (float) ($validated['diskon'] ?? 0);
         $tipeBarang = $validated['tipe_barang'] ?? 'reguler';

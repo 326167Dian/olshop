@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Batch;
+use App\Models\Fitur;
 use App\Models\KartuStok;
 use App\Models\Kdbm;
 use App\Models\Product;
@@ -239,6 +240,13 @@ class InventoryTrbmasukController extends Controller
             'no_batch' => 'required|string|max:10',
             'exp_date' => 'nullable|date',
         ]);
+
+        if (Fitur::melebihiBatasStarter()) {
+            return response()->json([
+                'status' => 'blocked',
+                'message' => 'Silahkan upgrade ke fitur Premium',
+            ], 422);
+        }
 
         $expDate = $validated['exp_date'] ?? now()->addDays(720)->toDateString();
 

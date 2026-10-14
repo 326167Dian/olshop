@@ -119,6 +119,7 @@ class Admin extends Authenticatable
         'jurnalkas',
         'ujian',
         'kehadiran',
+        'mysifa',
     ];
 
     protected $hidden = [
@@ -206,5 +207,17 @@ class Admin extends Authenticatable
     public function isBlocked(): bool
     {
         return strtoupper((string) $this->blokir) === 'Y';
+    }
+
+    /**
+     * Flag vendor khusus (kolom admin.mysifa, sudah ada di DB sebelum modul ini --
+     * bukan dibuat lewat migration) untuk mengunci halaman /inventory/fitur (toggle
+     * tier starter/premium). SENGAJA tidak lewat hasModuleAccess() /
+     * PERMISSION_GROUPS supaya pemilik apotek tidak bisa membuka kuncinya sendiri
+     * lewat form centang izin Admin -- hanya diset manual via DB untuk akun vendor.
+     */
+    public function isMySifa(): bool
+    {
+        return strtoupper((string) $this->mysifa) === 'Y';
     }
 }

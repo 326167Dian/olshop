@@ -123,6 +123,7 @@
             'lapkomisi' => 'inventory.lapkomisi.',
             'evaluasi' => 'inventory.evaluasi.',
             'gaji' => 'inventory.gaji.',
+            'fitur' => 'inventory.fitur.',
         ];
 
         $activeModule = 'home';
@@ -268,6 +269,7 @@
                             'lapkomisi' => 'icon-printer',
                             'evaluasi' => 'icon-printer',
                             'gaji' => 'icon-dollar-sign',
+                            'fitur' => 'icon-key',
                         ];
 
                         $groupIcons = [
@@ -300,6 +302,15 @@
                         $extraDataMasterItems = [];
                         if ($currentAdmin->isPemilik()) {
                             $extraDataMasterItems['gaji'] = 'Gaji Karyawan';
+                        }
+
+                        // "Data Master > Pengaturan Fitur" -- TIDAK ada di
+                        // Admin::PERMISSION_GROUPS, khusus pemilik DENGAN flag vendor
+                        // admin.mysifa='Y' (lihat Admin::isMySifa() & catatan class
+                        // InventoryFiturController), disuntikkan manual sama seperti
+                        // $extraDataMasterItems['gaji'] di atas.
+                        if ($currentAdmin->isPemilik() && $currentAdmin->isMySifa()) {
+                            $extraDataMasterItems['fitur'] = 'Pengaturan Fitur';
                         }
                     @endphp
 
