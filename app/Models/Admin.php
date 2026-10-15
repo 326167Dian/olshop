@@ -79,7 +79,6 @@ class Admin extends Authenticatable
         'no_telp',
         'foto',
         'akses_level',
-        'unit',
         'blokir',
         'nama_bank',
         'rekening_bank',

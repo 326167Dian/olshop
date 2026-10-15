@@ -60,7 +60,9 @@ class InventoryAdminController extends Controller
 
         $data = $validated;
         $data['password'] = Hash::make($validated['password']);
-        $data['unit'] = 1;
+        // admin.mysifa (dulu 'unit') adalah flag vendor khusus, lihat Admin::isMySifa() --
+        // admin baru yang dibuat lewat form ini TIDAK pernah otomatis dapat akses vendor.
+        $data['mysifa'] = 'N';
         // koreksistok tidak lagi dipakai (menu-nya sudah dinonaktifkan di aplikasi legacy)
         // tapi kolomnya di tabel admin NOT NULL tanpa default, jadi tetap perlu diisi saat insert.
         $data['koreksistok'] = 'N';
