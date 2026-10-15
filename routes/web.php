@@ -816,6 +816,7 @@ Route::prefix('inventory')->middleware(['auth:admin', 'admin.active'])->name('in
         Route::get('/', [InventoryLpkasirController::class, 'index'])->name('index');
         Route::get('/tampil', [InventoryLpkasirController::class, 'tampil'])->name('tampil');
         Route::get('/excel', [InventoryLpkasirController::class, 'excel'])->name('excel');
+        Route::get('/perbandingan', [InventoryLpkasirController::class, 'perbandingan'])->name('perbandingan');
     });
 
     // Laporan > Laba Penjualan (flag labapenjualan) -- laporan baca-saja atas

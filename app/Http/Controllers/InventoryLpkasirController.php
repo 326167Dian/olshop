@@ -6,6 +6,7 @@ use App\Models\Admin;
 use App\Models\CaraBayar;
 use App\Models\Trkasir;
 use App\Models\TrkasirDetail;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class InventoryLpkasirController extends Controller
@@ -99,16 +100,7 @@ class InventoryLpkasirController extends Controller
         $shiftArr = $this->resolveShiftArray((int) $validated['shift']);
         $idUser = $validated['id_user'] ?? null;
 
-        $rows = TrkasirDetail::query()
-            ->join('trkasir', 'trkasir.kd_trkasir', '=', 'trkasir_detail.kd_trkasir')
-            ->whereIn('trkasir.shift', $shiftArr)
-            ->whereBetween('trkasir.tgl_trkasir', [$validated['tgl_awal'], $validated['tgl_akhir']])
-            ->when($idUser, fn ($q) => $q->where('trkasir.id_user', $idUser))
-            ->groupBy('trkasir_detail.kd_barang', 'trkasir_detail.nmbrg_dtrkasir', 'trkasir_detail.sat_dtrkasir')
-            ->orderBy('trkasir_detail.nmbrg_dtrkasir')
-            ->selectRaw('trkasir_detail.kd_barang, trkasir_detail.nmbrg_dtrkasir, trkasir_detail.sat_dtrkasir,
-                SUM(trkasir_detail.qty_dtrkasir) as qty_total, SUM(trkasir_detail.hrgttl_dtrkasir) as total_harga')
-            ->get();
+        $rows = $this->aggregateByBarang($validated['tgl_awal'], $validated['tgl_akhir'], $shiftArr, $idUser);
 
         [$breakdown, $grandTotal] = $this->hitungBreakdownCarabayar($shiftArr, $validated['tgl_awal'], $validated['tgl_akhir'], $idUser);
 
@@ -121,6 +113,83 @@ class InventoryLpkasirController extends Controller
             'Content-Type' => 'application/vnd-ms-excel',
             'Content-Disposition' => 'attachment; filename="Laporan_data_penjualan.xls"',
         ]);
+    }
+
+    /**
+     * "Perbandingan Penjualan" -- item barang terjual pada 2 rentang tanggal bebas
+     * (mis. rentang hari yang sama di bulan berbeda) ditampilkan berdampingan,
+     * masing-masing setengah layar. Agregasi per kd_barang sama persis seperti
+     * excel() di atas, tapi lintas SEMUA shift & petugas (murni perbandingan
+     * jumlah/nilai item terjual, bukan rincian transaksi/cara bayar).
+     */
+    public function perbandingan(Request $request)
+    {
+        $validated = $request->validate([
+            'tgl_awal_1' => 'required|date',
+            'tgl_akhir_1' => 'required|date|after_or_equal:tgl_awal_1',
+            'tgl_awal_2' => 'required|date',
+            'tgl_akhir_2' => 'required|date|after_or_equal:tgl_awal_2',
+        ]);
+
+        $periode1 = $this->aggregateByBarang($validated['tgl_awal_1'], $validated['tgl_akhir_1']);
+        $periode2 = $this->aggregateByBarang($validated['tgl_awal_2'], $validated['tgl_akhir_2']);
+        $totalPeriode1 = $periode1->sum('total_harga');
+        $totalPeriode2 = $periode2->sum('total_harga');
+        $labelPeriode1 = $this->formatRentangTanggal($validated['tgl_awal_1'], $validated['tgl_akhir_1']);
+        $labelPeriode2 = $this->formatRentangTanggal($validated['tgl_awal_2'], $validated['tgl_akhir_2']);
+
+        // Barang yang ada di periode beromzet LEBIH BESAR tapi sama sekali tidak
+        // terjual di periode beromzet lebih kecil -- bukan sekadar "qty lebih
+        // banyak", tapi kd_barang-nya tidak muncul sama sekali di periode lain.
+        if ($totalPeriode1 === $totalPeriode2) {
+            $barangEksklusif = collect();
+            $labelOmzetBesar = null;
+        } elseif ($totalPeriode1 > $totalPeriode2) {
+            $barangEksklusif = $this->barangTidakAdaDi($periode1, $periode2);
+            $labelOmzetBesar = $labelPeriode1;
+        } else {
+            $barangEksklusif = $this->barangTidakAdaDi($periode2, $periode1);
+            $labelOmzetBesar = $labelPeriode2;
+        }
+
+        return view('inventory.lpkasir.perbandingan', [
+            'periode1' => $periode1,
+            'periode2' => $periode2,
+            'totalPeriode1' => $totalPeriode1,
+            'totalPeriode2' => $totalPeriode2,
+            'labelPeriode1' => $labelPeriode1,
+            'labelPeriode2' => $labelPeriode2,
+            'barangEksklusif' => $barangEksklusif,
+            'labelOmzetBesar' => $labelOmzetBesar,
+        ]);
+    }
+
+    /** Baris di $dariPeriode yang kd_barang-nya tidak muncul sama sekali di $dibandingkanDengan. */
+    private function barangTidakAdaDi($dariPeriode, $dibandingkanDengan)
+    {
+        $kdBarangLain = $dibandingkanDengan->pluck('kd_barang')->all();
+
+        return $dariPeriode->reject(fn ($row) => in_array($row->kd_barang, $kdBarangLain, true))->values();
+    }
+
+    private function formatRentangTanggal(string $tglAwal, string $tglAkhir): string
+    {
+        return Carbon::parse($tglAwal)->translatedFormat('d F Y') . ' s/d ' . Carbon::parse($tglAkhir)->translatedFormat('d F Y');
+    }
+
+    /** @return \Illuminate\Support\Collection agregat per kd_barang (kd_barang, nmbrg_dtrkasir, sat_dtrkasir, qty_total, total_harga) */
+    private function aggregateByBarang(string $tglAwal, string $tglAkhir, ?array $shiftArr = null, ?int $idUser = null)
+    {
+        return TrkasirDetail::query()
+            ->join('trkasir', 'trkasir.kd_trkasir', '=', 'trkasir_detail.kd_trkasir')
+            ->when($shiftArr, fn ($q) => $q->whereIn('trkasir.shift', $shiftArr))
+            ->whereBetween('trkasir.tgl_trkasir', [$tglAwal, $tglAkhir])
+            ->when($idUser, fn ($q) => $q->where('trkasir.id_user', $idUser))
+            ->groupBy('trkasir_detail.kd_barang', 'trkasir_detail.nmbrg_dtrkasir', 'trkasir_detail.sat_dtrkasir')
+            ->orderBy('trkasir_detail.nmbrg_dtrkasir')
+            ->selectRaw('trkasir_detail.kd_barang, trkasir_detail.nmbrg_dtrkasir, trkasir_detail.sat_dtrkasir,
+                SUM(trkasir_detail.qty_dtrkasir) as qty_total, SUM(trkasir_detail.hrgttl_dtrkasir) as total_harga')
+            ->get();
     }
 
     private function validateFilter(Request $request): array
