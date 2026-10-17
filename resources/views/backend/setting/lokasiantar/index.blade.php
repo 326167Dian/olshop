@@ -63,11 +63,10 @@
                                         <i class="fas fa-edit"></i> Edit
                                     </a>
                                     <form action="{{ route('lokasi-antar.destroy', $index->id) }}" method="POST"
-                                        class="d-inline" id="delete-form-{{ $index->id }}">
+                                        class="d-inline" onsubmit="return confirm('Hapus lokasi antar ini?');">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="button" onclick="confirmDelete({{ $index->id }})"
-                                            class="btn btn-danger btn-sm">
+                                        <button type="submit" class="btn btn-danger btn-sm">
                                             <i class="fa fa-trash"></i> Hapus
                                         </button>
                                     </form>
@@ -91,20 +90,5 @@
             autoWidth: false
         });
     });
-
-    function confirmDelete(id) {
-        Swal.fire({
-            title: 'Yakin ingin menghapus?',
-            text: "Data tidak dapat dikembalikan!",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'Ya, hapus!',
-            cancelButtonText: 'Batal'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                document.getElementById('delete-form-' + id).submit();
-            }
-        });
-    }
 </script>
 @endpush

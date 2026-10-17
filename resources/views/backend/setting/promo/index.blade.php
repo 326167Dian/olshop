@@ -52,26 +52,18 @@
                             <td>{{ rtrim(rtrim(number_format($index->nilai_diskon, 2, ',', '.'), '0'), ',') }}%</td>
                             <td>{{ $index->status }}</td>
                             <td>
-                                <div class="dropdown position-relative d-inline-block">
-                                    <button class="btn btn-secondary btn-sm dropdown-toggle" type="button"
-                                        data-bs-toggle="dropdown">
-                                        Action
-                                    </button>
-                                    <div class="dropdown-menu center-below p-2 shadow" style="min-width: 140px;">
-                                        <a href="{{ route('promo.edit', $index->id) }}"
-                                            class="btn btn-warning btn-sm w-100 mb-1">
-                                            <i class="fas fa-edit"></i> Edit
-                                        </a>
-                                        <form action="{{ route('promo.destroy', $index->id) }}" method="POST"
-                                            class="d-inline" id="delete-form-{{ $index->id }}">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="button" onclick="confirmDelete({{ $index->id }})"
-                                                class="btn btn-danger btn-sm w-100">
-                                                <i class="fa fa-trash"></i> Hapus
-                                            </button>
-                                        </form>
-                                    </div>
+                                <div class="d-flex flex-wrap gap-1">
+                                    <a href="{{ route('promo.edit', $index->id) }}" class="btn btn-warning btn-sm">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </a>
+                                    <form action="{{ route('promo.destroy', $index->id) }}" method="POST"
+                                        class="d-inline" onsubmit="return confirm('Hapus promo {{ $index->nama_promo }}?');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-danger btn-sm">
+                                            <i class="fa fa-trash"></i> Hapus
+                                        </button>
+                                    </form>
                                 </div>
                             </td>
                         </tr>
@@ -92,20 +84,5 @@
             autoWidth: false
         });
     });
-
-    function confirmDelete(id) {
-        Swal.fire({
-            title: 'Yakin ingin menghapus?',
-            text: "Data tidak dapat dikembalikan!",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'Ya, hapus!',
-            cancelButtonText: 'Batal'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                document.getElementById('delete-form-' + id).submit();
-            }
-        });
-    }
 </script>
 @endpush
