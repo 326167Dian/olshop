@@ -7,8 +7,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
 
-    <link rel="icon" href="{{ asset('storage/' . $companySetting->logo) }}" type="image/png">
-    <title>E-Commerce {{ $companySetting->nama_perusahaan }}</title>
+    <link rel="icon" href="{{ asset('storage/' . ($companySetting->logo ?? '')) }}" type="image/png">
+    <title>E-Commerce {{ $companySetting->nama_perusahaan ?? 'Apotek' }}</title>
 
     <!-- Google font -->
     <link href="https://fonts.googleapis.com/css?family=Hind:400,700" rel="stylesheet">
@@ -123,7 +123,7 @@
                     <!-- Logo -->
                     <div class="header-logo">
                         <a class="logo" href="{{ route('home-page') }}">
-                            <img src="{{ asset('storage/' . $companySetting->logo) }}" alt="">
+                            <img src="{{ asset('storage/' . ($companySetting->logo ?? '')) }}" alt="">
                         </a>
                     </div>
                     <!-- /Logo -->
@@ -342,7 +342,7 @@
                             </li>
                             <li class="mb-2">
                                 @php
-                                    $website = $companySetting->website;
+                                    $website = $companySetting->website ?? null;
                                     if ($website && !Str::startsWith($website, ['http://', 'https://'])) {
                                         $website = 'https://' . $website;
                                     }
@@ -357,7 +357,7 @@
 
                     <!-- Logo di kanan bawah -->
                     <div class="text-right mt-auto">
-                        <img src="{{ asset('storage/' . $companySetting->logo) }}" alt="Logo"
+                        <img src="{{ asset('storage/' . ($companySetting->logo ?? '')) }}" alt="Logo"
                             style="height: 100px; width: auto; object-fit: contain;">
                     </div>
                 </div>
@@ -416,7 +416,7 @@
     <script>
         function openWhatsApp() {
             // Ganti nomor WA sesuai kebutuhan
-            window.open("https://wa.me/{{ $companySetting->telepon }}", "_blank");
+            window.open("https://wa.me/{{ $companySetting->telepon ?? '' }}", "_blank");
         }
     </script>
 
