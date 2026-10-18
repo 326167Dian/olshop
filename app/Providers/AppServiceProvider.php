@@ -35,7 +35,7 @@ class AppServiceProvider extends ServiceProvider
             return;
         }
 
-        View::share('companySetting', CompanySetting::first());
+        View::share('companySetting', CompanySetting::first() ?? new CompanySetting());
         View::share('jenisobat', JenisObat::get());
         View::share('kategori', Category::get());
         View::composer('*', function ($view) {

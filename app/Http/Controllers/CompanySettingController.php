@@ -13,8 +13,8 @@ class CompanySettingController extends Controller
      */
     public function index()
     {
-        $companySetting = CompanySetting::first();
-        return view('backend.setting.company-setting', compact('companySetting'));
+        $setting = CompanySetting::first();
+        return view('backend.setting.company-setting', compact('setting'));
     }
 
     /**

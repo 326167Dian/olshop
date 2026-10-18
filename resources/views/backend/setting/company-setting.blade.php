@@ -6,10 +6,10 @@
 @section('content')
 <div class="container-fluid p-3">
     <form
-        action="{{ isset($companySetting) ? route('company-setting.update', $companySetting->id) : route('company-setting.store') }}"
+        action="{{ isset($setting) ? route('company-setting.update', $setting->id) : route('company-setting.store') }}"
         method="POST" enctype="multipart/form-data">
         @csrf
-        @if(isset($companySetting))
+        @if(isset($setting))
         @method('PUT')
         @endif
 
@@ -24,7 +24,7 @@
                         <div class="mb-3">
                             <label class="form-label">Nama Perusahaan</label>
                             <input type="text" name="nama_perusahaan" class="form-control"
-                                value="{{ old('nama_perusahaan', $companySetting->nama_perusahaan ?? '') }}" required>
+                                value="{{ old('nama_perusahaan', $setting->nama_perusahaan ?? '') }}" required>
                             @error('nama_perusahaan')
                             <div class="text-danger">{{ $message }}</div>
                             @enderror
@@ -33,7 +33,7 @@
                         <div class="mb-3">
                             <label class="form-label">Deskripsi Perusahaan</label>
                             <textarea name="deskripsi" class="form-control"
-                                rows="3">{{ old('deskripsi', $companySetting->deskripsi ?? '') }}</textarea>
+                                rows="3">{{ old('deskripsi', $setting->deskripsi ?? '') }}</textarea>
                             @error('deskripsi')
                             <div class="text-danger">{{ $message }}</div>
                             @enderror
@@ -42,7 +42,7 @@
                         <div class="mb-3">
                             <label class="form-label">Email Perusahaan</label>
                             <input type="email" name="email" class="form-control"
-                                value="{{ old('email', $companySetting->email ?? '') }}">
+                                value="{{ old('email', $setting->email ?? '') }}">
                             @error('email')
                             <div class="text-danger">{{ $message }}</div>
                             @enderror
@@ -50,9 +50,9 @@
 
                         <div class="mb-3">
                             <label class="form-label">Logo Perusahaan</label>
-                            @if(isset($companySetting->logo))
+                            @if(isset($setting->logo))
                             <div class="mb-2 text-center">
-                                <img src="{{ asset('storage/' . $companySetting->logo) }}" alt="Logo"
+                                <img src="{{ asset('storage/' . $setting->logo) }}" alt="Logo"
                                     class="img-thumbnail" style="max-height: 182px; max-width: auto;">
                             </div>
                             @endif
@@ -64,9 +64,9 @@
 
                         <div class="mb-3">
                             <label class="form-label">Gambar QRIS Pembayaran</label>
-                            @if(isset($companySetting->qris_image))
+                            @if(isset($setting->qris_image))
                             <div class="mb-2 text-center">
-                                <img src="{{ asset('storage/' . $companySetting->qris_image) }}" alt="QRIS"
+                                <img src="{{ asset('storage/' . $setting->qris_image) }}" alt="QRIS"
                                     class="img-thumbnail" style="max-height: 182px; max-width: auto;">
                             </div>
                             @endif
@@ -80,10 +80,10 @@
 
                         <div class="mb-3">
                             <label class="form-label">Suara Notifikasi Pesanan Baru</label>
-                            @if(isset($companySetting->notification_sound))
+                            @if(isset($setting->notification_sound))
                             <div class="mb-2 d-flex align-items-center gap-2">
                                 <audio id="notification-sound-preview" controls
-                                    src="{{ asset('storage/' . $companySetting->notification_sound) }}"
+                                    src="{{ asset('storage/' . $setting->notification_sound) }}"
                                     style="height: 36px;"></audio>
                             </div>
                             @endif
@@ -109,7 +109,7 @@
                         <div class="mb-3">
                             <label class="form-label">No Telepon</label>
                             <input name="telepon" class="form-control"
-                                value="{{ old('telepon', $companySetting->telepon ?? '') }}">
+                                value="{{ old('telepon', $setting->telepon ?? '') }}">
                             @error('telepon')
                             <div class="text-danger">{{ $message }}</div>
                             @enderror
@@ -118,7 +118,7 @@
                         <div class="mb-3">
                             <label class="form-label">Website Perusahaan</label>
                             <input name="website" class="form-control"
-                                value="{{ old('website', $companySetting->website ?? '') }}">
+                                value="{{ old('website', $setting->website ?? '') }}">
                             @error('website')
                             <div class="text-danger">{{ $message }}</div>
                             @enderror
@@ -126,7 +126,7 @@
                         <div class="mb-3">
                             <label class="form-label">Alamat</label>
                             <textarea name="alamat" class="form-control"
-                                rows="3">{{ old('alamat', $companySetting->alamat ?? '') }}</textarea>
+                                rows="3">{{ old('alamat', $setting->alamat ?? '') }}</textarea>
                             @error('alamat')
                             <div class="text-danger">{{ $message }}</div>
                             @enderror
@@ -135,7 +135,7 @@
                         <div class="mb-5">
                             <label class="form-label">Peta Lokasi (iframe Google Maps)</label>
                             <textarea name="peta_lokasi" class="form-control"
-                                rows="5">{{ old('peta_lokasi', $companySetting->peta_lokasi ?? '') }}</textarea>
+                                rows="5">{{ old('peta_lokasi', $setting->peta_lokasi ?? '') }}</textarea>
                             @error('peta_lokasi')
                             <div class="text-danger">{{ $message }}</div>
                             @enderror
@@ -160,7 +160,7 @@
                             <label for="catatan">Tulis ketentuan pengiriman</label>
                             <textarea name="catatan" class="form-control @error('catatan') is-invalid @enderror"
                                 rows="7" id="catatan"
-                                placeholder="Isi catatan di sini...">{{ old('catatan', $companySetting->catatan ?? '') }}</textarea>
+                                placeholder="Isi catatan di sini...">{{ old('catatan', $setting->catatan ?? '') }}</textarea>
 
                             @error('catatan')
                             <div class="invalid-feedback">
@@ -192,7 +192,7 @@
                                 <label class="form-label">Latitude</label>
                                 <input type="text" name="kehadiran_lat" id="kehadiran_lat"
                                     class="form-control @error('kehadiran_lat') is-invalid @enderror"
-                                    value="{{ old('kehadiran_lat', $companySetting->kehadiran_lat ?? '') }}"
+                                    value="{{ old('kehadiran_lat', $setting->kehadiran_lat ?? '') }}"
                                     placeholder="Contoh: -6.2345678">
                                 @error('kehadiran_lat')
                                 <div class="text-danger">{{ $message }}</div>
@@ -202,7 +202,7 @@
                                 <label class="form-label">Longitude</label>
                                 <input type="text" name="kehadiran_lng" id="kehadiran_lng"
                                     class="form-control @error('kehadiran_lng') is-invalid @enderror"
-                                    value="{{ old('kehadiran_lng', $companySetting->kehadiran_lng ?? '') }}"
+                                    value="{{ old('kehadiran_lng', $setting->kehadiran_lng ?? '') }}"
                                     placeholder="Contoh: 106.9876543">
                                 @error('kehadiran_lng')
                                 <div class="text-danger">{{ $message }}</div>
@@ -214,7 +214,7 @@
                             <label class="form-label">Radius Toleransi (meter)</label>
                             <input type="number" min="10" name="kehadiran_radius"
                                 class="form-control @error('kehadiran_radius') is-invalid @enderror"
-                                value="{{ old('kehadiran_radius', $companySetting->kehadiran_radius ?? 100) }}">
+                                value="{{ old('kehadiran_radius', $setting->kehadiran_radius ?? 100) }}">
                             @error('kehadiran_radius')
                             <div class="text-danger">{{ $message }}</div>
                             @enderror
@@ -234,7 +234,7 @@
                             <input type="number" step="0.01" min="0" max="100" name="komisi_reseller"
                                 id="komisi_reseller"
                                 class="form-control @error('komisi_reseller') is-invalid @enderror"
-                                value="{{ old('komisi_reseller', $companySetting->komisi_reseller ?? 5) }}">
+                                value="{{ old('komisi_reseller', $setting->komisi_reseller ?? 5) }}">
                             <small class="form-text text-muted">Persentase dari total transaksi pelanggan yang
                                 direkrut reseller, dihitung sebagai komisi mereka. Berlaku untuk semua reseller.</small>
                             @error('komisi_reseller')
