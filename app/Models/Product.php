@@ -82,4 +82,26 @@ class Product extends Model
     {
         return $this->belongsTo(Admin::class, 'updated_by', 'id_admin');
     }
+
+    /**
+     * ket_barang biasanya HTML dari CKEditor (sudah punya <p>/<br> sendiri),
+     * tapi sebagian data lama cuma teks polos dengan baris baru literal yang
+     * akan hilang kalau dicetak mentah ke HTML. nl2br() di sini cuma dipakai
+     * saat belum ada tag block/br sama sekali, supaya tidak dobel breaknya
+     * saat kontennya memang sudah HTML asli dari CKEditor.
+     */
+    public function getKetBarangHtmlAttribute(): string
+    {
+        $value = (string) $this->ket_barang;
+
+        if ($value === '') {
+            return '';
+        }
+
+        if (preg_match('/<(p|br|div|li|ul|ol)\b/i', $value)) {
+            return $value;
+        }
+
+        return nl2br(e($value));
+    }
 }
