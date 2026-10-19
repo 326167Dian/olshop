@@ -109,6 +109,13 @@ Route::get('/home-page', [HomepageController::class, 'index'])->name('home-page'
 Route::get('/produk/detail/{id}', [ProductController::class, 'detail'])->name('produk.detail');
 Route::get('/produk/kategori/{id}', [ProductController::class, 'produkKategori'])->name('produk.kategori');
 Route::get('/produk/cari', [ProductController::class, 'search'])->name('produk.search');
+// Bisa diakses tanpa login (pengunjung dari iklan). Tamu disimpan di keranjang
+// session (App\Services\GuestCart) dan diminta login saat membuka keranjang/checkout.
+Route::get('/produk/all', [ProductController::class, 'index'])->name('produk.all');
+Route::post('add-to-cart/{id}', [OrderController::class, 'addToCart'])->name('order.addToCart');
+Route::get('cart', [OrderController::class, 'viewCart'])->name('order.cart');
+// Webhook Midtrans -- dipanggil server Midtrans, jadi tidak boleh di balik login.
+Route::post('/midtrans-callback', [OrderController::class, 'callback']);
 
 Route::get('/artikel/all', [ArticleController::class, 'indexFrontend'])->name('artikel.all');
 Route::get('/artikel/{slug}', [ArticleController::class, 'show'])->name('article.show');
@@ -128,8 +135,6 @@ Route::middleware('is.customer')->group(function () {
     Route::post('/customer/cek-darah/link', [CustomerCekDarahController::class, 'link'])->name('customer.cekdarah.link');
     Route::get('/customer/cek-darah/{id}', [CustomerCekDarahController::class, 'detail'])->name('customer.cekdarah.detail');
     // Route untuk menambahkan produk ke keranjang 
-    Route::post('add-to-cart/{id}', [OrderController::class, 'addToCart'])->name('order.addToCart');
-    Route::get('cart', [OrderController::class, 'viewCart'])->name('order.cart');
     Route::post('cart/update/{id}', [OrderController::class, 'updateCart'])->name('order.updateCart');
     Route::post('remove/{id}', [OrderController::class, 'removeFromCart'])->name('order.remove');
     Route::post('/order/select-pickup', [OrderController::class, 'selectPickup'])->name('order.selectPickup');
@@ -137,14 +142,12 @@ Route::middleware('is.customer')->group(function () {
     Route::match(['get', 'post'], 'select-payment', [OrderController::class, 'selectPayment'])->name('order.selectpayment');
     Route::match(['get', 'post'], 'select-shipping', [OrderController::class, 'selectShipping'])->name('order.selectShipping');
 
-    Route::post('/midtrans-callback', [OrderController::class, 'callback']);
     Route::get('/order/complete', [OrderController::class, 'complete'])->name('order.complete');
 
     Route::get('history', [OrderController::class, 'orderHistory'])->name('order.history');
     Route::get('order/invoice/{id}', [OrderController::class, 'invoiceFrontend'])->name('order.invoice');
     Route::post('/order/cod', [OrderController::class, 'cod'])->name('order.cod');
     Route::post('/order/bank-transfer', [OrderController::class, 'bankTransfer'])->name('order.bank_transfer');
-    Route::get('/produk/all', [ProductController::class, 'index'])->name('produk.all');
 });
 
 Route::prefix('/backend')->middleware('auth:admin')->group(function () {

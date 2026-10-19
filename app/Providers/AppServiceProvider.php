@@ -54,6 +54,11 @@ class AppServiceProvider extends ServiceProvider
                         $cartTotal = $order->total_harga;
                     }
                 }
+            } else {
+                // Keranjang tamu (belum login) -- lihat App\Services\GuestCart
+                $guest = \App\Services\GuestCart::summary();
+                $cartCount = $guest['count'];
+                $cartTotal = $guest['total'];
             }
 
             $view->with('cartCount', $cartCount)->with('cartTotal', $cartTotal);

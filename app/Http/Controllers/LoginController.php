@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Socialite\Facades\Socialite;
 use App\Models\User;
+use App\Services\GuestCart;
+use App\Support\MetaPixel;
 
 class LoginController extends Controller
 {
@@ -130,6 +132,13 @@ class LoginController extends Controller
             Auth::login($user);
             session()->regenerate();
 
+            // Pindahkan keranjang tamu (belanja sebelum login) ke keranjang akun.
+            GuestCart::mergeInto($user);
+
+            if ($user->wasRecentlyCreated) {
+                MetaPixel::flash('CompleteRegistration', ['status' => true]);
+            }
+
             if (session()->pull('login_intent') === 'reseller') {
                 return redirect()->route('reseller.register');
             }
@@ -143,7 +152,8 @@ class LoginController extends Controller
             }
 
 
-            return redirect()->route('home-page');
+            // Kembali ke halaman yang dituju sebelum login (mis. keranjang).
+            return redirect()->intended(route('home-page'));
         } catch (\Throwable $th) {
             \Illuminate\Support\Facades\Log::error('Google login gagal: ' . $th->getMessage(), ['exception' => $th]);
             return redirect()->route('login.form')->with('error', 'Gagal login via Google.');

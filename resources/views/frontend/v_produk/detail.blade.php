@@ -1,4 +1,17 @@
 @extends('frontend.layouts.index')
+@push('meta-pixel')
+    <script>
+        if (window.fbq) {
+            fbq('track', 'ViewContent', {
+                content_ids: [@json((string) $produks->id_barang)],
+                content_type: 'product',
+                value: {{ (float) \App\Services\GuestCart::hargaFinal($produks) }},
+                currency: 'IDR'
+            });
+        }
+    </script>
+@endpush
+
 @section('content')
     <div class="section">
         <div class="container">

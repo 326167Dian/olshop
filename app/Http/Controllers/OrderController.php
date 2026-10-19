@@ -11,6 +11,8 @@ use App\Models\Promo;
 use App\Models\User;
 use App\Models\UserAddress;
 use App\Services\DeliveryPricingService;
+use App\Services\GuestCart;
+use App\Support\MetaPixel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -37,8 +39,21 @@ class OrderController extends Controller
 
     public function addToCart(Request $request, $id)
     {
-        $customer = User::where('id', Auth::id())->first();
         $produk = Product::findOrFail($id);
+
+        // Pengunjung belum login (mis. dari iklan Meta): simpan di keranjang session.
+        if (!Auth::check()) {
+            if ($produk->stok_barang <= 0) {
+                return redirect()->back()->with('error', 'Stok produk tidak mencukupi');
+            }
+            GuestCart::add($produk);
+            $this->pixelAddToCart($produk);
+
+            // Tetap di halaman yang sama; login baru diminta saat buka keranjang/checkout.
+            return redirect()->back()->with('cart_toast', 'Produk ditambahkan ke keranjang');
+        }
+
+        $customer = User::where('id', Auth::id())->first();
 
         // Hitung harga setelah diskon (jika ada diskon)
         $hargaFinal = $produk->hrgjual_barang2;
@@ -75,9 +90,11 @@ class OrderController extends Controller
         $order->total_harga += $hargaFinal;
         $order->save();
 
+        $this->pixelAddToCart($produk);
+
         // Cek redirect
         if ($request->input('redirect') == '0') {
-            return redirect()->back()->with('success', 'Produk berhasil ditambahkan ke keranjang');
+            return redirect()->back()->with('cart_toast', 'Produk ditambahkan ke keranjang');
         } else {
             return redirect()->route('order.cart')->with('success', 'Produk berhasil ditambahkan ke keranjang');
         }
@@ -86,8 +103,45 @@ class OrderController extends Controller
 
 
 
+    /** Event AddToCart untuk Meta Pixel (tanpa nama produk -- data kesehatan sensitif). */
+    private function pixelAddToCart(Product $produk): void
+    {
+        MetaPixel::flash('AddToCart', [
+            'content_ids' => [(string) $produk->id_barang],
+            'content_type' => 'product',
+            'value' => (float) GuestCart::hargaFinal($produk),
+            'currency' => 'IDR',
+        ]);
+    }
+
+    /** Event Purchase untuk Meta Pixel; eventID = kode pesanan (untuk dedup Conversions API nanti). */
+    private function pixelPurchase(Order $order): void
+    {
+        $order->loadMissing('orderItems');
+        MetaPixel::flash('Purchase', [
+            'content_ids' => $order->orderItems->pluck('produk_id')->map(fn ($id) => (string) $id)->values()->all(),
+            'content_type' => 'product',
+            'num_items' => (int) $order->orderItems->sum('quantity'),
+            'value' => (float) ($order->total_harga + ($order->biaya_ongkir ?? 0)),
+            'currency' => 'IDR',
+        ], $order->kode_pesanan);
+    }
+
+    /** Tamu yang mau checkout: arahkan ke login, lalu kembali ke keranjang. */
+    private function guestToLogin()
+    {
+        session(['url.intended' => route('order.cart')]);
+
+        return redirect()->route('login.form')
+            ->with('info', 'Produk sudah tersimpan di keranjang. Masuk dengan Google sekali saja untuk melanjutkan checkout.');
+    }
+
     public function viewCart()
     {
+        if (!Auth::check()) {
+            return $this->guestToLogin();
+        }
+
         $jarak = 12;
         $customer = User::where('id', Auth::id())->first();
         $order = Order::where('user_id', $customer->id)->where('status', ['pending', 'paid'])->first();
@@ -461,6 +515,7 @@ class OrderController extends Controller
         $this->applyActivePromo($order);
 
         $order->save(); // Simpan perubahan status dan kode_pesanan order
+        $this->pixelPurchase($order);
 
         return redirect()->route('order.history')->with('success', 'Checkout berhasil. Pesanan Anda telah diproses.');
     }
@@ -876,6 +931,7 @@ class OrderController extends Controller
             $order->save();
 
             DB::commit();
+            $this->pixelPurchase($order);
 
             return redirect()->route('order.history')->with('success', 'Pesanan COD berhasil dibuat. Silakan tunggu kurir kami.');
         } catch (\Exception $e) {
@@ -937,6 +993,7 @@ class OrderController extends Controller
             $order->kode_pesanan = $invoice;
             $order->save();
             DB::commit();
+            $this->pixelPurchase($order);
             return redirect()->route('order.history')->with('success', 'Bukti pembayaran berhasil dikirim. Pesanan Anda menunggu verifikasi admin.');
         } catch (\Exception $e) {
             DB::rollBack();
@@ -962,6 +1019,15 @@ class OrderController extends Controller
         // simpan pilihan user
         $order->tipe_layanan = $request->tipe_layanan;
         $order->save();
+
+        $order->loadMissing('orderItems');
+        MetaPixel::flash('InitiateCheckout', [
+            'content_ids' => $order->orderItems->pluck('produk_id')->map(fn ($id) => (string) $id)->values()->all(),
+            'content_type' => 'product',
+            'num_items' => (int) $order->orderItems->sum('quantity'),
+            'value' => (float) $order->total_harga,
+            'currency' => 'IDR',
+        ]);
 
         // arahkan sesuai pilihan
         if ($request->tipe_layanan === 'Dikirim ke alamat') {

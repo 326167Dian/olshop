@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 
 <head>
     <meta charset="utf-8">
@@ -28,6 +28,12 @@
                                     <h3 class="fw-bolder">Sign In</h3>
                                     <p class="text-muted">Masuk ke {{ $companySetting->nama_perusahaan }}</p>
                                 </div>
+
+                                @if (session('info'))
+                                <div class="alert alert-info">
+                                    {{ session('info') }}
+                                </div>
+                                @endif
 
                                 @if (session('error'))
                                 <div class="alert alert-danger">

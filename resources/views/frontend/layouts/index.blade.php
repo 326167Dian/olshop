@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 
 <head>
     <meta charset="utf-8">
@@ -8,7 +8,8 @@
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
 
     <link rel="icon" href="{{ asset('storage/' . ($companySetting->logo ?? '')) }}" type="image/png">
-    <title>E-Commerce {{ $companySetting->nama_perusahaan ?? 'Apotek' }}</title>
+    <title>{{ $companySetting->nama_perusahaan ?? 'Apotek' }} | Belanja Obat & Alkes Online, Diantar ke Rumah</title>
+    <meta name="description" content="{{ \Illuminate\Support\Str::limit(strip_tags($companySetting->deskripsi ?? ''), 155) }}">
 
     <!-- Google font -->
     <link href="https://fonts.googleapis.com/css?family=Hind:400,700" rel="stylesheet">
@@ -34,8 +35,12 @@
 
     <!-- Custom stlylesheet -->
     <link type="text/css" rel="stylesheet" href="{{ asset('eshop/css/style.css') }}" />
-    <script type="text/javascript" src="https://app.sandbox.midtrans.com/snap/snap.js"
-        data-client-key="{{ config('midtrans.client_key') }}"></script>
+    @if (config('midtrans.enabled') && config('midtrans.client_key'))
+        {{-- Hanya dimuat bila Midtrans diaktifkan (MIDTRANS_ENABLED=true). URL otomatis sandbox/production. --}}
+        <script type="text/javascript"
+            src="{{ config('midtrans.is_production') ? 'https://app.midtrans.com/snap/snap.js' : 'https://app.sandbox.midtrans.com/snap/snap.js' }}"
+            data-client-key="{{ config('midtrans.client_key') }}"></script>
+    @endif
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
 
@@ -110,6 +115,8 @@
         }
     </style>
 
+    @include('frontend.partials.meta-pixel')
+    @stack('meta-pixel')
 </head>
 
 <body>
@@ -273,7 +280,7 @@
                             </a>
                         </li>
                         <li>
-                            <a href="{{ auth()->check() ? route('produk.all') : route('login.form') }}"
+                            <a href="{{ route('produk.all') }}"
                                 class="{{ request()->routeIs('produk.all') ? 'active' : '' }}">
                                 Cari Produk
                             </a>
@@ -364,10 +371,7 @@
             </div>
 
             <div class="text-center footer-copyright mt-4">
-                &copy;
-                <script>
-                    document.write(new Date().getFullYear());
-                </script> All rights reserved | MYSIFA E-COMMERCE
+                &copy; {{ date('Y') }} {{ $companySetting->nama_perusahaan ?? '' }}. All rights reserved | MYSIFA E-COMMERCE
             </div>
         </div>
     </footer>
@@ -413,12 +417,42 @@
         <div class="wa-label">Konsultasi</div>
     </div>
 
+    @php
+        // wa.me wajib format internasional tanpa "+" / spasi / "-": 0812xxx -> 62812xxx
+        $waNumber = preg_replace('/\D+/', '', $companySetting->telepon ?? '');
+        if (\Illuminate\Support\Str::startsWith($waNumber, '0')) {
+            $waNumber = '62' . substr($waNumber, 1);
+        }
+        $waText = 'Halo ' . ($companySetting->nama_perusahaan ?? 'Apotek') . ', saya mau konsultasi / tanya obat.';
+    @endphp
     <script>
         function openWhatsApp() {
-            // Ganti nomor WA sesuai kebutuhan
-            window.open("https://wa.me/{{ $companySetting->telepon ?? '' }}", "_blank");
+            if (window.fbq) {
+                fbq('track', 'Contact');
+            }
+            window.open("https://wa.me/{{ $waNumber }}?text=" + encodeURIComponent(@json($waText)), "_blank");
         }
     </script>
+
+    @if (session('cart_toast'))
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                if (!window.Swal) return;
+                Swal.fire({
+                    icon: 'success',
+                    title: @json(session('cart_toast')),
+                    showCancelButton: true,
+                    confirmButtonText: 'Checkout sekarang',
+                    cancelButtonText: 'Lanjut belanja',
+                    confirmButtonColor: '#28a745',
+                }).then(function(result) {
+                    if (result.isConfirmed) {
+                        window.location.href = @json(route('order.cart'));
+                    }
+                });
+            });
+        </script>
+    @endif
 
     <style>
         .wa-float {

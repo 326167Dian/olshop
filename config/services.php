@@ -41,5 +41,11 @@ return [
         'redirect'      => env('GOOGLE_REDIRECT_URI'),
     ],
 
+    // Meta (Facebook/Instagram) Pixel -- isi META_PIXEL_ID di .env hosting.
+    // Kosongkan untuk menonaktifkan (mis. di localhost).
+    'meta_pixel' => [
+        'id' => env('META_PIXEL_ID'),
+    ],
+
 
 ];
