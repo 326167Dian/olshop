@@ -160,11 +160,6 @@
                 /* ruang supaya konten/footer tidak ketutup bottom nav */
             }
 
-            .wa-float {
-                bottom: 76px;
-                /* geser ke atas supaya tidak tabrakan dengan bottom nav */
-            }
-
             .app-bottom-nav {
                 display: flex;
                 position: fixed;
@@ -642,6 +637,14 @@
         .wa-button img {
             width: 35px;
             height: 35px;
+        }
+
+        /* Naikkan sedikit di mobile supaya tidak menutupi tombol "Masuk" di
+           bottom nav (lihat .app-bottom-nav). */
+        @media (max-width: 768px) {
+            .wa-float {
+                bottom: 90px;
+            }
         }
     </style>
 
