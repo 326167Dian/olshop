@@ -43,6 +43,36 @@
 
             <div class="card card-primary mt-3">
                 <div class="card-header">
+                    <h5 class="card-title mb-0">Ganti Password</h5>
+                </div>
+                <div class="card-body">
+                    <form action="{{ route('admin.profile.update-password') }}" method="POST">
+                        @csrf
+                        @method('PUT')
+
+                        <div class="mb-3">
+                            <label class="form-label">Password Baru</label>
+                            <input type="password" name="password_baru"
+                                class="form-control @error('password_baru') is-invalid @enderror"
+                                placeholder="Minimal 8 karakter">
+                            @error('password_baru')
+                            <div class="text-danger">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Konfirmasi Password Baru</label>
+                            <input type="password" name="password_baru_confirmation" class="form-control"
+                                placeholder="Ulangi Password Baru">
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100">Simpan Password</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card card-primary mt-3">
+                <div class="card-header">
                     <h5 class="card-title mb-0">Info Rekening Bank</h5>
                 </div>
                 <div class="card-body">

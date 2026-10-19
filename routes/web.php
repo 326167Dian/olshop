@@ -248,6 +248,7 @@ Route::prefix('/backend')->middleware('auth:admin')->group(function () {
     Route::get('/profile', [AdminProfileController::class, 'edit'])->name('admin.profile.edit');
     Route::put('/profile', [AdminProfileController::class, 'update'])->name('admin.profile.update');
     Route::put('/profile/bank', [AdminProfileController::class, 'updateBank'])->name('admin.profile.update-bank');
+    Route::put('/profile/password', [AdminProfileController::class, 'updatePassword'])->name('admin.profile.update-password');
 });
 
 // Sistem Inventory (adaptasi Laravel dari public/apotekberlian, database yang sama)

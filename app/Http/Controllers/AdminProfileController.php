@@ -58,4 +58,25 @@ class AdminProfileController extends Controller
 
         return redirect()->route('admin.profile.edit')->with('success', 'Info rekening bank berhasil diperbarui.');
     }
+
+    /**
+     * Ganti password admin yang sedang login. Password baru langsung menimpa
+     * yang lama, tanpa perlu konfirmasi password lama.
+     */
+    public function updatePassword(Request $request)
+    {
+        $request->validate([
+            'password_baru' => ['required', 'string', 'min:8', 'confirmed'],
+        ], [
+            'password_baru.required' => 'Password baru wajib diisi.',
+            'password_baru.min' => 'Password baru minimal 8 karakter.',
+            'password_baru.confirmed' => 'Konfirmasi password baru tidak cocok.',
+        ]);
+
+        $admin = Auth::user();
+        $admin->password = $request->input('password_baru');
+        $admin->save();
+
+        return redirect()->route('admin.profile.edit')->with('success', 'Password berhasil diperbarui.');
+    }
 }
