@@ -1,5 +1,6 @@
 @php
-    $metaPixelId = config('services.meta_pixel.id');
+    // Diambil dari Setting > Input Pixel (fallback META_PIXEL_ID di .env)
+    $metaPixelId = \App\Support\MetaPixel::id();
 @endphp
 @if ($metaPixelId)
     <!-- Meta Pixel Code -->

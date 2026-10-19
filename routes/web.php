@@ -238,6 +238,10 @@ Route::prefix('/backend')->middleware('auth:admin')->group(function () {
     Route::post('/company-setting', [CompanySettingController::class, 'store'])->name('company-setting.store');
     Route::put('/company-setting/{id}', [CompanySettingController::class, 'update'])->name('company-setting.update');
 
+    // Meta Pixel (Setting > Input Pixel)
+    Route::get('/meta-pixel', [\App\Http\Controllers\MetaPixelSettingController::class, 'index'])->name('meta-pixel.index');
+    Route::put('/meta-pixel', [\App\Http\Controllers\MetaPixelSettingController::class, 'update'])->name('meta-pixel.update');
+
     // Banner
     Route::resource('banner', BannerController::class);
 

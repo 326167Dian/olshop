@@ -25,6 +25,12 @@ class CompanySetting extends Model
         'kehadiran_lat',
         'kehadiran_lng',
         'kehadiran_radius',
+        'meta_pixel_id',
+        'meta_pixel_aktif',
+    ];
+
+    protected $casts = [
+        'meta_pixel_aktif' => 'boolean',
     ];
 
     /**

@@ -14,9 +14,38 @@ class MetaPixel
 {
     public const SESSION_KEY = 'meta_pixel_events';
 
+    private static ?string $idCache = null;
+    private static bool $idLoaded = false;
+
+    /**
+     * Pixel ID aktif: dari Setting > Input Pixel (tabel company_settings).
+     * Fallback ke META_PIXEL_ID di .env bila belum diisi lewat menu.
+     */
+    public static function id(): ?string
+    {
+        if (self::$idLoaded) {
+            return self::$idCache;
+        }
+        self::$idLoaded = true;
+
+        $id = null;
+        try {
+            $setting = \App\Models\CompanySetting::first();
+            if ($setting && $setting->meta_pixel_id) {
+                // Diisi lewat menu: hormati saklar aktif/nonaktif
+                $id = $setting->meta_pixel_aktif === false ? null : $setting->meta_pixel_id;
+                return self::$idCache = $id;
+            }
+        } catch (\Throwable $e) {
+            // Tabel/kolom belum ada (migrasi belum dijalankan) -- pakai .env saja
+        }
+
+        return self::$idCache = (config('services.meta_pixel.id') ?: null);
+    }
+
     public static function enabled(): bool
     {
-        return (bool) config('services.meta_pixel.id');
+        return (bool) self::id();
     }
 
     public static function flash(string $event, array $params = [], ?string $eventId = null): void

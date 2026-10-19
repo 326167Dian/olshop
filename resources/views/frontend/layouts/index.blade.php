@@ -86,10 +86,17 @@
                 /* ini pasti bikin jarak */
             }
 
-            /* Ikon Daftar/Masuk disembunyikan di mobile -- sudah ada tab
-               "Masuk"/"Akun" di bottom nav, biar header tidak sesak. */
-            .header-account {
+            /* Daftar kategori beranda: tertutup di HP supaya banner & produk
+               langsung terlihat (pengunjung iklan); buka lewat tombol "Kategori". */
+            #kategori-list {
                 display: none;
+            }
+        }
+
+        /* Desktop: daftar kategori beranda terbuka */
+        @media (min-width: 769px) {
+            #kategori-list {
+                display: block;
             }
         }
 
@@ -240,10 +247,9 @@
                 </div>
                 <div class="pull-right">
                     <ul class="header-btns">
-                        {{-- Disembunyikan khusus di mobile (lihat .header-account di CSS) --
-                             akses akun/login di mobile sudah ada di tab "Masuk"/"Akun" pada
-                             bottom nav. Tetap tampil di desktop karena ini satu-satunya jalan
-                             logout yang ada di storefront. --}}
+                        {{-- Menu akun (My Account, History Pemesanan, History Cek Darah, Logout)
+                             sengaja tampil di desktop DAN mobile -- ini satu-satunya jalan ke
+                             menu-menu tersebut di storefront. Jangan disembunyikan di mobile. --}}
                         <!-- Account -->
                         <li class="header-account dropdown default-dropdown" style="margin-left: 15px;">
                             @if (Auth::check())
@@ -355,7 +361,7 @@
                         <span class="category-header" onclick="toggleKategoriList()" style="cursor: pointer;">
                             Kategori <i class="fa fa-list"></i>
                         </span>
-                        <ul class="category-list" id="kategori-list" style="display: block;">
+                        <ul class="category-list" id="kategori-list">
                             @foreach ($kategori as $item)
                                 <li>
                                     <a
@@ -504,7 +510,8 @@
     <script>
         function toggleKategoriList() {
             const list = document.getElementById('kategori-list');
-            list.style.display = (list.style.display === 'none' || list.style.display === '') ? 'block' : 'none';
+            // Pakai computed style: default-nya beda di desktop (terbuka) dan mobile (tertutup)
+            list.style.display = (window.getComputedStyle(list).display === 'none') ? 'block' : 'none';
         }
 
         // Optional: jika butuh jQuery ready

@@ -275,6 +275,12 @@
                                     <span class="nav-menu-item-title">Lokasi Antar</span>
                                 </a>
                             </li>
+                            <li class="nav-menu-item {{ Route::currentRouteName() == 'meta-pixel.index' ? 'active' : '' }}">
+                                <a href="{{ route('meta-pixel.index') }}">
+                                    <i class="feather icon-target"></i>
+                                    <span class="nav-menu-item-title">Input Pixel</span>
+                                </a>
+                            </li>
                         </ul>
                     </li>
 
