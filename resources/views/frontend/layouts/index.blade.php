@@ -75,12 +75,21 @@
             .nav-toggle {
                 display: flex;
                 align-items: center;
+                padding-top: 0;
+                margin-top: -10px;
+                /* naikkan burger menu supaya sejajar lebih ke atas */
             }
 
             /* kasih jarak antara tombol dan tulisan */
             .nav-toggle button {
                 margin-right: 10px;
                 /* ini pasti bikin jarak */
+            }
+
+            /* Ikon Daftar/Masuk disembunyikan di mobile -- sudah ada tab
+               "Masuk"/"Akun" di bottom nav, biar header tidak sesak. */
+            .header-account {
+                display: none;
             }
         }
 
@@ -231,12 +240,12 @@
                 </div>
                 <div class="pull-right">
                     <ul class="header-btns">
+                        {{-- Disembunyikan khusus di mobile (lihat .header-account di CSS) --
+                             akses akun/login di mobile sudah ada di tab "Masuk"/"Akun" pada
+                             bottom nav. Tetap tampil di desktop karena ini satu-satunya jalan
+                             logout yang ada di storefront. --}}
                         <!-- Account -->
                         <li class="header-account dropdown default-dropdown" style="margin-left: 15px;">
-
-                            <!-- Ganti dari <div> ke <a> -->
-
-
                             @if (Auth::check())
                                 <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button"
                                     aria-expanded="false">
@@ -246,7 +255,6 @@
                                     <strong class="text-uppercase">My Account <i class="fa fa-caret-down"></i></strong>
                                 </a>
                                 <a class="text-uppercase">{{ explode(' ', Auth::user()->name)[0] }}</a>
-                                <!-- Tambahkan class dropdown-menu agar dikenali Bootstrap -->
                                 <ul class="dropdown-menu custom-menu list-unstyled">
                                     <li>
                                         <a href="{{ route('customer.akun', ['id' => Auth::user()->id]) }}">
@@ -302,7 +310,7 @@
                                         <span class="qty">{{ $cartCount }}</span>
                                     </a>
                                 </div>
-                                <strong class="text-uppercase">My Cart:</strong>
+                                <strong class="text-uppercase">Keranjang:</strong>
                                 <br>
                                 <span style="font-size: 12px">Rp. {{ number_format($cartTotal, 0, ',', '.') }}</span>
                             </a>
@@ -314,7 +322,7 @@
                             <button class="nav-toggle-btn main-btn icon-btn">
                                 <i class="fa fa-bars"></i>
                             </button>
-                            <strong class="text-uppercase">Menu</strong>
+                            <strong class="text-uppercase">Menu Obat</strong>
                         </li>
                         <!-- / Mobile nav toggle -->
                     </ul>
