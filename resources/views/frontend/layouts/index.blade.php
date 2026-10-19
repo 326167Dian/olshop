@@ -113,6 +113,105 @@
             height: 100%;
             border: 0;
         }
+
+        /* Search bar mobile di header -- disembunyikan di desktop, search sudah
+           ada di halaman "Cari Produk" sendiri. */
+        .mobile-search-bar {
+            display: none;
+            clear: both;
+        }
+
+        /* Bottom navigation bar ala aplikasi mobile -- disembunyikan di desktop,
+           cuma tampil di layar sempit karena mayoritas pembeli akses lewat HP. */
+        .app-bottom-nav {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .mobile-search-bar {
+                display: block;
+                padding: 10px 0 14px 0;
+            }
+
+            .mobile-search-bar form {
+                display: flex;
+                border: 1px solid #dadada;
+                border-radius: 6px;
+                overflow: hidden;
+            }
+
+            .mobile-search-bar input {
+                flex: 1;
+                border: 0;
+                padding: 10px 12px;
+                font-size: 14px;
+                outline: none;
+            }
+
+            .mobile-search-bar button {
+                border: 0;
+                background: #3ea110;
+                color: #fff;
+                padding: 0 16px;
+            }
+
+            body {
+                padding-bottom: 60px;
+                /* ruang supaya konten/footer tidak ketutup bottom nav */
+            }
+
+            .wa-float {
+                bottom: 76px;
+                /* geser ke atas supaya tidak tabrakan dengan bottom nav */
+            }
+
+            .app-bottom-nav {
+                display: flex;
+                position: fixed;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                z-index: 1000;
+                background: #fff;
+                border-top: 1px solid #dadada;
+                box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.06);
+            }
+
+            .app-bottom-nav .item {
+                flex: 1;
+                text-align: center;
+                padding: 6px 2px 8px 2px;
+                font-size: 11px;
+                color: #777;
+                text-decoration: none;
+                position: relative;
+            }
+
+            .app-bottom-nav .item i {
+                display: block;
+                font-size: 18px;
+                margin-bottom: 2px;
+                position: relative;
+            }
+
+            .app-bottom-nav .item.active {
+                color: #3ea110;
+                font-weight: 700;
+            }
+
+            .app-bottom-nav .bn-badge {
+                position: absolute;
+                top: -6px;
+                right: -10px;
+                background: #e74c3c;
+                color: #fff;
+                border-radius: 999px;
+                font-size: 10px;
+                line-height: 1;
+                padding: 2px 5px;
+                font-weight: 700;
+            }
+        }
     </style>
 
     @include('frontend.partials.meta-pixel')
@@ -134,8 +233,6 @@
                         </a>
                     </div>
                     <!-- /Logo -->
-                    <!-- Search -->
-                    <!-- /Search -->
                 </div>
                 <div class="pull-right">
                     <ul class="header-btns">
@@ -227,6 +324,16 @@
                         <!-- / Mobile nav toggle -->
                     </ul>
                 </div>
+
+                <!-- Search (mobile only) -->
+                <div class="mobile-search-bar">
+                    <form action="{{ route('produk.search') }}" method="GET">
+                        <input type="text" name="q" value="{{ request('q') }}"
+                            placeholder="Cari obat atau produk kesehatan">
+                        <button type="submit"><i class="fa fa-search"></i></button>
+                    </form>
+                </div>
+                <!-- /Search -->
             </div>
             <!-- header -->
         </div>
@@ -245,7 +352,7 @@
                         <span class="category-header" onclick="toggleKategoriList()" style="cursor: pointer;">
                             Kategori <i class="fa fa-list"></i>
                         </span>
-                        <ul class="category-list" id="kategori-list" style="display: none;">
+                        <ul class="category-list" id="kategori-list" style="display: block;">
                             @foreach ($kategori as $item)
                                 <li>
                                     <a
@@ -408,6 +515,44 @@
     <script>
         AOS.init();
     </script>
+
+    <!-- BOTTOM NAV (mobile only) -->
+    <nav class="app-bottom-nav">
+        <a href="{{ route('home-page') }}" class="item {{ request()->routeIs('home-page') ? 'active' : '' }}">
+            <i class="fa fa-home"></i>
+            <span>Beranda</span>
+        </a>
+        <a href="{{ route('produk.all') }}" class="item {{ request()->routeIs('produk.*') ? 'active' : '' }}">
+            <i class="fa fa-search"></i>
+            <span>Produk</span>
+        </a>
+        <a href="{{ route('artikel.all') }}"
+            class="item {{ request()->routeIs('artikel.*', 'article.show') ? 'active' : '' }}">
+            <i class="fa fa-file-text-o"></i>
+            <span>Artikel</span>
+        </a>
+        <a href="{{ route('order.cart') }}" class="item {{ request()->routeIs('order.cart') ? 'active' : '' }}">
+            <i class="fa fa-shopping-cart">
+                @if ($cartCount > 0)
+                    <span class="bn-badge">{{ $cartCount }}</span>
+                @endif
+            </i>
+            <span>Keranjang</span>
+        </a>
+        @if (Auth::check())
+            <a href="{{ route('customer.akun', ['id' => Auth::user()->id]) }}"
+                class="item {{ request()->routeIs('customer.akun') ? 'active' : '' }}">
+                <i class="fa fa-user-o"></i>
+                <span>Akun</span>
+            </a>
+        @else
+            <a href="{{ route('login.form') }}" class="item {{ request()->routeIs('login.form') ? 'active' : '' }}">
+                <i class="fa fa-user-o"></i>
+                <span>Masuk</span>
+            </a>
+        @endif
+    </nav>
+    <!-- /BOTTOM NAV -->
 
     <!-- 🔽 Tambahkan floating button di sini -->
     <div class="wa-float">
