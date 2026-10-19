@@ -24,7 +24,7 @@
                 <td class="text-center">{{ $r->ttlqty }}</td>
                 <td class="text-center">{{ $r->stok_sistem }}</td>
                 <td class="text-center">
-                    <input type="number" min="0" class="form-control text-center" id="stok_fisik_{{ $no }}" value="0">
+                    <input type="number" min="0" class="form-control text-center" id="stok_fisik_{{ $no }}" value="0" style="min-width: 70px;">
                 </td>
                 <td class="text-center">
                     <button type="button" id="pilih_{{ $no }}" class="btn btn-primary btn-sm"
