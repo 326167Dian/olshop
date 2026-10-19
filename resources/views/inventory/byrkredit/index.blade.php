@@ -42,7 +42,7 @@
             responsive: true,
             autoWidth: false,
             ajax: "{{ route('inventory.byrkredit.data') }}",
-            order: [[0, 'desc']],
+            order: [],
             columns: [
                 { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'kd_trbmasuk', name: 'kd_trbmasuk' },
