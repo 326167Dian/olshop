@@ -115,6 +115,10 @@ class InventoryTrkasirController extends Controller
             'judul' => 'Inventory',
             'komisiGlobalText' => $this->komisiGlobalMarquee($admin),
             'komisiProdukText' => $this->komisiProdukMarquee($admin),
+            // Baris "Ringkasan Transaksi" dibangun dari daftar ini -- jadi ikut
+            // nambah otomatis kalau ada jenis pembayaran baru ditambahkan lewat
+            // Data Master > Jenis Pembayaran (lihat data() di bawah).
+            'carabayarList' => CaraBayar::orderBy('urutan')->get(['id_carabayar', 'nm_carabayar']),
         ]);
     }
 
@@ -185,16 +189,19 @@ class InventoryTrkasirController extends Controller
      * hanya untuk pemilik (dicek server-side juga di edit()/update()/destroy(), bukan
      * cuma disembunyikan di sini), PRINT/KWITANSI/INVOICE/ETIKET untuk semua role.
      *
-     * Field totalKasir/totalTunai.../totalTempo... (lewat ->with(), fitur bawaan Yajra
-     * untuk menambah key level-atas di luar `data`) mengikuti "Ringkasan Transaksi" milik
-     * penjualanhariini_serverside.php -- SUM(ttl_trkasir) per id_carabayar (1=Tunai,
-     * 2=Transfer, 3=Tempo, dikonfirmasi cocok dengan tabel carabayar produksi) x shift
-     * (1=Pagi, 2=Sore), untuk transaksi HARI INI. Beda dari legacy: di sana ringkasan ini
-     * ikut menyempit kalau kotak pencarian DataTables dipakai (query SUM-nya memakai WHERE
-     * yang sama dengan daftar yang sedang difilter) -- di sini SENGAJA selalu total
-     * seluruh hari ini apa adanya, tidak ikut mengecil saat mencari satu transaksi
-     * tertentu, supaya ringkasan shift tidak membingungkan kasir yang sedang mencari
-     * sesuatu di kotak pencarian.
+     * Field totalKasir/ringkasan (lewat ->with(), fitur bawaan Yajra untuk menambah key
+     * level-atas di luar `data`) mengikuti "Ringkasan Transaksi" milik
+     * penjualanhariini_serverside.php -- SUM(ttl_trkasir) per id_carabayar x shift
+     * (1=Pagi, 2=Sore), untuk transaksi HARI INI. Dulu di-hardcode CASE WHEN per 3
+     * id_carabayar (1=Tunai, 2=Transfer, 3=Tempo) karena cuma itu yang ada di tabel
+     * `carabayar` produksi saat porting -- diganti GROUP BY dinamis supaya otomatis
+     * ikut nambah kalau ada jenis pembayaran baru ditambahkan lewat Data Master >
+     * Jenis Pembayaran (lihat index() di atas), tanpa perlu ubah kode lagi. Beda dari
+     * legacy: di sana ringkasan ini ikut menyempit kalau kotak pencarian DataTables
+     * dipakai (query SUM-nya memakai WHERE yang sama dengan daftar yang sedang
+     * difilter) -- di sini SENGAJA selalu total seluruh hari ini apa adanya, tidak ikut
+     * mengecil saat mencari satu transaksi tertentu, supaya ringkasan shift tidak
+     * membingungkan kasir yang sedang mencari sesuatu di kotak pencarian.
      */
     public function data()
     {
@@ -204,18 +211,27 @@ class InventoryTrkasirController extends Controller
 
         $query = Trkasir::query()->where('tgl_trkasir', $tanggal)->orderByDesc('id_trkasir');
 
-        $summary = Trkasir::query()->where('tgl_trkasir', $tanggal)->selectRaw("
-                COALESCE(SUM(ttl_trkasir), 0) as total_kasir,
-                COALESCE(SUM(CASE WHEN id_carabayar = 1 THEN ttl_trkasir ELSE 0 END), 0) as total_tunai,
-                COALESCE(SUM(CASE WHEN id_carabayar = 1 AND shift = 1 THEN ttl_trkasir ELSE 0 END), 0) as total_tunai_pagi,
-                COALESCE(SUM(CASE WHEN id_carabayar = 1 AND shift = 2 THEN ttl_trkasir ELSE 0 END), 0) as total_tunai_sore,
-                COALESCE(SUM(CASE WHEN id_carabayar = 2 THEN ttl_trkasir ELSE 0 END), 0) as total_transfer,
-                COALESCE(SUM(CASE WHEN id_carabayar = 2 AND shift = 1 THEN ttl_trkasir ELSE 0 END), 0) as total_transfer_pagi,
-                COALESCE(SUM(CASE WHEN id_carabayar = 2 AND shift = 2 THEN ttl_trkasir ELSE 0 END), 0) as total_transfer_sore,
-                COALESCE(SUM(CASE WHEN id_carabayar = 3 THEN ttl_trkasir ELSE 0 END), 0) as total_tempo,
-                COALESCE(SUM(CASE WHEN id_carabayar = 3 AND shift = 1 THEN ttl_trkasir ELSE 0 END), 0) as total_tempo_pagi,
-                COALESCE(SUM(CASE WHEN id_carabayar = 3 AND shift = 2 THEN ttl_trkasir ELSE 0 END), 0) as total_tempo_sore
-            ")->first();
+        $totalKasir = (int) Trkasir::query()->where('tgl_trkasir', $tanggal)->sum('ttl_trkasir');
+
+        $rows = Trkasir::query()->where('tgl_trkasir', $tanggal)
+            ->selectRaw('id_carabayar, shift, COALESCE(SUM(ttl_trkasir), 0) as total')
+            ->groupBy('id_carabayar', 'shift')
+            ->get();
+
+        $ringkasan = [];
+        foreach ($rows as $row) {
+            $id = (int) $row->id_carabayar;
+            if (!isset($ringkasan[$id])) {
+                $ringkasan[$id] = ['total' => 0, 'pagi' => 0, 'sore' => 0];
+            }
+
+            $ringkasan[$id]['total'] += (int) $row->total;
+            if ((int) $row->shift === 1) {
+                $ringkasan[$id]['pagi'] += (int) $row->total;
+            } elseif ((int) $row->shift === 2) {
+                $ringkasan[$id]['sore'] += (int) $row->total;
+            }
+        }
 
         return DataTables::of($query)
             ->addIndexColumn()
@@ -263,16 +279,8 @@ class InventoryTrkasirController extends Controller
                 return $html;
             })
             ->with([
-                'totalKasir' => (int) $summary->total_kasir,
-                'totalTunai' => (int) $summary->total_tunai,
-                'totalTunaiPagi' => (int) $summary->total_tunai_pagi,
-                'totalTunaiSore' => (int) $summary->total_tunai_sore,
-                'totalTransfer' => (int) $summary->total_transfer,
-                'totalTransferPagi' => (int) $summary->total_transfer_pagi,
-                'totalTransferSore' => (int) $summary->total_transfer_sore,
-                'totalTempo' => (int) $summary->total_tempo,
-                'totalTempoPagi' => (int) $summary->total_tempo_pagi,
-                'totalTempoSore' => (int) $summary->total_tempo_sore,
+                'totalKasir' => $totalKasir,
+                'ringkasan' => $ringkasan,
             ])
             ->rawColumns(['aksi'])
             ->make(true);

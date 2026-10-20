@@ -51,24 +51,14 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
-                            <td>Tunai</td>
-                            <td id="totalTunai">0</td>
-                            <td id="totalTunaiPagi">0</td>
-                            <td id="totalTunaiSore">0</td>
-                        </tr>
-                        <tr>
-                            <td>Transfer</td>
-                            <td id="totalTransfer">0</td>
-                            <td id="totalTransferPagi">0</td>
-                            <td id="totalTransferSore">0</td>
-                        </tr>
-                        <tr>
-                            <td>Tempo</td>
-                            <td id="totalTempo">0</td>
-                            <td id="totalTempoPagi">0</td>
-                            <td id="totalTempoSore">0</td>
-                        </tr>
+                        @foreach ($carabayarList as $cb)
+                            <tr>
+                                <td>{{ $cb->nm_carabayar }}</td>
+                                <td class="ringkasan-total" data-id="{{ $cb->id_carabayar }}">0</td>
+                                <td class="ringkasan-pagi" data-id="{{ $cb->id_carabayar }}">0</td>
+                                <td class="ringkasan-sore" data-id="{{ $cb->id_carabayar }}">0</td>
+                            </tr>
+                        @endforeach
                     </tbody>
                     <tfoot>
                         <tr style="background-color:#00fafa; font-weight:bold;">
@@ -117,23 +107,28 @@
             ],
             drawCallback: function() {
                 var json = this.api().ajax.json();
-                if (!json) return;
+                if (!json || !json.ringkasan) return;
 
-                document.getElementById('totalTunai').textContent = formatRupiahRingkasan(json.totalTunai);
-                document.getElementById('totalTunaiPagi').textContent = formatRupiahRingkasan(json.totalTunaiPagi);
-                document.getElementById('totalTunaiSore').textContent = formatRupiahRingkasan(json.totalTunaiSore);
+                var totalPagi = 0, totalSore = 0;
 
-                document.getElementById('totalTransfer').textContent = formatRupiahRingkasan(json.totalTransfer);
-                document.getElementById('totalTransferPagi').textContent = formatRupiahRingkasan(json.totalTransferPagi);
-                document.getElementById('totalTransferSore').textContent = formatRupiahRingkasan(json.totalTransferSore);
-
-                document.getElementById('totalTempo').textContent = formatRupiahRingkasan(json.totalTempo);
-                document.getElementById('totalTempoPagi').textContent = formatRupiahRingkasan(json.totalTempoPagi);
-                document.getElementById('totalTempoSore').textContent = formatRupiahRingkasan(json.totalTempoSore);
+                document.querySelectorAll('.ringkasan-total').forEach(function(el) {
+                    var row = json.ringkasan[el.dataset.id] || { total: 0, pagi: 0, sore: 0 };
+                    el.textContent = formatRupiahRingkasan(row.total);
+                });
+                document.querySelectorAll('.ringkasan-pagi').forEach(function(el) {
+                    var row = json.ringkasan[el.dataset.id] || { total: 0, pagi: 0, sore: 0 };
+                    el.textContent = formatRupiahRingkasan(row.pagi);
+                    totalPagi += row.pagi || 0;
+                });
+                document.querySelectorAll('.ringkasan-sore').forEach(function(el) {
+                    var row = json.ringkasan[el.dataset.id] || { total: 0, pagi: 0, sore: 0 };
+                    el.textContent = formatRupiahRingkasan(row.sore);
+                    totalSore += row.sore || 0;
+                });
 
                 document.getElementById('totalKasir').textContent = formatRupiahRingkasan(json.totalKasir);
-                document.getElementById('totalKasirPagi').textContent = formatRupiahRingkasan(json.totalTunaiPagi + json.totalTransferPagi + json.totalTempoPagi);
-                document.getElementById('totalKasirSore').textContent = formatRupiahRingkasan(json.totalTunaiSore + json.totalTransferSore + json.totalTempoSore);
+                document.getElementById('totalKasirPagi').textContent = formatRupiahRingkasan(totalPagi);
+                document.getElementById('totalKasirSore').textContent = formatRupiahRingkasan(totalSore);
             }
         });
     });
