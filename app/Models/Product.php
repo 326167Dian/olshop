@@ -48,6 +48,7 @@ class Product extends Model
         'gr',
         'q30',
         'status',
+        'display',
         'image',
         'promosi',
         'tgl',
@@ -68,7 +69,24 @@ class Product extends Model
         'gr'              => 'integer',
         'q30'             => 'integer',
         'status'          => 'string',
+        'display'         => 'string',
     ];
+
+    /**
+     * Obat berlabel 'resep' hanya boleh dilihat pelanggan yang sudah login --
+     * storefront ini dipakai sebagai landing page iklan Meta, dan menampilkan
+     * obat resep ke pengunjung publik berisiko akun iklan kena banned. Dipakai
+     * di semua listing/detail produk sisi pelanggan (lihat HomepageController,
+     * ProductController::index/search/produkKategori/detail).
+     */
+    public function scopeVisibleFor($query, bool $isLoggedIn)
+    {
+        if (!$isLoggedIn) {
+            $query->where('display', 'bebas');
+        }
+
+        return $query;
+    }
 
     public function jenisObat()
     {

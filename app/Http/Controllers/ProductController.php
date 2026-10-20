@@ -19,6 +19,7 @@ class ProductController extends Controller
     {
         $produk = Product::where('stok_barang', '>', 0)
             ->where('status', 'active')
+            ->visibleFor(Auth::check())
             ->paginate(16);
         $kategori = Category::orderBy('name', 'desc')->get();
 
@@ -138,6 +139,51 @@ class ProductController extends Controller
         return $ids;
     }
 
+    /**
+     * Halaman "Display Jenis Obat" -- daftar semua barang dengan dropdown
+     * resep/bebas yang bisa diubah inline (AJAX, lihat updateDisplay()) tanpa
+     * reload halaman. Menentukan obat mana yang boleh tampil ke pengunjung
+     * yang belum login (lihat Product::scopeVisibleFor()).
+     */
+    public function displayJenisObat()
+    {
+        return view('backend.product.display-jenis-obat');
+    }
+
+    public function displayJenisObatData()
+    {
+        $query = Product::select(['id_barang', 'kd_barang', 'nm_barang', 'display', 'status']);
+
+        return DataTables::of($query)
+            ->addIndexColumn()
+            ->addColumn('display_select', function ($row) {
+                $options = '';
+                foreach (['resep' => 'Resep', 'bebas' => 'Bebas'] as $value => $label) {
+                    $selected = $row->display === $value ? 'selected' : '';
+                    $options .= '<option value="' . $value . '" ' . $selected . '>' . $label . '</option>';
+                }
+
+                return '<select class="form-control form-control-sm select-display-inline" data-id="' . $row->id_barang . '">'
+                    . $options
+                    . '</select>';
+            })
+            ->rawColumns(['display_select'])
+            ->make(true);
+    }
+
+    public function updateDisplay(Request $request, Product $product)
+    {
+        $request->validate([
+            'display' => 'required|in:resep,bebas',
+        ]);
+
+        $product->display = $request->display;
+        $product->updated_by = Auth::id();
+        $product->save();
+
+        return response()->json(['message' => 'Display jenis obat berhasil diperbarui.']);
+    }
+
     public function search(Request $request)
     {
         $keyword = trim($request->q);
@@ -153,6 +199,7 @@ class ProductController extends Controller
                     });
                 }
             })
+            ->visibleFor(Auth::check())
             ->paginate(8)
             ->appends(['q' => $keyword]);
 
@@ -412,6 +459,15 @@ class ProductController extends Controller
     {
         $jenisobat = JenisObat::get();
         $produks = Product::findOrFail($id);
+
+        // Diakses langsung lewat URL/ID, bukan dari hasil listing yang sudah
+        // difilter (index/search/produkKategori) -- jadi perlu dicek ulang di
+        // sini juga supaya tamu tidak bisa lihat obat resep lewat link langsung.
+        if ($produks->display === 'resep' && !Auth::check()) {
+            return redirect()->route('login.form')
+                ->with('error', 'Silakan login untuk melihat produk obat resep ini.');
+        }
+
         $categories = Category::orderBy('name', 'desc')->get();
 
         return view('frontend.v_produk.detail', [
@@ -433,7 +489,7 @@ class ProductController extends Controller
 
         // Ambil produk berdasarkan label 'jenisobat' (bukan id)
         // $produk = Product::where('jenisobat', $selectedKategori->jenisobat)->paginate(8);
-        $produk = Product::where('category_id', $id)->where('status', 1)->orderBy('nm_barang', 'desc')->paginate(6);
+        $produk = Product::where('category_id', $id)->where('status', 1)->visibleFor(Auth::check())->orderBy('nm_barang', 'desc')->paginate(6);
 
         return view('frontend.v_produk.produkkategori', [
             'judul' => $categories->find($id)->name,

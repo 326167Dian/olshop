@@ -13,6 +13,7 @@ use App\Models\CompanySetting;
 use App\Models\Banner;
 use App\Models\PageVisit;
 use Faker\Provider\ar_EG\Company;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class HomepageController extends Controller
@@ -26,9 +27,9 @@ class HomepageController extends Controller
         $companySetting = CompanySetting::first();
         $jenisobat = JenisObat::get();
         $kategori = Category::orderBy('name', 'desc')->get();
-        $produkTerlaris = Product::where('status', 'active')->where('promosi', 'terlaris')->where('stok_barang', '>', 0)->take(4)->get();
-        $databarang = Product::where('status', 'active')->where('stok_barang', '>', 0)->where('diskon', 0)->paginate(5);
-        $diskonbarang = Product::where('status', 'active')->where('diskon', '>', 0)->where('stok_barang', '>', 0)->where('promosi', 'diskon')->paginate(5);
+        $produkTerlaris = Product::where('status', 'active')->where('promosi', 'terlaris')->where('stok_barang', '>', 0)->visibleFor(Auth::check())->take(4)->get();
+        $databarang = Product::where('status', 'active')->where('stok_barang', '>', 0)->where('diskon', 0)->visibleFor(Auth::check())->paginate(5);
+        $diskonbarang = Product::where('status', 'active')->where('diskon', '>', 0)->where('stok_barang', '>', 0)->where('promosi', 'diskon')->visibleFor(Auth::check())->paginate(5);
         $banners = Banner::where('status', 'active')->get();
 
         $articles = Article::where('status', 'published')->orderBy('created_at', 'desc')->paginate(3);
