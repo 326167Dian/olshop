@@ -187,6 +187,12 @@
                                     <span class="nav-menu-item-title">Video Edukasi</span>
                                 </a>
                             </li>
+                            <li class="nav-menu-item {{ in_array(Route::currentRouteName(), ['backend.testimoni.index', 'backend.testimoni.edit']) ? 'active' : '' }}">
+                                <a href="{{ route('backend.testimoni.index') }}">
+                                    <i class="feather icon-message-square"></i>
+                                    <span class="nav-menu-item-title">Testimoni</span>
+                                </a>
+                            </li>
                         </ul>
                     </li>
 

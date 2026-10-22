@@ -278,6 +278,11 @@
                                         </a>
                                     </li>
                                     <li>
+                                        <a href="{{ route('customer.testimoni.form') }}">
+                                            <i class="fa fa-comment-o me-2"></i> Tulis Testimoni
+                                        </a>
+                                    </li>
+                                    <li>
                                         <a href="#"
                                             onclick="event.preventDefault(); document.getElementById('logoutForm').submit();">
                                             <i class="fa fa-unlock-alt me-2"></i> Logout
@@ -549,18 +554,11 @@
             </i>
             <span>Keranjang</span>
         </a>
-        @if (Auth::check())
-            <a href="{{ route('customer.akun', ['id' => Auth::user()->id]) }}"
-                class="item {{ request()->routeIs('customer.akun') ? 'active' : '' }}">
-                <i class="fa fa-user-o"></i>
-                <span>Akun</span>
-            </a>
-        @else
-            <a href="{{ route('login.form') }}" class="item {{ request()->routeIs('login.form') ? 'active' : '' }}">
-                <i class="fa fa-user-o"></i>
-                <span>Masuk</span>
-            </a>
-        @endif
+        <a href="{{ route('testimoni.all') }}"
+            class="item {{ request()->routeIs('testimoni.*', 'customer.testimoni.*') ? 'active' : '' }}">
+            <i class="fa fa-comment-o"></i>
+            <span>Testimoni</span>
+        </a>
     </nav>
     <!-- /BOTTOM NAV -->
 

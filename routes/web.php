@@ -10,6 +10,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HomepageController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ArticleController;
+use App\Http\Controllers\TestimoniController;
 use App\Http\Controllers\VideoEdukasiController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\CompanySettingController;
@@ -120,6 +121,8 @@ Route::post('/midtrans-callback', [OrderController::class, 'callback']);
 Route::get('/artikel/all', [ArticleController::class, 'indexFrontend'])->name('artikel.all');
 Route::get('/artikel/{slug}', [ArticleController::class, 'show'])->name('article.show');
 
+Route::get('/testimoni/all', [TestimoniController::class, 'indexFrontend'])->name('testimoni.all');
+
 Route::get('/video-edukasi/all', [VideoEdukasiController::class, 'indexFrontend'])->name('video-edukasi.all');
 Route::get('/video-edukasi/{slug}', [VideoEdukasiController::class, 'show'])->name('video-edukasi.show');
 
@@ -148,6 +151,10 @@ Route::middleware('is.customer')->group(function () {
     Route::get('order/invoice/{id}', [OrderController::class, 'invoiceFrontend'])->name('order.invoice');
     Route::post('/order/cod', [OrderController::class, 'cod'])->name('order.cod');
     Route::post('/order/bank-transfer', [OrderController::class, 'bankTransfer'])->name('order.bank_transfer');
+
+    // Testimoni (satu testimoni per pelanggan, hanya yang pernah belanja)
+    Route::get('/customer/testimoni', [TestimoniController::class, 'form'])->name('customer.testimoni.form');
+    Route::post('/customer/testimoni', [TestimoniController::class, 'store'])->name('customer.testimoni.store');
 });
 
 Route::prefix('/backend')->middleware('auth:admin')->group(function () {
@@ -211,6 +218,13 @@ Route::prefix('/backend')->middleware('auth:admin')->group(function () {
     Route::put('/video-edukasi/{videoEdukasi}', [VideoEdukasiController::class, 'update'])->name('video-edukasi.update');
     Route::delete('/video-edukasi/{videoEdukasi}', [VideoEdukasiController::class, 'destroy'])->name('video-edukasi.destroy');
     Route::get('/video-edukasi-data', [VideoEdukasiController::class, 'data'])->name('video-edukasi.data');
+
+    // Testimoni (admin bisa edit/hapus testimoni pelanggan manapun)
+    Route::get('/testimoni', [TestimoniController::class, 'adminIndex'])->name('backend.testimoni.index');
+    Route::get('/testimoni-data', [TestimoniController::class, 'data'])->name('backend.testimoni.data');
+    Route::get('/testimoni/{testimoni}/edit', [TestimoniController::class, 'edit'])->name('backend.testimoni.edit');
+    Route::put('/testimoni/{testimoni}', [TestimoniController::class, 'update'])->name('backend.testimoni.update');
+    Route::delete('/testimoni/{testimoni}', [TestimoniController::class, 'destroy'])->name('backend.testimoni.destroy');
 
 
     // pesanan proses
