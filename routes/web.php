@@ -740,6 +740,7 @@ Route::prefix('inventory')->middleware(['auth:admin', 'admin.active'])->name('in
         Route::post('/undo-deleted/restore', [InventoryTrkasirController::class, 'restoreHapus'])->name('undo-deleted.restore');
         Route::get('/create', [InventoryTrkasirController::class, 'create'])->name('create');
         Route::post('/', [InventoryTrkasirController::class, 'store'])->name('store');
+        Route::post('/sinkronisasi-stok', [InventoryTrkasirController::class, 'sinkronisasiStok'])->name('sinkronisasi-stok');
         Route::get('/{trkasir}/struk', [InventoryTrkasirController::class, 'struk'])->name('struk');
         Route::get('/{trkasir}/kwitansi', [InventoryTrkasirController::class, 'kwitansi'])->name('kwitansi');
         Route::get('/{trkasir}/invoice', [InventoryTrkasirController::class, 'invoice'])->name('invoice');

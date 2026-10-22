@@ -123,6 +123,36 @@ class InventoryTrkasirController extends Controller
     }
 
     /**
+     * Port dari mod_lapstok/sinkronisasi_stok.php (tombol "SINKRONISASI" di
+     * trkasir.php legacy, dipakai kasir sebelum tutup shift untuk memperbaiki
+     * "baris yatim" -- stok_barang yang driftnya dari total transaksi asli
+     * karena sebab lain, mis. edit/hapus transaksi, race condition, dll).
+     * Hitung ulang stok_barang = SUM(qty_dtrbmasuk) - SUM(qty_dtrkasir) per
+     * kd_barang, lalu timpa HANYA baris yang nilainya beda -- sama persis
+     * dengan query legacy, cuma lewat Eloquent/DB::update() bukan PDO.
+     */
+    public function sinkronisasiStok()
+    {
+        $affected = DB::update("
+            UPDATE barang b
+            LEFT JOIN (
+                SELECT kd_barang, SUM(qty_dtrbmasuk) AS totalbeli
+                FROM trbmasuk_detail
+                GROUP BY kd_barang
+            ) beli ON beli.kd_barang = b.kd_barang
+            LEFT JOIN (
+                SELECT kd_barang, SUM(qty_dtrkasir) AS totaljual
+                FROM trkasir_detail
+                GROUP BY kd_barang
+            ) jual ON jual.kd_barang = b.kd_barang
+            SET b.stok_barang = (COALESCE(beli.totalbeli, 0) - COALESCE(jual.totaljual, 0))
+            WHERE b.stok_barang <> (COALESCE(beli.totalbeli, 0) - COALESCE(jual.totaljual, 0))
+        ");
+
+        return back()->with('success', "Sinkronisasi stok selesai, {$affected} barang diperbarui.");
+    }
+
+    /**
      * "Total Komisi Transaksi ... Saat Ini" -- marquee pertama di trkasir.php legacy,
      * hanya muncul kalau ada baris `komisiglobal` yang aktif (status='ON', pengaturan
      * persentase komisi global, TERPISAH dari `admin.komisi`/`barang.komisi`). Dihitung
@@ -782,6 +812,7 @@ class InventoryTrkasirController extends Controller
         ]);
 
         $admin = $this->resolveActingAdmin($request);
+        $this->guardTransaksiMasihDraft($validated['kd_trkasir'], $admin);
         $petugas = $this->resolvePetugasPelayanan($validated['id_user'] ?? null, $admin);
         $disc = $validated['disc'] ?? 0;
         $resep = $validated['resep'] ?? 'TIDAK';
@@ -1030,6 +1061,7 @@ class InventoryTrkasirController extends Controller
         ]);
 
         $admin = $this->resolveActingAdmin($request);
+        $this->guardTransaksiMasihDraft($detail->kd_trkasir, $admin);
 
         DB::transaction(function () use ($detail, $validated, $admin) {
             $qtyLama = $detail->qty_dtrkasir;
@@ -1074,6 +1106,7 @@ class InventoryTrkasirController extends Controller
     public function detailDestroy(Request $request, TrkasirDetail $detail)
     {
         $admin = $this->resolveActingAdmin($request);
+        $this->guardTransaksiMasihDraft($detail->kd_trkasir, $admin);
 
         DB::transaction(function () use ($detail, $admin) {
             if ($detail->kd_bundle !== '' && $detail->kd_bundle !== null) {
@@ -2373,6 +2406,30 @@ class InventoryTrkasirController extends Controller
         abort_if(!$admin || $admin->isBlocked(), 422, 'Sesi petugas kasir ini sudah tidak valid. Muat ulang halaman transaksi.');
 
         return $admin;
+    }
+
+    /**
+     * detailStore()/detailUpdateQty()/detailDestroy() dipakai DUA halaman berbeda:
+     * create.blade.php (keranjang draft, kd_trkasir BELUM jadi transaksi) dan
+     * edit.blade.php (transaksi yang SUDAH difinalisasi, khusus pemilik -- lihat
+     * edit()). Sebelum perbaikan ini, ketiganya tidak pernah cek status finalisasi
+     * sama sekali, jadi kalau dua kasir kebetulan berbagi id_admin yang sama (atau
+     * tab lama/basi masih terbuka) dan draft keranjang mereka ketukar lewat
+     * resolveKdtk() (dikunci ke id_admin, bukan per sesi/tab), satu kasir bisa
+     * tanpa sadar menghapus/mengubah baris item milik transaksi yang BARU SAJA
+     * difinalisasi kasir lain -- ttl_trkasir di header tetap seperti semula
+     * (sudah dibekukan saat store()), tapi baris itemnya hilang dari struk.
+     * Ditemukan 2026-10-22 lewat laporan user: struk tercetak tanpa detail item
+     * walau Total tetap benar, bertepatan dengan 2 kasir jaga bareng shift yang
+     * sama. Sekarang: begitu kd_trkasir sudah punya header Trkasir, hanya pemilik
+     * yang boleh lewat endpoint ini -- sama persis aturan edit().
+     */
+    private function guardTransaksiMasihDraft(string $kdTrkasir, Admin $admin): void
+    {
+        $sudahFinal = Trkasir::where('kd_trkasir', $kdTrkasir)->exists();
+
+        abort_if($sudahFinal && !$admin->isPemilik(), 403,
+            'Transaksi ini sudah difinalisasi oleh kasir lain. Muat ulang halaman Penjualan/Kasir -- hanya akun pemilik yang dapat mengubah transaksi yang sudah tersimpan.');
     }
 
     /**

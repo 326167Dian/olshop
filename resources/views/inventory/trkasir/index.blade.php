@@ -15,6 +15,13 @@
                 <a class="btn btn-sm btn-outline-secondary mb-3" href="{{ route('inventory.trkasir.item-terhapus.index') }}">Item Penjualan Terhapus</a>
             @endif
 
+            <form action="{{ route('inventory.trkasir.sinkronisasi-stok') }}" method="POST" class="d-inline"
+                onsubmit="return confirm('Hitung ulang stok semua barang (beli - jual)? Dipakai untuk perbaiki baris yatim, aman dijalankan kapan saja.');">
+                @csrf
+                <button type="submit" class="btn btn-sm btn-success mb-3">SINKRONISASI</button>
+            </form>
+            <span class="text-muted">Klik SINKRONISASI sebelum tutup shift</span>
+
             @if ($komisiGlobalText)
                 <div class="mysifa-marquee mb-3">
                     <span class="fw-bold fs-5">{{ $komisiGlobalText }}</span>
