@@ -18,7 +18,7 @@
             </a>
 
             <h5 class="fw-bold">Tambah Riwayat</h5>
-            <form method="POST" action="{{ route('inventory.swamedikasi.store') }}">
+            <form method="POST" action="{{ route('inventory.swamedikasi.store') }}" enctype="multipart/form-data">
                 @csrf
                 <input type="hidden" name="id_pelanggan" value="{{ $pelanggan->id_pelanggan }}">
                 <div class="row">
@@ -30,6 +30,14 @@
                 <div class="form-group">
                     <label>Diagnosa</label>
                     <textarea name="diagnosa" class="form-control" rows="2"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Foto Kasus</label>
+                    <input type="file" name="foto" class="form-control @error('foto') is-invalid @enderror" accept="image/*">
+                    @error('foto')
+                        <div class="invalid-feedback d-block">{{ $message }}</div>
+                    @enderror
+                    <small class="text-muted">Opsional, maks 1 MB.</small>
                 </div>
                 <div class="form-group">
                     <label>Tindakan (Obat)</label>
@@ -72,6 +80,7 @@
                     <tr>
                         <th>No</th>
                         <th>Tanggal</th>
+                        <th>Foto Riwayat</th>
                         <th>Diagnosa</th>
                         <th>Tindakan</th>
                         <th>Saran Konsultasi</th>
@@ -85,6 +94,14 @@
                         <tr>
                             <td>{{ $index + 1 }}</td>
                             <td>{{ $row->tgl?->format('d-m-Y') }}</td>
+                            <td>
+                                @if ($row->foto)
+                                    <img src="{{ asset('storage/' . $row->foto) }}"
+                                        class="img-zoom-thumb" data-full="{{ asset('storage/' . $row->foto) }}"
+                                        style="width:45px;height:45px;object-fit:cover;border-radius:4px;cursor:pointer;"
+                                        alt="Foto riwayat">
+                                @endif
+                            </td>
                             <td>{{ $row->diagnosa }}</td>
                             <td>
                                 @if ($row->obat->isNotEmpty())
@@ -98,7 +115,13 @@
                             <td>{{ $row->followup }}</td>
                             <td class="tgl-followup-cell" data-id="{{ $row->id }}">
                                 @if ($row->tgl_followup)
-                                    {{ $row->tgl_followup->format('d-m-Y H:i') }}
+                                    <div>{{ $row->tgl_followup->format('d-m-Y H:i') }}</div>
+                                    @if ($row->foto2)
+                                        <img src="{{ asset('storage/' . $row->foto2) }}"
+                                            class="img-zoom-thumb" data-full="{{ asset('storage/' . $row->foto2) }}"
+                                            style="width:45px;height:45px;object-fit:cover;border-radius:4px;cursor:pointer;margin-top:4px;"
+                                            alt="Foto follow up">
+                                    @endif
                                 @else
                                     <button type="button" data-id="{{ $row->id }}" class="btn-followup btn btn-danger btn-xs">
                                         Klik untuk followup
@@ -121,11 +144,35 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="text-center">Belum ada riwayat.</td>
+                            <td colspan="9" class="text-center">Belum ada riwayat.</td>
                         </tr>
                     @endforelse
                 </tbody>
             </table>
+        </div>
+    </div>
+
+    <!-- Modal Follow Up -->
+    <div class="modal fade" id="modalFollowup" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Follow Up</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="followup-riwayat-id">
+                    <div class="mb-3">
+                        <label class="form-label">Foto (opsional, maks 1 MB)</label>
+                        <input type="file" id="followup-foto2" class="form-control" accept="image/*">
+                        <small class="text-muted">Boleh dikosongkan, follow up tetap bisa disimpan.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-primary" id="btn-simpan-followup">Simpan</button>
+                </div>
+            </div>
         </div>
     </div>
 @endsection
@@ -134,23 +181,64 @@
     @include('inventory.swamedikasi.partials.obat-scripts')
 
     <script>
+        var modalFollowupEl = document.getElementById('modalFollowup');
+        var modalFollowup = new bootstrap.Modal(modalFollowupEl);
+
         document.addEventListener('click', function(e) {
-            if (!e.target.classList.contains('btn-followup')) {
+            if (e.target.classList.contains('btn-followup')) {
+                document.getElementById('followup-riwayat-id').value = e.target.dataset.id;
+                document.getElementById('followup-foto2').value = '';
+                modalFollowup.show();
                 return;
             }
-            var id = e.target.dataset.id;
+
+            if (e.target.classList.contains('img-zoom-thumb')) {
+                Swal.fire({
+                    imageUrl: e.target.dataset.full,
+                    imageAlt: 'Foto',
+                    showConfirmButton: false,
+                    showCloseButton: true,
+                    width: 'auto',
+                });
+            }
+        });
+
+        document.getElementById('btn-simpan-followup').addEventListener('click', function() {
+            var id = document.getElementById('followup-riwayat-id').value;
+            var fileInput = document.getElementById('followup-foto2');
+            var file = fileInput.files[0];
+
+            if (file && file.size > 1024 * 1024) {
+                Swal.fire({ icon: 'error', title: 'Ukuran foto terlalu besar', text: 'Maksimal 1 MB.' });
+                return;
+            }
+
             var cell = document.querySelector('.tgl-followup-cell[data-id="' + id + '"]');
+            var formData = new FormData();
+            if (file) {
+                formData.append('foto2', file);
+            }
+
             fetch('{{ url('inventory/swamedikasi') }}/' + id + '/followup', {
                 method: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                     'Accept': 'application/json',
                 },
+                body: formData,
             })
                 .then(function(res) { return res.json(); })
                 .then(function(data) {
                     if (data.status === 'success') {
-                        cell.textContent = data.tgl_followup;
+                        var html = '<div>' + data.tgl_followup + '</div>';
+                        if (data.foto2_url) {
+                            html += '<img src="' + data.foto2_url + '" class="img-zoom-thumb" data-full="' +
+                                data.foto2_url + '" style="width:45px;height:45px;object-fit:cover;border-radius:4px;cursor:pointer;margin-top:4px;" alt="Foto follow up">';
+                        }
+                        cell.innerHTML = html;
+                        modalFollowup.hide();
+                    } else {
+                        Swal.fire({ icon: 'error', title: 'Gagal', text: data.message || 'Follow up gagal disimpan.' });
                     }
                 });
         });

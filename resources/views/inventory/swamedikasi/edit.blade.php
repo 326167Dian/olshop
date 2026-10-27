@@ -7,7 +7,7 @@
         <div class="card-header">
             <h3 class="card-title">Ubah Riwayat Pelanggan: {{ $riwayat->pelanggan->nm_pelanggan ?? '-' }}</h3>
         </div>
-        <form method="POST" action="{{ route('inventory.swamedikasi.update', $riwayat->id) }}">
+        <form method="POST" action="{{ route('inventory.swamedikasi.update', $riwayat->id) }}" enctype="multipart/form-data">
             @csrf
             @method('PUT')
             <div class="card-body">
@@ -21,6 +21,23 @@
                 <div class="form-group">
                     <label>Diagnosa</label>
                     <textarea name="diagnosa" class="form-control" rows="2">{{ old('diagnosa', $riwayat->diagnosa) }}</textarea>
+                </div>
+                <div class="form-group">
+                    <label>Foto Riwayat</label><br>
+                    @if ($riwayat->foto)
+                        <img src="{{ asset('storage/' . $riwayat->foto) }}" alt="Foto Riwayat"
+                            class="img-zoom-thumb" data-full="{{ asset('storage/' . $riwayat->foto) }}"
+                            style="max-width:150px;max-height:150px;object-fit:cover;border-radius:6px;cursor:pointer;display:block;margin-bottom:8px;">
+                        <div class="form-check mb-2">
+                            <input type="checkbox" name="hapus_foto" id="hapus_foto" value="1" class="form-check-input">
+                            <label class="form-check-label" for="hapus_foto">Hapus foto ini</label>
+                        </div>
+                    @endif
+                    <input type="file" name="foto" class="form-control @error('foto') is-invalid @enderror" accept="image/*">
+                    @error('foto')
+                        <div class="invalid-feedback d-block">{{ $message }}</div>
+                    @enderror
+                    <small class="text-muted">Kosongkan jika tidak ingin mengganti. Maks 1 MB.</small>
                 </div>
                 <div class="form-group">
                     <label>Tindakan (Obat)</label>
@@ -50,4 +67,18 @@
 
 @push('scripts')
     @include('inventory.swamedikasi.partials.obat-scripts')
+
+    <script>
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('img-zoom-thumb')) {
+                Swal.fire({
+                    imageUrl: e.target.dataset.full,
+                    imageAlt: 'Foto',
+                    showConfirmButton: false,
+                    showCloseButton: true,
+                    width: 'auto',
+                });
+            }
+        });
+    </script>
 @endpush

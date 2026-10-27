@@ -10,6 +10,7 @@ use App\Models\Setheader;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class InventorySwamedikasiController extends Controller
 {
@@ -70,6 +71,7 @@ class InventorySwamedikasiController extends Controller
             'id_pelanggan' => 'required|integer|exists:pelanggan,id_pelanggan',
             'tgl' => 'required|date',
             'diagnosa' => 'nullable|string',
+            'foto' => 'nullable|image|max:1024',
             'followup' => 'nullable|string',
             'obat_kd' => 'nullable|array',
             'obat_kd.*' => 'nullable|string',
@@ -79,11 +81,9 @@ class InventorySwamedikasiController extends Controller
 
         $obatItems = $this->resolveObatItems($request->input('obat_kd', []), $request->input('aturan_pakai', []));
 
-        if (count($obatItems) < 1) {
-            return back()->withInput()->with('error', 'Minimal isi 1 obat pada tindakan.');
-        }
+        $fotoPath = $request->hasFile('foto') ? $request->file('foto')->store('riwayat_pelanggan', 'public') : '';
 
-        DB::transaction(function () use ($validated, $obatItems) {
+        DB::transaction(function () use ($validated, $obatItems, $fotoPath) {
             $riwayat = RiwayatPelanggan::create([
                 'id_pelanggan' => $validated['id_pelanggan'],
                 'id_admin' => Auth::guard('admin')->user()->id_admin,
@@ -91,7 +91,7 @@ class InventorySwamedikasiController extends Controller
                 'diagnosa' => $validated['diagnosa'] ?? '',
                 'tindakan' => $this->summarizeObat($obatItems),
                 'followup' => $validated['followup'] ?? '',
-                'foto' => '',
+                'foto' => $fotoPath,
                 'foto2' => '',
                 'followup_by' => '',
             ]);
@@ -118,6 +118,8 @@ class InventorySwamedikasiController extends Controller
         $validated = $request->validate([
             'tgl' => 'required|date',
             'diagnosa' => 'nullable|string',
+            'foto' => 'nullable|image|max:1024',
+            'hapus_foto' => 'nullable|boolean',
             'followup' => 'nullable|string',
             'obat_kd' => 'nullable|array',
             'obat_kd.*' => 'nullable|string',
@@ -127,17 +129,27 @@ class InventorySwamedikasiController extends Controller
 
         $obatItems = $this->resolveObatItems($request->input('obat_kd', []), $request->input('aturan_pakai', []));
 
-        if (count($obatItems) < 1) {
-            return back()->withInput()->with('error', 'Minimal isi 1 obat pada tindakan.');
+        $riwayatData = [
+            'tgl' => $validated['tgl'],
+            'diagnosa' => $validated['diagnosa'] ?? '',
+            'tindakan' => $this->summarizeObat($obatItems),
+            'followup' => $validated['followup'] ?? '',
+        ];
+
+        if ($request->hasFile('foto')) {
+            if ($riwayat->foto) {
+                Storage::disk('public')->delete($riwayat->foto);
+            }
+            $riwayatData['foto'] = $request->file('foto')->store('riwayat_pelanggan', 'public');
+        } elseif ($request->boolean('hapus_foto')) {
+            if ($riwayat->foto) {
+                Storage::disk('public')->delete($riwayat->foto);
+            }
+            $riwayatData['foto'] = '';
         }
 
-        DB::transaction(function () use ($validated, $obatItems, $riwayat) {
-            $riwayat->update([
-                'tgl' => $validated['tgl'],
-                'diagnosa' => $validated['diagnosa'] ?? '',
-                'tindakan' => $this->summarizeObat($obatItems),
-                'followup' => $validated['followup'] ?? '',
-            ]);
+        DB::transaction(function () use ($riwayatData, $obatItems, $riwayat) {
+            $riwayat->update($riwayatData);
 
             RiwayatPelangganObat::where('id_riwayat', $riwayat->id)->delete();
             $this->saveObatItems($riwayat->id, $obatItems);
@@ -162,21 +174,33 @@ class InventorySwamedikasiController extends Controller
 
     /**
      * Tandai follow up (AJAX), mengikuti mod_swamedikasi/updateFollowUp.php.
+     * Foto opsional (maks 1MB), disimpan ke kolom 'foto2'.
      */
-    public function followup(RiwayatPelanggan $riwayat)
+    public function followup(Request $request, RiwayatPelanggan $riwayat)
     {
+        $validated = $request->validate([
+            'foto2' => 'nullable|image|max:1024',
+        ]);
+
         $admin = Auth::guard('admin')->user();
 
-        $riwayat->update([
+        $data = [
             'tgl_followup' => now(),
             'followup_by' => $admin->nama_lengkap ?: 'System',
-        ]);
+        ];
+
+        if ($request->hasFile('foto2')) {
+            $data['foto2'] = $request->file('foto2')->store('riwayat_pelanggan', 'public');
+        }
+
+        $riwayat->update($data);
 
         return response()->json([
             'status' => 'success',
             'message' => 'Follow up berhasil disimpan.',
-            'tgl_followup' => $riwayat->tgl_followup->format('Y-m-d H:i:s'),
+            'tgl_followup' => $riwayat->tgl_followup->format('d-m-Y H:i'),
             'followup_by' => $riwayat->followup_by,
+            'foto2_url' => $riwayat->foto2 ? asset('storage/' . $riwayat->foto2) : null,
         ]);
     }
 
@@ -257,6 +281,10 @@ class InventorySwamedikasiController extends Controller
 
     private function summarizeObat(array $obatItems): string
     {
+        if (count($obatItems) < 1) {
+            return 'Tanpa Obat';
+        }
+
         $lines = array_map(function ($item) {
             $line = $item['nm_barang'] . ' (' . $item['kd_barang'] . ')';
             if ($item['aturan_pakai'] !== '') {
