@@ -4,6 +4,40 @@
 /*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+DROP TABLE IF EXISTS `absensi`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `absensi` (
+  `id_absensi` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `id_admin` int(11) NOT NULL,
+  `id_jadwal` int(10) unsigned DEFAULT NULL,
+  `id_shift` int(10) unsigned DEFAULT NULL,
+  `tanggal` date NOT NULL,
+  `jam_masuk` time DEFAULT NULL,
+  `jam_pulang` time DEFAULT NULL,
+  `lat_masuk` decimal(10,7) DEFAULT NULL,
+  `lng_masuk` decimal(10,7) DEFAULT NULL,
+  `jarak_masuk_meter` decimal(10,2) DEFAULT NULL,
+  `lat_pulang` decimal(10,7) DEFAULT NULL,
+  `lng_pulang` decimal(10,7) DEFAULT NULL,
+  `jarak_pulang_meter` decimal(10,2) DEFAULT NULL,
+  `status` enum('hadir','terlambat','alpha','izin','cuti') NOT NULL DEFAULT 'hadir',
+  `keterangan` text DEFAULT NULL,
+  `sumber` enum('manual','self_service','sistem') NOT NULL DEFAULT 'manual',
+  `dicatat_oleh` int(11) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id_absensi`),
+  UNIQUE KEY `absensi_id_admin_tanggal_id_shift_unique` (`id_admin`,`tanggal`,`id_shift`),
+  KEY `absensi_id_jadwal_foreign` (`id_jadwal`),
+  KEY `absensi_id_shift_foreign` (`id_shift`),
+  KEY `absensi_dicatat_oleh_foreign` (`dicatat_oleh`),
+  CONSTRAINT `absensi_dicatat_oleh_foreign` FOREIGN KEY (`dicatat_oleh`) REFERENCES `admin` (`id_admin`) ON DELETE SET NULL,
+  CONSTRAINT `absensi_id_admin_foreign` FOREIGN KEY (`id_admin`) REFERENCES `admin` (`id_admin`),
+  CONSTRAINT `absensi_id_jadwal_foreign` FOREIGN KEY (`id_jadwal`) REFERENCES `jadwal_shift` (`id_jadwal`) ON DELETE SET NULL,
+  CONSTRAINT `absensi_id_shift_foreign` FOREIGN KEY (`id_shift`) REFERENCES `master_shift` (`id_shift`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `admin`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -14,7 +48,7 @@ CREATE TABLE `admin` (
   `nama_lengkap` varchar(100) NOT NULL,
   `no_telp` varchar(30) NOT NULL,
   `akses_level` enum('pemilik','petugas') NOT NULL DEFAULT 'petugas',
-  `unit` int(11) NOT NULL DEFAULT 0,
+  `mysifa` varchar(1) NOT NULL DEFAULT 'N',
   `blokir` enum('Y','N') NOT NULL DEFAULT 'N',
   `mpengguna` varchar(1) NOT NULL DEFAULT 'N',
   `mheader` varchar(1) NOT NULL DEFAULT 'N',
@@ -52,6 +86,9 @@ CREATE TABLE `admin` (
   `jurnalkas` varchar(1) NOT NULL DEFAULT 'N',
   `ujian` varchar(1) NOT NULL DEFAULT 'N',
   `foto` varchar(255) DEFAULT NULL,
+  `nama_bank` varchar(50) DEFAULT NULL,
+  `rekening_bank` varchar(50) DEFAULT NULL,
+  `kehadiran` varchar(1) NOT NULL DEFAULT 'N',
   PRIMARY KEY (`id_admin`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -116,16 +153,17 @@ CREATE TABLE `barang` (
   `waktu` datetime NOT NULL,
   `t30` int(11) NOT NULL,
   `t60` int(11) DEFAULT 0,
-  `gr` int(11) DEFAULT 0,
+  `gr` float NOT NULL DEFAULT 0,
   `q30` int(11) NOT NULL,
   `petugas` varchar(100) NOT NULL,
   `status` enum('active','inactive') NOT NULL DEFAULT 'inactive',
+  `display` enum('resep','bebas') NOT NULL DEFAULT 'resep',
   `image` varchar(100) DEFAULT NULL,
   `promosi` enum('standar','terlaris','diskon') NOT NULL DEFAULT 'standar',
   `tgl` date DEFAULT NULL,
   `updated_by` varchar(30) NOT NULL,
   PRIMARY KEY (`id_barang`),
-  KEY `idx_barang_kd_barang` (`kd_barang`)
+  UNIQUE KEY `kd_barang` (`kd_barang`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `barang_supplier`;
@@ -135,6 +173,7 @@ CREATE TABLE `barang_supplier` (
   `id_brgsup` int(11) NOT NULL AUTO_INCREMENT,
   `id_supplier` int(11) NOT NULL,
   `id_barang` int(11) NOT NULL,
+  `kd_barang` varchar(50) DEFAULT NULL,
   `hrgsat_brgsupplier` double NOT NULL,
   PRIMARY KEY (`id_brgsup`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -252,6 +291,7 @@ DROP TABLE IF EXISTS `cekdarah`;
 CREATE TABLE `cekdarah` (
   `id_cekdarah` int(11) NOT NULL AUTO_INCREMENT,
   `gula` varchar(50) NOT NULL,
+  `gula_2pp` varchar(50) DEFAULT NULL,
   `asamurat` varchar(50) NOT NULL,
   `kolesterol` varchar(50) NOT NULL,
   `tensi` varchar(50) NOT NULL,
@@ -275,10 +315,16 @@ CREATE TABLE `company_settings` (
   `notification_sound` varchar(255) DEFAULT NULL,
   `alamat` text DEFAULT NULL,
   `peta_lokasi` text DEFAULT NULL,
+  `kehadiran_lat` decimal(10,7) DEFAULT NULL,
+  `kehadiran_lng` decimal(10,7) DEFAULT NULL,
+  `kehadiran_radius` int(10) unsigned NOT NULL DEFAULT 100,
   `telepon` varchar(14) DEFAULT NULL,
   `catatan` varchar(256) DEFAULT NULL,
+  `komisi_reseller` decimal(5,2) NOT NULL DEFAULT 5.00,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
+  `meta_pixel_id` varchar(30) DEFAULT NULL,
+  `meta_pixel_aktif` tinyint(1) NOT NULL DEFAULT 1,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -322,6 +368,30 @@ CREATE TABLE `cpp_detail` (
   CONSTRAINT `fk_cpp_detail` FOREIGN KEY (`id_cpp`) REFERENCES `cpp` (`id_cpp`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `cuti`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `cuti` (
+  `id_cuti` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `id_admin` int(11) NOT NULL,
+  `jenis_cuti` enum('tahunan','sakit','izin','lainnya') NOT NULL DEFAULT 'tahunan',
+  `tanggal_mulai` date NOT NULL,
+  `tanggal_selesai` date NOT NULL,
+  `jumlah_hari` int(11) NOT NULL,
+  `alasan` text NOT NULL,
+  `status` enum('diajukan','disetujui','ditolak') NOT NULL DEFAULT 'diajukan',
+  `disetujui_oleh` int(11) DEFAULT NULL,
+  `disetujui_pada` timestamp NULL DEFAULT NULL,
+  `catatan_approval` text DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id_cuti`),
+  KEY `cuti_id_admin_foreign` (`id_admin`),
+  KEY `cuti_disetujui_oleh_foreign` (`disetujui_oleh`),
+  CONSTRAINT `cuti_disetujui_oleh_foreign` FOREIGN KEY (`disetujui_oleh`) REFERENCES `admin` (`id_admin`) ON DELETE SET NULL,
+  CONSTRAINT `cuti_id_admin_foreign` FOREIGN KEY (`id_admin`) REFERENCES `admin` (`id_admin`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `failed_jobs`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -335,6 +405,66 @@ CREATE TABLE `failed_jobs` (
   `failed_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `failed_jobs_uuid_unique` (`uuid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `fitur`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `fitur` (
+  `id_fitur` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `fitur` varchar(100) NOT NULL,
+  `acc` varchar(1) NOT NULL,
+  PRIMARY KEY (`id_fitur`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `gaji`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `gaji` (
+  `id_gaji` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `id_admin` int(11) NOT NULL,
+  `gaji_harian` decimal(15,2) NOT NULL DEFAULT 0.00,
+  `transportasi_harian` decimal(15,2) NOT NULL DEFAULT 0.00,
+  `rate_lembur` decimal(15,2) NOT NULL DEFAULT 0.00,
+  `potongan_telat_15_30` decimal(15,2) NOT NULL DEFAULT 0.00,
+  `potongan_telat_30_60` decimal(15,2) NOT NULL DEFAULT 0.00,
+  `potongan_telat_60_lebih` decimal(15,2) NOT NULL DEFAULT 0.00,
+  `status_aktif` tinyint(1) NOT NULL DEFAULT 1,
+  PRIMARY KEY (`id_gaji`),
+  UNIQUE KEY `gaji_id_admin_unique` (`id_admin`),
+  CONSTRAINT `gaji_id_admin_foreign` FOREIGN KEY (`id_admin`) REFERENCES `admin` (`id_admin`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `gaji_detail`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `gaji_detail` (
+  `id_gaji_detail` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `id_gaji` int(10) unsigned NOT NULL,
+  `id_admin` int(11) NOT NULL,
+  `periode_bulan` char(7) NOT NULL,
+  `tgl_awal` date NOT NULL,
+  `tgl_akhir` date NOT NULL,
+  `jumlah_hari` int(11) NOT NULL DEFAULT 0,
+  `gaji_pokok` decimal(15,2) NOT NULL DEFAULT 0.00,
+  `transportasi` decimal(15,2) NOT NULL DEFAULT 0.00,
+  `konsumsi` decimal(15,2) NOT NULL DEFAULT 0.00,
+  `lembur` decimal(15,2) NOT NULL DEFAULT 0.00,
+  `komisi` decimal(15,2) NOT NULL DEFAULT 0.00,
+  `pinjaman` decimal(15,2) NOT NULL DEFAULT 0.00,
+  `potongan_telat` decimal(15,2) NOT NULL DEFAULT 0.00,
+  `dibuat_oleh` int(11) NOT NULL,
+  `disetujui_oleh` int(11) DEFAULT NULL,
+  `total` decimal(15,2) GENERATED ALWAYS AS (`gaji_pokok` + `transportasi` + `lembur` + `komisi` - `pinjaman` - `potongan_telat`) STORED,
+  PRIMARY KEY (`id_gaji_detail`),
+  UNIQUE KEY `gaji_detail_id_admin_periode_bulan_unique` (`id_admin`,`periode_bulan`),
+  KEY `gaji_detail_id_gaji_foreign` (`id_gaji`),
+  KEY `gaji_detail_dibuat_oleh_foreign` (`dibuat_oleh`),
+  KEY `gaji_detail_disetujui_oleh_foreign` (`disetujui_oleh`),
+  CONSTRAINT `gaji_detail_dibuat_oleh_foreign` FOREIGN KEY (`dibuat_oleh`) REFERENCES `admin` (`id_admin`),
+  CONSTRAINT `gaji_detail_disetujui_oleh_foreign` FOREIGN KEY (`disetujui_oleh`) REFERENCES `admin` (`id_admin`) ON DELETE SET NULL,
+  CONSTRAINT `gaji_detail_id_admin_foreign` FOREIGN KEY (`id_admin`) REFERENCES `admin` (`id_admin`),
+  CONSTRAINT `gaji_detail_id_gaji_foreign` FOREIGN KEY (`id_gaji`) REFERENCES `gaji` (`id_gaji`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `hasil_ujian`;
@@ -395,6 +525,32 @@ CREATE TABLE `homecare_detail` (
   KEY `id_homecare` (`id_homecare`),
   CONSTRAINT `fk_homecare_detail` FOREIGN KEY (`id_homecare`) REFERENCES `homecare` (`id_homecare`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `jadwal_shift`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `jadwal_shift` (
+  `id_jadwal` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `id_admin` int(11) NOT NULL,
+  `id_shift` int(10) unsigned NOT NULL,
+  `tanggal` date NOT NULL,
+  `status_approval` enum('diajukan','disetujui','ditolak') NOT NULL DEFAULT 'diajukan',
+  `diajukan_oleh` int(11) NOT NULL,
+  `disetujui_oleh` int(11) DEFAULT NULL,
+  `disetujui_pada` timestamp NULL DEFAULT NULL,
+  `catatan` text DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id_jadwal`),
+  UNIQUE KEY `jadwal_shift_id_admin_id_shift_tanggal_unique` (`id_admin`,`id_shift`,`tanggal`),
+  KEY `jadwal_shift_id_shift_foreign` (`id_shift`),
+  KEY `jadwal_shift_diajukan_oleh_foreign` (`diajukan_oleh`),
+  KEY `jadwal_shift_disetujui_oleh_foreign` (`disetujui_oleh`),
+  CONSTRAINT `jadwal_shift_diajukan_oleh_foreign` FOREIGN KEY (`diajukan_oleh`) REFERENCES `admin` (`id_admin`),
+  CONSTRAINT `jadwal_shift_disetujui_oleh_foreign` FOREIGN KEY (`disetujui_oleh`) REFERENCES `admin` (`id_admin`) ON DELETE SET NULL,
+  CONSTRAINT `jadwal_shift_id_admin_foreign` FOREIGN KEY (`id_admin`) REFERENCES `admin` (`id_admin`),
+  CONSTRAINT `jadwal_shift_id_shift_foreign` FOREIGN KEY (`id_shift`) REFERENCES `master_shift` (`id_shift`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `jenis_jurnal`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -459,6 +615,7 @@ CREATE TABLE `jurnal` (
   `ket` text NOT NULL,
   `petugas` varchar(30) NOT NULL,
   `idjenis` mediumint(100) NOT NULL,
+  `kd_referensi` varchar(100) DEFAULT NULL,
   `debit` int(11) NOT NULL,
   `kredit` int(11) NOT NULL,
   `carabayar` varchar(8) NOT NULL,
@@ -503,6 +660,8 @@ CREATE TABLE `kdtk` (
   `id_kdtk` int(11) NOT NULL AUTO_INCREMENT,
   `kd_trkasir` varchar(100) NOT NULL,
   `id_admin` int(11) NOT NULL,
+  `id_pelanggan` int(11) DEFAULT NULL,
+  `nm_pelanggan` varchar(100) DEFAULT NULL,
   `stt_kdtk` varchar(3) NOT NULL DEFAULT 'ON',
   PRIMARY KEY (`id_kdtk`),
   UNIQUE KEY `kd_trkasir` (`kd_trkasir`)
@@ -570,6 +729,50 @@ CREATE TABLE `koreksi_stok` (
   PRIMARY KEY (`id_koreksi`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `kuota_cuti`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `kuota_cuti` (
+  `id_kuota` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `id_admin` int(11) NOT NULL,
+  `tahun` year(4) NOT NULL,
+  `kuota_hari` int(11) NOT NULL DEFAULT 12,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id_kuota`),
+  UNIQUE KEY `kuota_cuti_id_admin_tahun_unique` (`id_admin`,`tahun`),
+  CONSTRAINT `kuota_cuti_id_admin_foreign` FOREIGN KEY (`id_admin`) REFERENCES `admin` (`id_admin`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `lembur`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `lembur` (
+  `id_lembur` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `id_admin` int(11) NOT NULL,
+  `id_absensi` int(10) unsigned DEFAULT NULL,
+  `tanggal` date NOT NULL,
+  `jam_lembur` decimal(5,2) NOT NULL DEFAULT 0.00,
+  `tipe` enum('per_jam','per_shift') NOT NULL DEFAULT 'per_jam',
+  `sumber` enum('otomatis','manual') NOT NULL DEFAULT 'manual',
+  `status_approval` enum('diajukan','disetujui','ditolak') NOT NULL DEFAULT 'diajukan',
+  `ditarik_ke_gaji` tinyint(1) NOT NULL DEFAULT 0,
+  `id_gaji_detail` int(10) unsigned DEFAULT NULL,
+  `keterangan` text DEFAULT NULL,
+  `dicatat_oleh` int(11) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id_lembur`),
+  KEY `lembur_id_admin_foreign` (`id_admin`),
+  KEY `lembur_id_absensi_foreign` (`id_absensi`),
+  KEY `lembur_id_gaji_detail_foreign` (`id_gaji_detail`),
+  KEY `lembur_dicatat_oleh_foreign` (`dicatat_oleh`),
+  CONSTRAINT `lembur_dicatat_oleh_foreign` FOREIGN KEY (`dicatat_oleh`) REFERENCES `admin` (`id_admin`) ON DELETE SET NULL,
+  CONSTRAINT `lembur_id_absensi_foreign` FOREIGN KEY (`id_absensi`) REFERENCES `absensi` (`id_absensi`) ON DELETE SET NULL,
+  CONSTRAINT `lembur_id_admin_foreign` FOREIGN KEY (`id_admin`) REFERENCES `admin` (`id_admin`),
+  CONSTRAINT `lembur_id_gaji_detail_foreign` FOREIGN KEY (`id_gaji_detail`) REFERENCES `gaji_detail` (`id_gaji_detail`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `logs`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -581,6 +784,34 @@ CREATE TABLE `logs` (
   `waktu` datetime NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `lokasi_antar`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `lokasi_antar` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `jarak_min` double DEFAULT NULL,
+  `jarak_max` double DEFAULT NULL,
+  `biaya_antar` double NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `master_shift`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `master_shift` (
+  `id_shift` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `nama_shift` varchar(50) NOT NULL,
+  `jam_masuk` time NOT NULL,
+  `jam_pulang` time NOT NULL,
+  `toleransi_telat` int(11) NOT NULL DEFAULT 15,
+  `status_aktif` tinyint(1) NOT NULL DEFAULT 1,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id_shift`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `meso`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -652,7 +883,11 @@ CREATE TABLE `order_online` (
   `status` varchar(255) NOT NULL,
   `kode_pesanan` varchar(255) DEFAULT NULL,
   `tipe_layanan` enum('Dikirim ke alamat','Ambil di toko') DEFAULT NULL,
+  `lokasi_antar_id` bigint(20) unsigned DEFAULT NULL,
+  `jarak_km` decimal(6,2) DEFAULT NULL,
+  `biaya_ongkir` double NOT NULL DEFAULT 0,
   `layanan_pengiriman` varchar(255) DEFAULT NULL,
+  `estimasi_antar` datetime DEFAULT NULL,
   `tipe_pembayaran` varchar(30) DEFAULT NULL,
   `diskon` int(11) DEFAULT NULL,
   `total_harga` double DEFAULT NULL,
@@ -661,6 +896,10 @@ CREATE TABLE `order_online` (
   `nilai_diskon_promo` decimal(5,2) DEFAULT NULL,
   `total_diskon` double DEFAULT NULL,
   `alamat` text DEFAULT NULL,
+  `tipe_alamat` varchar(10) DEFAULT NULL,
+  `alamat_label` varchar(100) DEFAULT NULL,
+  `alamat_lat` decimal(10,7) DEFAULT NULL,
+  `alamat_lng` decimal(10,7) DEFAULT NULL,
   `no_tlp` varchar(13) DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
@@ -672,6 +911,8 @@ CREATE TABLE `order_online` (
   `catatan` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `order_online_user_id_foreign` (`user_id`),
+  KEY `order_online_lokasi_antar_id_foreign` (`lokasi_antar_id`),
+  CONSTRAINT `order_online_lokasi_antar_id_foreign` FOREIGN KEY (`lokasi_antar_id`) REFERENCES `lokasi_antar` (`id`) ON DELETE SET NULL,
   CONSTRAINT `order_online_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -710,6 +951,7 @@ CREATE TABLE `orders` (
   `sisa_bayar` double NOT NULL,
   `ket_trbmasuk` text NOT NULL,
   `tandatangan` enum('TIDAK','YA') NOT NULL DEFAULT 'TIDAK',
+  `capapotek` enum('TIDAK','YA') NOT NULL DEFAULT 'TIDAK',
   `masuk` enum('0','1') NOT NULL DEFAULT '1',
   PRIMARY KEY (`id_trbmasuk`),
   UNIQUE KEY `kd_trbmasuk` (`kd_trbmasuk`),
@@ -726,7 +968,7 @@ CREATE TABLE `orders` (
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_AUTO_VALUE_ON_ZERO' */ ;
 DELIMITER ;;
-/*!50003 CREATE*/ /*!50003 TRIGGER `update_kdbm_after_order` AFTER INSERT ON `orders` FOR EACH ROW UPDATE kdbm
+/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `update_kdbm_after_order` AFTER INSERT ON `orders` FOR EACH ROW UPDATE kdbm
     SET stt_kdbm = 'OFF'
     WHERE kd_trbmasuk = NEW.kd_trbmasuk */;;
 DELIMITER ;
@@ -744,6 +986,7 @@ CREATE TABLE `ordersdetail` (
   `kd_barang` varchar(50) NOT NULL,
   `nmbrg_dtrbmasuk` varchar(100) NOT NULL,
   `qty_dtrbmasuk` double NOT NULL,
+  `rasio` decimal(10,2) DEFAULT NULL,
   `sat_dtrbmasuk` varchar(30) NOT NULL,
   `hnasat_dtrbmasuk` double NOT NULL,
   `diskon` double NOT NULL,
@@ -804,6 +1047,7 @@ DROP TABLE IF EXISTS `pelanggan`;
 CREATE TABLE `pelanggan` (
   `id_pelanggan` int(11) NOT NULL AUTO_INCREMENT,
   `nm_pelanggan` varchar(100) NOT NULL,
+  `email` varchar(150) DEFAULT NULL,
   `jenis_kelamin` enum('PRIA','WANITA') NOT NULL,
   `tanggal_lahir` date DEFAULT NULL,
   `tlp_pelanggan` varchar(30) NOT NULL,
@@ -811,7 +1055,8 @@ CREATE TABLE `pelanggan` (
   `ket_pelanggan` text NOT NULL,
   `unit` int(11) NOT NULL DEFAULT 0,
   `total_poin` int(11) NOT NULL DEFAULT 0,
-  PRIMARY KEY (`id_pelanggan`)
+  PRIMARY KEY (`id_pelanggan`),
+  UNIQUE KEY `pelanggan_email_unique` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `pio`;
@@ -935,6 +1180,24 @@ CREATE TABLE `rekapso` (
   PRIMARY KEY (`id_rekap`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `resellers`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `resellers` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` bigint(20) unsigned NOT NULL,
+  `nama_lengkap` varchar(255) NOT NULL,
+  `no_hp` varchar(30) NOT NULL,
+  `alamat` text NOT NULL,
+  `nama_bank` varchar(255) DEFAULT NULL,
+  `no_rekening` varchar(50) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `resellers_user_id_unique` (`user_id`),
+  CONSTRAINT `resellers_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `riwayat_pelanggan`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1016,6 +1279,7 @@ CREATE TABLE `setheader` (
   `empatbelas` int(11) NOT NULL,
   `logo` text NOT NULL,
   `tandatangan` text NOT NULL,
+  `capapotek` text NOT NULL DEFAULT '',
   PRIMARY KEY (`id_setheader`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -1079,6 +1343,21 @@ CREATE TABLE `supplier` (
   PRIMARY KEY (`id_supplier`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `testimonis`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `testimonis` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` bigint(20) unsigned NOT NULL,
+  `rating` tinyint(3) unsigned NOT NULL DEFAULT 5,
+  `isi` text NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `testimonis_user_id_unique` (`user_id`),
+  CONSTRAINT `testimonis_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `trbmasuk`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1120,7 +1399,7 @@ CREATE TABLE `trbmasuk` (
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_AUTO_VALUE_ON_ZERO' */ ;
 DELIMITER ;;
-/*!50003 CREATE*/ /*!50003 TRIGGER `update_kdbm_after_trbmasuk` AFTER INSERT ON `trbmasuk` FOR EACH ROW UPDATE kdbm
+/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `update_kdbm_after_trbmasuk` AFTER INSERT ON `trbmasuk` FOR EACH ROW UPDATE kdbm
     SET stt_kdbm = 'OFF'
     WHERE kd_trbmasuk = NEW.kd_trbmasuk */;;
 DELIMITER ;
@@ -1227,7 +1506,7 @@ CREATE TABLE `trkasir` (
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_AUTO_VALUE_ON_ZERO' */ ;
 DELIMITER ;;
-/*!50003 CREATE*/ /*!50003 TRIGGER `update_kdtk_after_trkasir` AFTER INSERT ON `trkasir` FOR EACH ROW UPDATE kdtk
+/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `update_kdtk_after_trkasir` AFTER INSERT ON `trkasir` FOR EACH ROW UPDATE kdtk
     SET stt_kdtk = 'OFF'
     WHERE kd_trkasir = NEW.kd_trkasir */;;
 DELIMITER ;
@@ -1257,6 +1536,7 @@ CREATE TABLE `trkasir_detail` (
   `tipe` int(11) NOT NULL,
   `komisi` int(11) DEFAULT NULL,
   `idadmin` int(11) NOT NULL,
+  `id_reseller` int(11) DEFAULT NULL,
   `tipetx` int(11) NOT NULL DEFAULT 1,
   `resep` enum('YA','TIDAK') NOT NULL DEFAULT 'TIDAK',
   `kd_bundle` varchar(50) NOT NULL,
@@ -1400,6 +1680,23 @@ CREATE TABLE `ujian_progress` (
   UNIQUE KEY `uniq_ujian_progress_admin_ujian` (`id_admin`,`ujian_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `user_addresses`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `user_addresses` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` bigint(20) unsigned NOT NULL,
+  `label` varchar(100) NOT NULL,
+  `alamat` text NOT NULL,
+  `latitude` decimal(10,7) NOT NULL,
+  `longitude` decimal(10,7) NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `user_addresses_user_id_foreign` (`user_id`),
+  CONSTRAINT `user_addresses_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `user_login_logs`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1424,8 +1721,11 @@ CREATE TABLE `users` (
   `name` varchar(255) NOT NULL,
   `email` varchar(255) NOT NULL,
   `alamat` varchar(255) DEFAULT NULL,
+  `latitude` decimal(10,7) DEFAULT NULL,
+  `longitude` decimal(10,7) DEFAULT NULL,
   `no_tlp` varchar(255) DEFAULT NULL,
   `referal_admin_id` int(11) DEFAULT NULL,
+  `referred_by_reseller_id` bigint(20) unsigned DEFAULT NULL,
   `komisi_status` enum('belum','lunas') NOT NULL DEFAULT 'belum',
   `waktu_komisi_lunas` timestamp NULL DEFAULT NULL,
   `password` varchar(255) DEFAULT NULL,
@@ -1435,7 +1735,25 @@ CREATE TABLE `users` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `users_email_unique` (`email`)
+  UNIQUE KEY `users_email_unique` (`email`),
+  KEY `users_referred_by_reseller_id_foreign` (`referred_by_reseller_id`),
+  CONSTRAINT `users_referred_by_reseller_id_foreign` FOREIGN KEY (`referred_by_reseller_id`) REFERENCES `resellers` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `video_edukasi`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `video_edukasi` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` bigint(20) unsigned NOT NULL,
+  `judul` varchar(255) NOT NULL,
+  `slug` varchar(255) NOT NULL,
+  `youtube_url` varchar(255) NOT NULL,
+  `status` enum('draft','published') NOT NULL DEFAULT 'draft',
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `video_edukasi_slug_unique` (`slug`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `waktukerja`;
@@ -1502,4 +1820,49 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (23,'2026_08_30_000
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (24,'2026_09_06_124302_add_t60_gr_to_barang_table',12);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (25,'2026_09_06_172012_add_lapstokopname_flag_to_admin_table',12);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (26,'2026_09_08_202813_add_referal_admin_id_to_users_table',13);
-INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (27,'2026_09_08_204846_add_komisi_status_to_users_table',14);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (27,'2026_09_08_204846_add_komisi_status_to_users_table',13);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (28,'2026_09_11_225134_add_capapotek_to_setheader_table',14);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (29,'2026_09_11_230202_add_capapotek_to_orders_table',14);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (30,'2026_09_15_104017_create_resellers_table',15);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (31,'2026_09_17_030000_add_bank_columns_to_admin_table',16);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (32,'2026_09_17_030100_create_gaji_table',16);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (33,'2026_09_17_030200_create_gaji_detail_table',16);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (34,'2026_09_17_040000_remove_fee_malam_from_gaji_detail_table',16);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (35,'2026_09_17_050000_add_kehadiran_flag_to_admin_table',16);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (36,'2026_09_17_050100_create_master_shift_table',16);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (37,'2026_09_17_050200_create_jadwal_shift_table',16);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (38,'2026_09_17_050300_create_absensi_table',16);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (39,'2026_09_17_050400_create_lembur_table',16);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (40,'2026_09_17_050500_create_cuti_table',16);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (41,'2026_09_17_050600_create_kuota_cuti_table',16);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (42,'2026_09_17_050700_add_rate_lembur_to_gaji_table',16);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (43,'2026_09_20_131509_create_lokasi_antar_table',17);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (44,'2026_09_20_131510_add_lokasi_antar_id_and_biaya_ongkir_to_order_online_table',17);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (45,'2026_09_20_141735_add_alamat_to_resellers_table',17);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (46,'2026_09_20_141735_add_id_reseller_to_trkasir_detail_table',17);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (47,'2026_09_20_142042_add_referred_by_reseller_id_to_users_table',17);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (48,'2026_09_20_144504_add_komisi_reseller_to_company_settings_table',17);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (49,'2026_09_20_164119_add_kehadiran_lokasi_to_company_settings_table',18);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (50,'2026_09_20_164120_add_lokasi_to_absensi_table',18);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (51,'2026_09_20_165401_restructure_lokasi_columns_on_absensi_table',19);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (52,'2026_09_23_004550_make_nama_bank_and_no_rekening_nullable_on_resellers_table',19);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (53,'2026_09_23_030015_restructure_lokasi_antar_to_radius_tiers',19);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (54,'2026_09_23_030016_add_delivery_pin_to_users_table',19);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (55,'2026_09_23_030016_create_user_addresses_table',19);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (56,'2026_09_23_030017_add_delivery_fields_to_order_online_table',19);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (57,'2026_09_28_065243_add_gula_2pp_to_cekdarah_table',20);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (58,'2026_09_28_073849_add_pelanggan_to_kdtk_table',21);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (59,'2026_09_28_091855_add_potongan_telat_to_gaji_table',21);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (60,'2026_09_28_091855_add_tipe_to_lembur_table',21);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (61,'2026_09_28_091856_add_potongan_telat_to_gaji_detail_table',21);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (62,'2026_10_04_080548_add_kd_referensi_to_jurnal_table',22);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (63,'2026_10_05_182957_create_video_edukasi_table',23);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (64,'2026_10_06_173723_add_email_to_pelanggan_table',24);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (65,'2026_10_09_060000_add_rasio_to_ordersdetail_table',25);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (66,'2026_10_10_000000_add_kd_barang_to_barang_supplier_table',26);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (67,'2026_10_15_000000_create_fitur_table',27);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (68,'2026_10_15_000001_rename_unit_to_mysifa_on_admin_table',27);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (69,'2026_10_19_190000_add_meta_pixel_to_company_settings_table',28);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (70,'2026_10_20_000000_add_display_to_barang_table',29);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (71,'2026_10_22_210042_create_testimonis_table',30);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (72,'2026_10_22_211358_add_rating_to_testimonis_table',31);
