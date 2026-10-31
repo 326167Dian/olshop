@@ -199,6 +199,20 @@ class InventoryKehadiranController extends Controller
         $hariIni = now()->toDateString();
         $idJadwal = $request->input('id_jadwal') ? (int) $request->input('id_jadwal') : null;
 
+        // Cegah 1 pegawai check-in dobel di hari yang sama (mis. double-tap tombol
+        // check-in, atau check-in ad-hoc padahal sudah check-in lewat jadwal) --
+        // selama masih ada absensi hari ini yang belum check-out, tidak boleh
+        // check-in baru. Shift ke-2 yang SAH (back-to-back, shift pertama sudah
+        // check-out) tetap boleh lewat guard ini.
+        $masihCheckin = Absensi::where('id_admin', $admin->id_admin)
+            ->where('tanggal', $hariIni)
+            ->whereNull('jam_pulang')
+            ->exists();
+
+        if ($masihCheckin) {
+            return back()->with('error', 'Anda masih berstatus check-in (belum check-out) untuk shift sebelumnya. Check-out dulu sebelum check-in lagi.');
+        }
+
         $lokasi = $this->validasiRadiusKehadiran($request, 'check-in');
         if ($lokasi['error']) {
             return back()->with('error', $lokasi['error']);
