@@ -4,8 +4,11 @@
 
 @section('content')
     <div class="card card-primary">
-        <div class="card-header">
+        <div class="card-header d-flex justify-content-between align-items-center">
             <h3 class="card-title">Ubah Data Barang</h3>
+            <a href="{{ route('inventory.barang.satuan.index', $barang->id_barang) }}" class="btn btn-sm btn-outline-primary">
+                <i class="fas fa-layer-group"></i> Satuan Bertingkat (percobaan)
+            </a>
         </div>
         <form action="{{ route('inventory.barang.update', $barang->id_barang) }}" method="POST">
             @csrf

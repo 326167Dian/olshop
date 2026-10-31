@@ -15,6 +15,9 @@
                 <a class="btn btn-sm btn-warning" href="{{ route('inventory.barang.index', ['belum_lengkap' => 1]) }}">
                     <i class="fas fa-exclamation-triangle"></i> Data belum lengkap ({{ $belumLengkapCount }})
                 </a>
+                <a class="btn btn-sm btn-outline-primary" href="{{ route('inventory.barang.satuan-bertingkat.kelengkapan') }}">
+                    <i class="fas fa-layer-group"></i> Satuan Bertingkat (percobaan)
+                </a>
             </div>
 
             @if (request()->boolean('belum_lengkap'))

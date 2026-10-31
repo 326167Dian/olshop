@@ -37,6 +37,7 @@ use App\Http\Controllers\InventorySupplierController;
 use App\Http\Controllers\InventorySatuanController;
 use App\Http\Controllers\InventoryJenisobatController;
 use App\Http\Controllers\InventoryBarangController;
+use App\Http\Controllers\InventorySatuanBarangController;
 use App\Http\Controllers\InventoryKomisiController;
 use App\Http\Controllers\InventoryUjianController;
 use App\Http\Controllers\InventoryPoinController;
@@ -358,6 +359,14 @@ Route::prefix('inventory')->middleware(['auth:admin', 'admin.active'])->name('in
         Route::get('/data', [InventoryBarangController::class, 'data'])->name('data');
         Route::get('/create', [InventoryBarangController::class, 'create'])->name('create');
         Route::post('/', [InventoryBarangController::class, 'store'])->name('store');
+
+        // Satuan bertingkat (fitur percobaan, lihat SatuanBarang model)
+        Route::prefix('satuan-bertingkat')->name('satuan-bertingkat.')->group(function () {
+            Route::get('/', [InventorySatuanBarangController::class, 'kelengkapan'])->name('kelengkapan');
+            Route::get('/data', [InventorySatuanBarangController::class, 'kelengkapanData'])->name('kelengkapan-data');
+            Route::post('/migrate-otomatis', [InventorySatuanBarangController::class, 'migrateOtomatis'])->name('migrate-otomatis');
+        });
+
         Route::get('/{barang}/edit', [InventoryBarangController::class, 'edit'])->name('edit');
         Route::put('/{barang}', [InventoryBarangController::class, 'update'])->name('update');
         Route::delete('/{barang}', [InventoryBarangController::class, 'destroy'])->name('destroy');
@@ -365,6 +374,12 @@ Route::prefix('inventory')->middleware(['auth:admin', 'admin.active'])->name('in
         Route::post('/{barang}/zataktif', [InventoryBarangController::class, 'updateZataktif'])->name('update-zataktif');
         Route::post('/{barang}/jenisobat', [InventoryBarangController::class, 'updateJenisobat'])->name('update-jenisobat');
         Route::get('/{barang}/print-barcode', [InventoryBarangController::class, 'printBarcode'])->name('print-barcode');
+
+        Route::get('/{barang}/satuan', [InventorySatuanBarangController::class, 'index'])->name('satuan.index');
+        Route::post('/{barang}/satuan', [InventorySatuanBarangController::class, 'store'])->name('satuan.store');
+        Route::put('/{barang}/satuan/{satuanBarang}', [InventorySatuanBarangController::class, 'update'])->name('satuan.update');
+        Route::delete('/{barang}/satuan/{satuanBarang}', [InventorySatuanBarangController::class, 'destroy'])->name('satuan.destroy');
+
         Route::get('/{barang}', [InventoryBarangController::class, 'show'])->name('show');
     });
 

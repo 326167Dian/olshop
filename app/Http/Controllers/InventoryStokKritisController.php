@@ -58,6 +58,13 @@ class InventoryStokKritisController extends Controller
      * itu sendiri). UI modal itu murni dekoratif/tidak berfungsi di legacy, jadi tidak
      * direplikasi -- pemilihan supplier tetap terjadi, hanya di layar berikutnya
      * (form Pesan Barang) yang memang sudah punya picker supplier sendiri.
+     *
+     * **Supplier di sini bersifat OPSIONAL (2026-10-31), bukan wajib** -- kalau admin
+     * mencentang barang tapi belum (atau tidak mau) memilih supplier per baris, JS
+     * (lihat estimasi.blade.php) menawarkan dialog 2 opsi: lanjut tanpa supplier
+     * (langsung submit, `id_supplier` dikosongkan) atau perbaiki input dulu (dialog
+     * ditutup, submit dibatalkan). `addToOrder()` menerima `id_supplier` kosong --
+     * validasi "supplier ini jual barang ini" hanya jalan kalau `id_supplier` diisi.
      */
     public function index()
     {
@@ -174,10 +181,14 @@ class InventoryStokKritisController extends Controller
         $validated = $request->validate([
             'kd_barang' => 'required|array|min:1',
             'kd_barang.*' => 'string|exists:barang,kd_barang',
-            // Satu surat pesanan hanya untuk satu supplier -- dipilih per baris di
-            // halaman Estimasi (dropdown Supplier), lalu divalidasi sama di JS sebelum
-            // form ini dikirim (lihat estimasi.blade.php).
-            'id_supplier' => 'required|integer|exists:supplier,id_supplier',
+            // Satu surat pesanan hanya untuk satu supplier -- kalau dipilih per baris
+            // di halaman Estimasi (dropdown Supplier), semua baris tercentang wajib
+            // sepakat 1 supplier yang sama (divalidasi di JS, lihat estimasi.blade.php).
+            // TAPI supplier di sini OPSIONAL -- kalau admin belum/tidak mau memilih
+            // distributor di layar ini, dia tetap boleh lanjut: item masuk ke draft
+            // Pesan Barang tanpa supplier terpasang, lalu dipilih sendiri di form itu
+            // (yang memang sudah punya picker supplier sendiri -- lihat catatan kelas).
+            'id_supplier' => 'nullable|integer|exists:supplier,id_supplier',
         ]);
 
         $barangList = Product::whereIn('kd_barang', $validated['kd_barang'])->get()->keyBy('kd_barang');
@@ -187,7 +198,7 @@ class InventoryStokKritisController extends Controller
             if (!$barang || (float) $barang->konversi <= 0) {
                 return back()->withErrors(['kd_barang' => 'Konversi harus lebih besar dari 0 untuk item ' . ($barang->nm_barang ?? $kdBarang) . '.']);
             }
-            if (!BarangSupplier::where('id_supplier', $validated['id_supplier'])->where('id_barang', $barang->id_barang)->exists()) {
+            if (!empty($validated['id_supplier']) && !BarangSupplier::where('id_supplier', $validated['id_supplier'])->where('id_barang', $barang->id_barang)->exists()) {
                 return back()->withErrors(['id_supplier' => 'Supplier terpilih tidak terdaftar menjual barang ' . $barang->nm_barang . '.']);
             }
         }
@@ -222,7 +233,7 @@ class InventoryStokKritisController extends Controller
             }
         });
 
-        return redirect()->route('inventory.orders.create', ['id_supplier' => $validated['id_supplier']])
+        return redirect()->route('inventory.orders.create', array_filter(['id_supplier' => $validated['id_supplier'] ?? null]))
             ->with('success', 'Item berhasil ditambahkan ke draft pesanan.');
     }
 

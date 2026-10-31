@@ -194,7 +194,16 @@
         var kd = document.getElementById('kd_trbmasuk').value;
         fetch("{{ route('inventory.orders.detail.index') }}?kd_trbmasuk=" + encodeURIComponent(kd), { cache: 'no-store' })
             .then(function(res) { return res.text(); })
-            .then(function(html) { $('#tabeldata').html(html); });
+            .then(function(html) {
+                $('#tabeldata').html(html);
+
+                @if (session('success'))
+                    // Landing di sini lewat redirect "ADD TO ORDER" (Stok Kritis) atau
+                    // aksi sejenis -- scroll ke tabel detail supaya item yang sudah
+                    // terbawa ke draft ini langsung kelihatan, tidak terkesan kosong.
+                    document.getElementById('tabeldata').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                @endif
+            });
     }
 
     document.addEventListener('DOMContentLoaded', loadTabelDetail);

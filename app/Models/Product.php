@@ -101,6 +101,11 @@ class Product extends Model
         return $this->belongsTo(Admin::class, 'updated_by', 'id_admin');
     }
 
+    public function satuanBertingkat()
+    {
+        return $this->hasMany(SatuanBarang::class, 'kd_barang', 'kd_barang')->orderBy('urutan');
+    }
+
     /**
      * ket_barang biasanya HTML dari CKEditor (sudah punya <p>/<br> sendiri),
      * tapi sebagian data lama cuma teks polos dengan baris baru literal yang
