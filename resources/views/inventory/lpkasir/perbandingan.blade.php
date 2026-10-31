@@ -107,6 +107,14 @@
                     </tr>
                 @endforelse
             </tbody>
+            @if ($barangEksklusif->isNotEmpty())
+                <tfoot>
+                    <tr>
+                        <th colspan="4" class="text-end">Total</th>
+                        <th class="text-end">{{ number_format($barangEksklusif->sum('total_harga'), 0, ',', '.') }}</th>
+                    </tr>
+                </tfoot>
+            @endif
         </table>
     </div>
 @endif
