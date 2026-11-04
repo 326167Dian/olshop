@@ -265,6 +265,7 @@ class InventoryTrkasirController extends Controller
 
         return DataTables::of($query)
             ->addIndexColumn()
+            ->editColumn('tgl_trkasir', fn ($row) => $row->tgl_trkasir?->format('Y-m-d'))
             ->editColumn('ttl_trkasir', fn ($row) => number_format($row->ttl_trkasir, 0, ',', '.'))
             ->addColumn('shift_label', fn ($row) => ['1' => 'Pagi', '2' => 'Siang', '3' => 'Malam'][(string) $row->shift] ?? $row->shift)
             ->addColumn('nm_carabayar', fn ($row) => optional(CaraBayar::find($row->id_carabayar))->nm_carabayar)
