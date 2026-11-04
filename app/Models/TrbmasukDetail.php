@@ -31,6 +31,7 @@ class TrbmasukDetail extends Model
         'waktu',
         'tipe',
         'tipe_barang',
+        'id_admin',
     ];
 
     protected $casts = [
@@ -45,5 +46,10 @@ class TrbmasukDetail extends Model
     public function barang()
     {
         return $this->belongsTo(Product::class, 'id_barang', 'id_barang');
+    }
+
+    public function admin()
+    {
+        return $this->belongsTo(Admin::class, 'id_admin', 'id_admin');
     }
 }

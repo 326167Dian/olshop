@@ -271,6 +271,7 @@ class InventoryTrbmasukController extends Controller
                     'hrgjual_dtrbmasuk' => $validated['hrgjual_dtrbmasuk'],
                     'hrgttl_dtrbmasuk' => $ttlQty * $validated['hrgsat_dtrbmasuk'],
                     'exp_date' => $expDate,
+                    'id_admin' => Auth::guard('admin')->id(),
                 ]);
 
                 Product::where('id_barang', $validated['id_barang'])->update([
@@ -310,6 +311,7 @@ class InventoryTrbmasukController extends Controller
                     'hnasat_dtrbmasuk' => $barang->hna ?? 0,
                     'no_batch' => $validated['no_batch'],
                     'exp_date' => $expDate,
+                    'id_admin' => Auth::guard('admin')->id(),
                 ]);
 
                 Product::where('id_barang', $validated['id_barang'])->update([
@@ -352,6 +354,7 @@ class InventoryTrbmasukController extends Controller
             $detail->update([
                 'qty_dtrbmasuk' => $validated['qty_dtrbmasuk'],
                 'hrgttl_dtrbmasuk' => round($validated['qty_dtrbmasuk'] * $detail->hrgsat_dtrbmasuk),
+                'id_admin' => Auth::guard('admin')->id(),
             ]);
 
             Product::where('id_barang', $detail->id_barang)->update(['stok_barang' => DB::raw('stok_barang + (' . (float) $selisih . ')')]);
@@ -949,6 +952,7 @@ class InventoryTrbmasukController extends Controller
             'hrgttl_dtrbmasuk' => $hrgttl,
             'no_batch' => $noBatch,
             'exp_date' => $expDate,
+            'id_admin' => Auth::guard('admin')->id(),
         ]);
 
         Product::where('id_barang', $odt->id_barang)->increment('stok_barang', $qtyDtrbmasuk);
@@ -1067,6 +1071,7 @@ class InventoryTrbmasukController extends Controller
         }
 
         $detail->hrgttl_dtrbmasuk = round($detail->hrgsat_dtrbmasuk * (1 - $detail->diskon / 100) * $detail->qty_dtrbmasuk);
+        $detail->id_admin = Auth::guard('admin')->id();
         $detail->save();
 
         $selisihQty = $detail->qty_dtrbmasuk - $qtyLama;

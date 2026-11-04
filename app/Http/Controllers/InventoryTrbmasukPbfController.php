@@ -295,6 +295,7 @@ class InventoryTrbmasukPbfController extends Controller
                     'no_batch' => $noBatch,
                     'exp_date' => $expDate,
                     'tipe_barang' => $tipeBarang,
+                    'id_admin' => Auth::guard('admin')->id(),
                 ]);
 
                 if ($tipeBarang === 'bonus') {
@@ -360,6 +361,7 @@ class InventoryTrbmasukPbfController extends Controller
                     'no_batch' => $noBatch,
                     'exp_date' => $expDate,
                     'tipe_barang' => $tipeBarang,
+                    'id_admin' => Auth::guard('admin')->id(),
                 ]);
 
                 if ($tipeBarang === 'bonus') {
@@ -430,6 +432,7 @@ class InventoryTrbmasukPbfController extends Controller
                 'qty_dtrbmasuk' => $qtyBaru,
                 'qty_grosir' => $qtyGrosir,
                 'hrgttl_dtrbmasuk' => $hrgttl,
+                'id_admin' => Auth::guard('admin')->id(),
             ]);
 
             Product::where('id_barang', $detail->id_barang)->update(['stok_barang' => DB::raw('stok_barang + (' . (float) ($qtyBaru - $qtyLama) . ')')]);
@@ -1336,6 +1339,7 @@ class InventoryTrbmasukPbfController extends Controller
             'no_batch' => $noBatch,
             'exp_date' => $expDate,
             'tipe_barang' => $tipeBarang,
+            'id_admin' => Auth::guard('admin')->id(),
         ]);
 
         $hrgjualBarang = round($hrgjual);
@@ -1469,6 +1473,7 @@ class InventoryTrbmasukPbfController extends Controller
 
         $detail->hrgsat_dtrbmasuk = $this->hitungHargaSatuan($detail->hnasat_dtrbmasuk, $detail->konversi, $detail->diskon);
         $detail->hrgttl_dtrbmasuk = $this->hitungTotalBaris($detail->hnasat_dtrbmasuk, $detail->qty_grosir, $detail->diskon);
+        $detail->id_admin = Auth::guard('admin')->id();
         $detail->save();
 
         if (!$isBonus && in_array($field, ['hna', 'diskon', 'konversi', 'qtygrosir'], true)) {
