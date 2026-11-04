@@ -757,7 +757,14 @@ class InventoryTrbmasukPbfController extends Controller
             $existing = Trbmasuk::where('kd_trbmasuk', $validated['kd_trbmasuk'])->first();
 
             if ($existing) {
-                $existing->update($validated);
+                // Bug diperbaiki 2026-11-04: $validated tidak pernah berisi 'petugas'
+                // (cuma diisi saat Trbmasuk::create() pertama kali di cabang else), jadi
+                // kalau transaksi terima-dari-pesanan ini dilanjutkan di hari lain oleh
+                // admin yang berbeda dari yang membukanya, header tetap tercatat atas
+                // nama admin pertama meski admin yang sekarang-lah yang menyelesaikan &
+                // menyimpannya (lihat insiden BPF-090926054741). 'petugas' di-stamp ulang
+                // ke admin yang sedang login setiap kali header ini disimpan.
+                $existing->update(array_merge($validated, ['petugas' => $admin->nama_lengkap]));
             } else {
                 Trbmasuk::create(array_merge($validated, [
                     'id_resto' => 'pusat',
