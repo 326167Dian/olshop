@@ -198,7 +198,13 @@ class InventoryTrbmasukController extends Controller
             Auth::guard('admin')->user()->nama_lengkap
         );
 
-        return redirect()->route('inventory.trbmasuk.index')->with('success', 'Transaksi barang masuk berhasil dihapus.');
+        // Redirect ke 'inventory.byrkredit.index' (bukan 'inventory.trbmasuk.index') --
+        // aksi hapus ini digerbang flag 'byrkredit', bukan 'tbm'. Admin yang punya
+        // 'byrkredit' tapi tidak punya 'tbm' akan kena 403 oleh EnsureInventoryModuleAccess
+        // kalau redirect ke index 'tbm', membuat fetch() di byrkredit/index.blade.php
+        // melihat res.ok=false dan menampilkan "Gagal menghapus transaksi" padahal baris
+        // sudah benar-benar terhapus.
+        return redirect()->route('inventory.byrkredit.index')->with('success', 'Transaksi barang masuk berhasil dihapus.');
     }
 
     // ==================== DETAIL LANGSUNG (tanpa pesanan) ====================
