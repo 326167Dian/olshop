@@ -213,7 +213,14 @@ class InventoryTrbmasukPbfController extends Controller
             Auth::guard('admin')->user()->nama_lengkap
         );
 
-        return redirect()->route('inventory.trbmasukpbf.index')->with('success', 'Transaksi barang masuk berhasil dihapus.');
+        // JSON, bukan redirect() -- dipanggil lewat fetch() dari byrkredit/index.blade.php
+        // (tombol Hapus di daftar "Edit/Retur/Hapus Pembelian") dan trbmasukpbf/show.blade.php,
+        // keduanya cuma mengecek res.ok. Kalau di sini redirect ke index 'tbmpbf', fetch()
+        // ikut mem-follow-nya jadi GET baru ke index -- res.ok lalu bergantung pada request
+        // KEDUA itu juga sukses (bisa gagal karena hiccup transient tak terkait, mis. koneksi
+        // DB sempat putus di shared hosting), membuat penghapusan yang SUDAH benar-benar
+        // berhasil di DB tetap ditampilkan sebagai "Gagal menghapus transaksi" ke user.
+        return response()->json(['status' => 'ok', 'message' => 'Transaksi barang masuk berhasil dihapus.']);
     }
 
     // ==================== DETAIL LANGSUNG (tambah/ubah) ====================

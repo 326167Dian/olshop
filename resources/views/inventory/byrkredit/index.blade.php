@@ -60,8 +60,13 @@
         $(document).on('click', '.btn-hapus-transaksi', function() {
             if (!confirm('Yakin ingin menghapus transaksi ini? Stok barang akan dikembalikan.')) return;
 
-            var id = $(this).data('id');
-            var jenis = $(this).data('jenis');
+            // Tombol dimatikan selama request berjalan -- mencegah klik ganda (mis. karena
+            // koneksi lambat/tidak sabar) mengirim DELETE dua kali untuk baris yang sama;
+            // percobaan kedua akan 404 (baris sudah terhapus di percobaan pertama) dan
+            // menampilkan "Gagal menghapus" padahal penghapusannya sendiri sudah berhasil.
+            var $btn = $(this).prop('disabled', true);
+            var id = $btn.data('id');
+            var jenis = $btn.data('jenis');
             var url = jenis === 'pbf'
                 ? "{{ url('inventory/trbmasukpbf') }}/" + id
                 : "{{ url('inventory/byrkredit') }}/" + id;
@@ -74,7 +79,10 @@
                     if (!res.ok) throw new Error('Gagal menghapus');
                     table.ajax.reload(null, false);
                 })
-                .catch(function() { alert('Gagal menghapus transaksi.'); });
+                .catch(function() {
+                    alert('Gagal menghapus transaksi.');
+                    $btn.prop('disabled', false);
+                });
         });
     });
 </script>
