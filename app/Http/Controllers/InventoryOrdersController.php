@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Models\Satuan;
 use App\Models\Setheader;
 use App\Models\Supplier;
+use App\Models\Trbmasuk;
 use App\Models\SupplierOrder;
 use App\Models\SupplierOrderDetail;
 use App\Models\SupplierOrderDetailHist;
@@ -202,6 +203,16 @@ class InventoryOrdersController extends Controller
      */
     public function destroy(SupplierOrder $order)
     {
+        // Pesanan yang sudah pernah "diterima" (sebagian/seluruhnya) punya baris
+        // trbmasuk/trbmasuk_detail yang merujuk kd_orders ke pesanan ini. Kalau pesanan
+        // dihapus duluan (ordersdetail ikut terhapus), baris trbmasuk itu jadi nyangkut
+        // -- laporan Evaluasi Barang Masuk-nya kehilangan sumber data pembanding
+        // (join ke ordersdetail jadi kosong). Urutan yang benar: hapus dulu transaksi
+        // Barang Masuk-nya (Edit/Retur/Hapus Pembelian), baru pesanannya.
+        if (Trbmasuk::where('kd_orders', $order->kd_trbmasuk)->exists()) {
+            return back()->with('error', 'Pesanan tidak bisa dihapus karena masih ada transaksi Barang Masuk yang terhubung ke pesanan ini. Hapus dulu transaksi Barang Masuk-nya lewat menu Edit/Retur/Hapus Pembelian, baru hapus pesanannya.');
+        }
+
         DB::transaction(function () use ($order) {
             $this->archiveDetail($order->kd_trbmasuk);
             SupplierOrderDetail::where('kd_trbmasuk', $order->kd_trbmasuk)->delete();
@@ -209,7 +220,6 @@ class InventoryOrdersController extends Controller
         });
 
         return redirect()->route('inventory.orders.index')->with('success', 'Pesanan berhasil dihapus.');
-        // dd($order);
     }
 
     /**
