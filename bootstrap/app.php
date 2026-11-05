@@ -26,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'prevent.back.history' => \App\Http\Middleware\PreventBackHistory::class,
             'admin.active' => \App\Http\Middleware\EnsureAdminActive::class,
             'inventory.module' => \App\Http\Middleware\EnsureInventoryModuleAccess::class,
+            'track.visit' => \App\Http\Middleware\TrackPageVisit::class,
         ]);
         $middleware->redirectGuestsTo(function ($request) {
             return $request->is('backend/*') || $request->is('inventory') || $request->is('inventory/*')

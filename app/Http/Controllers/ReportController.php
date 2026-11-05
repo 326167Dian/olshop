@@ -36,11 +36,38 @@ class ReportController extends Controller
             ]);
         }
 
+        // Per halaman (30 hari terakhir) -- 'page' di sini adalah nama route, diisi
+        // middleware TrackPageVisit untuk halaman publik selain home-page (yang masih
+        // dicatat manual di HomepageController, lihat $totalVisits di atas).
+        $labelHalaman = [
+            'home-page' => 'Halaman Utama',
+            'produk.all' => 'Semua Produk',
+            'produk.detail' => 'Detail Produk',
+            'produk.kategori' => 'Kategori Produk',
+            'produk.search' => 'Pencarian Produk',
+            'artikel.all' => 'Daftar Artikel',
+            'article.show' => 'Detail Artikel',
+            'testimoni.all' => 'Testimoni',
+            'video-edukasi.all' => 'Daftar Video Edukasi',
+            'video-edukasi.show' => 'Detail Video Edukasi',
+        ];
+
+        $rekapHalaman = PageVisit::where('created_at', '>=', now()->subDays(29)->startOfDay())
+            ->selectRaw('page, COUNT(*) as jumlah')
+            ->groupBy('page')
+            ->orderByDesc('jumlah')
+            ->get()
+            ->map(fn ($baris) => [
+                'label' => $labelHalaman[$baris->page] ?? $baris->page,
+                'jumlah' => $baris->jumlah,
+            ]);
+
         return view('backend.report.visits', [
             'judul' => 'Laporan',
             'subJudul' => 'Laporan Kunjungan Website',
             'totalVisits' => $totalVisits,
             'rekap' => $rekap,
+            'rekapHalaman' => $rekapHalaman,
         ]);
     }
 

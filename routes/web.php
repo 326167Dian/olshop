@@ -108,24 +108,24 @@ Route::get('/home-page', [HomepageController::class, 'index'])->name('home-page'
 
 // Route Product
 
-Route::get('/produk/detail/{id}', [ProductController::class, 'detail'])->name('produk.detail');
-Route::get('/produk/kategori/{id}', [ProductController::class, 'produkKategori'])->name('produk.kategori');
-Route::get('/produk/cari', [ProductController::class, 'search'])->name('produk.search');
+Route::get('/produk/detail/{id}', [ProductController::class, 'detail'])->name('produk.detail')->middleware('track.visit');
+Route::get('/produk/kategori/{id}', [ProductController::class, 'produkKategori'])->name('produk.kategori')->middleware('track.visit');
+Route::get('/produk/cari', [ProductController::class, 'search'])->name('produk.search')->middleware('track.visit');
 // Bisa diakses tanpa login (pengunjung dari iklan). Tamu disimpan di keranjang
 // session (App\Services\GuestCart) dan diminta login saat membuka keranjang/checkout.
-Route::get('/produk/all', [ProductController::class, 'index'])->name('produk.all');
+Route::get('/produk/all', [ProductController::class, 'index'])->name('produk.all')->middleware('track.visit');
 Route::post('add-to-cart/{id}', [OrderController::class, 'addToCart'])->name('order.addToCart');
 Route::get('cart', [OrderController::class, 'viewCart'])->name('order.cart');
 // Webhook Midtrans -- dipanggil server Midtrans, jadi tidak boleh di balik login.
 Route::post('/midtrans-callback', [OrderController::class, 'callback']);
 
-Route::get('/artikel/all', [ArticleController::class, 'indexFrontend'])->name('artikel.all');
-Route::get('/artikel/{slug}', [ArticleController::class, 'show'])->name('article.show');
+Route::get('/artikel/all', [ArticleController::class, 'indexFrontend'])->name('artikel.all')->middleware('track.visit');
+Route::get('/artikel/{slug}', [ArticleController::class, 'show'])->name('article.show')->middleware('track.visit');
 
-Route::get('/testimoni/all', [TestimoniController::class, 'indexFrontend'])->name('testimoni.all');
+Route::get('/testimoni/all', [TestimoniController::class, 'indexFrontend'])->name('testimoni.all')->middleware('track.visit');
 
-Route::get('/video-edukasi/all', [VideoEdukasiController::class, 'indexFrontend'])->name('video-edukasi.all');
-Route::get('/video-edukasi/{slug}', [VideoEdukasiController::class, 'show'])->name('video-edukasi.show');
+Route::get('/video-edukasi/all', [VideoEdukasiController::class, 'indexFrontend'])->name('video-edukasi.all')->middleware('track.visit');
+Route::get('/video-edukasi/{slug}', [VideoEdukasiController::class, 'show'])->name('video-edukasi.show')->middleware('track.visit');
 
 
 
