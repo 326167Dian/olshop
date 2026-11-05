@@ -8,15 +8,19 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Promo;
+use App\Models\QrisPayment;
 use App\Models\User;
 use App\Models\UserAddress;
 use App\Services\DeliveryPricingService;
 use App\Services\GuestCart;
+use App\Services\HubQrisService;
 use App\Support\MetaPixel;
+use Endroid\QrCode\Builder\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Midtrans\Snap;
 use Midtrans\Config;
 use Yajra\DataTables\Facades\DataTables;
@@ -1001,6 +1005,149 @@ class OrderController extends Controller
         }
     }
 
+    /**
+     * QRIS Otomatis (GDC Pay, lewat hub mysifacenter.my.id -- lihat HubQrisService).
+     * Beda dari bankTransfer() (QRIS manual + upload bukti + approve admin): di sini
+     * stok & promo diterapkan di titik yang SAMA (saat QR dibuat, sebelum dibayar,
+     * sama seperti bankTransfer()), tapi status order baru pindah ke 'Paid' setelah
+     * GDC betul-betul mengonfirmasi (lewat polling di statusGdcQris() ATAU webhook
+     * hub, lihat HubQrisWebhookController) -- tidak ada langkah approve manual.
+     */
+    public function createGdcQris(Request $request)
+    {
+        $customer = Auth::user();
+        $order = Order::where('user_id', $customer->id)
+            ->where('status', 'pending')
+            ->with('orderItems.produk')
+            ->first();
+
+        if (!$order || $order->orderItems->isEmpty()) {
+            return redirect()->route('order.cart')->with('error', 'Keranjang belanja kosong.');
+        }
+
+        $hubQris = app(HubQrisService::class);
+        if (!$hubQris->isConfigured()) {
+            return back()->with('error', 'QRIS Otomatis sedang tidak tersedia. Silakan gunakan QRIS Manual.');
+        }
+
+        DB::beginTransaction();
+        try {
+            // Kurangi stok lebih dulu (sama seperti bankTransfer()) -- dikembalikan
+            // oleh QrisPayment::markAsFailed() kalau QR ini gagal/kedaluwarsa.
+            foreach ($order->orderItems as $item) {
+                $product = $item->produk;
+                if ($product) {
+                    if ($product->stok_barang >= $item->quantity) {
+                        $product->stok_barang -= $item->quantity;
+                        $product->save();
+                    } else {
+                        DB::rollBack();
+                        return redirect()->route('order.cart')->with('error', 'Stok barang ' . $product->nm_barang . ' tidak mencukupi.');
+                    }
+                }
+            }
+
+            $this->applyActivePromo($order);
+            $order->tipe_pembayaran = 'QRIS GDC';
+            $order->save();
+
+            $invoice = 'ORD-' . date('Ymd') . '-' . str_pad($order->id, 6, '0', STR_PAD_LEFT);
+            $order->kode_pesanan = $invoice;
+            $order->save();
+
+            $totalBayar = (int) round($order->total_harga + ($order->biaya_ongkir ?? 0));
+            $referenceNo = (string) Str::uuid();
+
+            $qrisPayment = QrisPayment::create([
+                'source' => 'marketplace',
+                'reference_no' => $referenceNo,
+                'order_id' => $order->id,
+                'amount' => $totalBayar,
+                'status' => 'pending',
+                'expires_at' => now()->addMinutes((int) config('hubqris.qr_expiry_minutes', 15)),
+            ]);
+
+            $result = $hubQris->generateQr($referenceNo, $totalBayar);
+
+            $qrisPayment->update([
+                'hub_reference_no' => $result['reference_no'] ?? null,
+                'qr_content' => $result['qr_content'] ?? null,
+            ]);
+
+            DB::commit();
+
+            return redirect()->route('order.qris-gdc.show', $qrisPayment->reference_no);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            return redirect()->route('order.cart')->with('error', 'QRIS Otomatis sedang tidak tersedia, silakan gunakan QRIS Manual. (' . $e->getMessage() . ')');
+        }
+    }
+
+    public function showGdcQris(string $reference)
+    {
+        $qrisPayment = QrisPayment::where('reference_no', $reference)->where('source', 'marketplace')->firstOrFail();
+
+        if ($qrisPayment->isExpired()) {
+            $qrisPayment->markAsFailed('expired');
+        }
+
+        if ($qrisPayment->status === 'paid') {
+            return redirect()->route('order.history')->with('success', 'Pembayaran QRIS berhasil. Terima kasih!');
+        }
+
+        $qrDataUri = null;
+        if ($qrisPayment->status === 'pending' && $qrisPayment->qr_content) {
+            try {
+                $qrDataUri = (new Builder())->build(data: $qrisPayment->qr_content, size: 320, margin: 10)->getDataUri();
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+
+        return view('frontend.v_order.qris-gdc-show', [
+            'qrisPayment' => $qrisPayment,
+            'qrDataUri' => $qrDataUri,
+        ]);
+    }
+
+    public function statusGdcQris(string $reference)
+    {
+        $qrisPayment = QrisPayment::where('reference_no', $reference)->where('source', 'marketplace')->firstOrFail();
+
+        if ($qrisPayment->status === 'paid') {
+            return response()->json(['status' => 'paid']);
+        }
+
+        if ($qrisPayment->isExpired()) {
+            $qrisPayment->markAsFailed('expired');
+
+            return response()->json(['status' => 'expired']);
+        }
+
+        // Throttle polling ke hub ke paling cepat sekali tiap 3 detik.
+        if (!$qrisPayment->last_checked_at || $qrisPayment->last_checked_at->diffInSeconds(now()) >= 3) {
+            try {
+                $result = app(HubQrisService::class)->queryStatus($qrisPayment->reference_no);
+                $qrisPayment->update(['last_checked_at' => now()]);
+
+                if (($result['status'] ?? '') === 'paid') {
+                    $qrisPayment->markAsPaid();
+                    $this->pixelPurchase($qrisPayment->order);
+
+                    return response()->json(['status' => 'paid']);
+                }
+
+                if (in_array($result['status'] ?? '', ['failed', 'expired'], true)) {
+                    $qrisPayment->markAsFailed($result['status']);
+                }
+            } catch (\Throwable $e) {
+                // Biarkan status tetap pending, polling berikutnya akan coba lagi.
+            }
+        }
+
+        return response()->json(['status' => $qrisPayment->fresh()->status]);
+    }
 
 
     public function selectPickup(Request $request)

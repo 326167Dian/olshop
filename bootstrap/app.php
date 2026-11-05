@@ -20,7 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\CaptureResellerReferral::class,
         ]);
         // Notifikasi pembayaran dari server Midtrans tidak membawa token CSRF.
-        $middleware->validateCsrfTokens(except: ['midtrans-callback']);
+        $middleware->validateCsrfTokens(except: ['midtrans-callback', 'webhooks/hub-qris/*']);
         $middleware->alias([
             'is.customer' => \App\Http\Middleware\IsCustomer::class,
             'prevent.back.history' => \App\Http\Middleware\PreventBackHistory::class,

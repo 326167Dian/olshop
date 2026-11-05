@@ -8,6 +8,7 @@ use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HomepageController;
+use App\Http\Controllers\HubQrisWebhookController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\TestimoniController;
@@ -119,6 +120,10 @@ Route::get('cart', [OrderController::class, 'viewCart'])->name('order.cart');
 // Webhook Midtrans -- dipanggil server Midtrans, jadi tidak boleh di balik login.
 Route::post('/midtrans-callback', [OrderController::class, 'callback']);
 
+// Notifikasi yang diteruskan hub QRIS GDC (mysifacenter.my.id) -- server-to-server,
+// tidak boleh di balik login/CSRF. Lihat HubQrisWebhookController.
+Route::post('/webhooks/hub-qris/notification', [HubQrisWebhookController::class, 'notification'])->name('hub-qris.webhook');
+
 Route::get('/artikel/all', [ArticleController::class, 'indexFrontend'])->name('artikel.all')->middleware('track.visit');
 Route::get('/artikel/{slug}', [ArticleController::class, 'show'])->name('article.show')->middleware('track.visit');
 
@@ -152,6 +157,11 @@ Route::middleware('is.customer')->group(function () {
     Route::get('order/invoice/{id}', [OrderController::class, 'invoiceFrontend'])->name('order.invoice');
     Route::post('/order/cod', [OrderController::class, 'cod'])->name('order.cod');
     Route::post('/order/bank-transfer', [OrderController::class, 'bankTransfer'])->name('order.bank_transfer');
+
+    // QRIS Otomatis (GDC Pay lewat hub mysifacenter.my.id) -- lihat HubQrisService.
+    Route::post('/order/qris-gdc', [OrderController::class, 'createGdcQris'])->name('order.qris-gdc.create');
+    Route::get('/order/qris-gdc/{reference}', [OrderController::class, 'showGdcQris'])->name('order.qris-gdc.show');
+    Route::get('/order/qris-gdc/{reference}/status', [OrderController::class, 'statusGdcQris'])->name('order.qris-gdc.status');
 
     // Testimoni (satu testimoni per pelanggan, hanya yang pernah belanja)
     Route::get('/customer/testimoni', [TestimoniController::class, 'form'])->name('customer.testimoni.form');

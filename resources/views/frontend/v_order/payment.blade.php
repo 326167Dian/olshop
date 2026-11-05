@@ -175,7 +175,8 @@
                             <select id="payment_method" name="payment_method" class="form-control" required
                                 onchange="togglePaymentMethod()">
                                 {{-- <option value="midtrans">Bayar Online (Midtrans)</option> --}}
-                                <option value="bank_transfer">Qris</option>
+                                <option value="qris_gdc">QRIS Otomatis</option>
+                                <option value="bank_transfer">QRIS Manual (upload bukti transfer)</option>
                                 <option value="cod">COD (Cash on Delivery)</option>
                             </select>
                         </div>
@@ -185,7 +186,13 @@
                             Pesanan akan langsung diproses. Pembayaran dilakukan tunai kepada kurir saat barang diterima/diambil — tidak perlu upload bukti pembayaran.
                         </div>
 
-                        {{-- QRIS container --}}
+                        {{-- QRIS Otomatis info --}}
+                        <div id="qris-gdc-container" class="alert alert-info" style="margin-top: 20px;">
+                            QR pembayaran akan dibuat khusus untuk pesanan ini begitu Anda klik tombol di bawah.
+                            Pembayaran terverifikasi otomatis dalam hitungan detik — tidak perlu upload bukti transfer.
+                        </div>
+
+                        {{-- QRIS Manual container --}}
                         <div id="qris-container" class="panel panel-default text-center" style="margin-top: 20px;">
 
                             <div class="panel-heading" style="background-color: #f5f5f5;">
@@ -244,24 +251,33 @@
         var method = document.getElementById('payment_method').value;
         var form = document.getElementById('payment-form');
         var qrisContainer = document.getElementById('qris-container');
+        var qrisGdcContainer = document.getElementById('qris-gdc-container');
         var codContainer = document.getElementById('cod-container');
         var buktiInput = document.getElementById('bukti_pembayaran');
         var payButton = document.getElementById('pay-button');
 
+        qrisContainer.style.display = 'none';
+        qrisGdcContainer.style.display = 'none';
+        codContainer.style.display = 'none';
+        buktiInput.required = false;
+
         if (method === 'cod') {
             form.action = "{{ route('order.cod') }}";
-            qrisContainer.style.display = 'none';
             codContainer.style.display = 'block';
-            buktiInput.required = false;
             payButton.textContent = 'Proses Pesanan';
+        } else if (method === 'qris_gdc') {
+            form.action = "{{ route('order.qris-gdc.create') }}";
+            qrisGdcContainer.style.display = 'block';
+            payButton.textContent = 'Lanjut ke Pembayaran QRIS';
         } else {
             form.action = "{{ route('order.bank_transfer') }}";
             qrisContainer.style.display = 'block';
-            codContainer.style.display = 'none';
             buktiInput.required = true;
             payButton.textContent = 'Bayar Sekarang';
         }
     }
+
+    document.addEventListener('DOMContentLoaded', togglePaymentMethod);
 </script>
 
 {{-- Midtrans dinonaktifkan — UI pembayaran sekarang hanya menawarkan QRIS manual. --}}
