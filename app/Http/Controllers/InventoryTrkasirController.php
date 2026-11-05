@@ -14,6 +14,7 @@ use App\Models\KomisiPegawai;
 use App\Models\Pelanggan;
 use App\Models\PoinPelanggan;
 use App\Models\Product;
+use App\Models\QrisPayment;
 use App\Models\Setheader;
 use App\Models\Trkasir;
 use App\Models\TrkasirDetail;
@@ -21,10 +22,12 @@ use App\Models\TrkasirDetailHist;
 use App\Models\TrkasirDetailUbahQty;
 use App\Models\TrkasirRestore;
 use App\Models\WaktuKerja;
+use App\Services\HubQrisService;
 use App\Support\Pdf\RPdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Yajra\DataTables\Facades\DataTables;
 
 class InventoryTrkasirController extends Controller
@@ -1502,6 +1505,117 @@ class InventoryTrkasirController extends Controller
         });
 
         return response()->json(['status' => 'success', 'kd_trkasir' => $trkasir->kd_trkasir, 'id_trkasir' => $trkasir->id_trkasir]);
+    }
+
+    /**
+     * Gerbang QRIS Otomatis (GDC Pay lewat hub mysifacenter.my.id) SEBELUM store() --
+     * dipanggil dari simpanTransaksi() di create.blade.php kalau kasir memilih carabayar
+     * QRIS, bukan dipicu langsung lewat tombol "Simpan Transaksi". store() sendiri TIDAK
+     * diubah sama sekali: begitu QrisPayment ini 'paid' (lihat statusGdcQris() di bawah),
+     * JS memanggil store() persis seperti biasa. Total dihitung dengan rumus yang SAMA
+     * persis dengan store() supaya nominal yang di-QR-kan selalu cocok dengan yang nanti
+     * benar-benar tersimpan di trkasir.
+     */
+    public function createGdcQris(Request $request)
+    {
+        $validated = $request->validate([
+            'kd_trkasir' => 'required|string|max:100',
+            'diskon1' => 'nullable|numeric|min:0|max:100',
+            'diskon2' => 'nullable|numeric|min:0',
+            'redeem_poin' => 'nullable|integer|min:0',
+        ]);
+
+        abort_if(Trkasir::where('kd_trkasir', $validated['kd_trkasir'])->exists(), 422, 'Transaksi ini sudah difinalisasi.');
+
+        $itemCount = TrkasirDetail::where('kd_trkasir', $validated['kd_trkasir'])->count();
+        abort_if($itemCount < 1, 422, 'Belum ada item dalam transaksi.');
+
+        $hubQris = app(HubQrisService::class);
+        abort_unless($hubQris->isConfigured(), 422, 'QRIS Otomatis sedang tidak tersedia.');
+
+        $subtotal = (float) TrkasirDetail::where('kd_trkasir', $validated['kd_trkasir'])->sum('hrgttl_dtrkasir');
+        $diskon1 = $validated['diskon1'] ?? 0;
+        $diskon2 = $validated['diskon2'] ?? 0;
+        $redeemPoin = $validated['redeem_poin'] ?? 0;
+        $totalAkhir = round($subtotal * (1 - $diskon1 / 100) - $diskon2);
+        $totalAkhir = max(0, $totalAkhir - $redeemPoin);
+
+        $referenceNo = (string) Str::uuid();
+
+        $qrisPayment = QrisPayment::create([
+            'source' => 'kasir',
+            'reference_no' => $referenceNo,
+            'kd_trkasir' => $validated['kd_trkasir'],
+            'amount' => (int) $totalAkhir,
+            'status' => 'pending',
+            'expires_at' => now()->addMinutes((int) config('hubqris.qr_expiry_minutes', 15)),
+        ]);
+
+        try {
+            $result = $hubQris->generateQr($referenceNo, (int) $totalAkhir);
+        } catch (\Throwable $e) {
+            $qrisPayment->delete();
+
+            return response()->json(['message' => 'QRIS Otomatis sedang tidak tersedia: ' . $e->getMessage()], 502);
+        }
+
+        $qrisPayment->update([
+            'hub_reference_no' => $result['reference_no'] ?? null,
+            'qr_content' => $result['qr_content'] ?? null,
+        ]);
+
+        $qrDataUri = null;
+        if ($qrisPayment->qr_content) {
+            try {
+                $qrDataUri = (new \Endroid\QrCode\Builder\Builder())->build(data: $qrisPayment->qr_content, size: 280, margin: 10)->getDataUri();
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+
+        return response()->json([
+            'reference_no' => $qrisPayment->reference_no,
+            'qr_image' => $qrDataUri,
+            'expires_at' => $qrisPayment->expires_at->toIso8601String(),
+            'amount' => (int) $totalAkhir,
+        ]);
+    }
+
+    public function statusGdcQris(string $reference)
+    {
+        $qrisPayment = QrisPayment::where('reference_no', $reference)->where('source', 'kasir')->firstOrFail();
+
+        if ($qrisPayment->status === 'paid') {
+            return response()->json(['status' => 'paid']);
+        }
+
+        if ($qrisPayment->isExpired()) {
+            $qrisPayment->markAsFailed('expired');
+
+            return response()->json(['status' => 'expired']);
+        }
+
+        // Throttle polling ke hub ke paling cepat sekali tiap 3 detik.
+        if (!$qrisPayment->last_checked_at || $qrisPayment->last_checked_at->diffInSeconds(now()) >= 3) {
+            try {
+                $result = app(HubQrisService::class)->queryStatus($qrisPayment->reference_no);
+                $qrisPayment->update(['last_checked_at' => now()]);
+
+                if (($result['status'] ?? '') === 'paid') {
+                    $qrisPayment->markAsPaid();
+
+                    return response()->json(['status' => 'paid']);
+                }
+
+                if (in_array($result['status'] ?? '', ['failed', 'expired'], true)) {
+                    $qrisPayment->markAsFailed($result['status']);
+                }
+            } catch (\Throwable $e) {
+                // Biarkan status tetap pending, polling berikutnya akan coba lagi.
+            }
+        }
+
+        return response()->json(['status' => $qrisPayment->fresh()->status]);
     }
 
     private function prosesPoin(?int $idPelanggan, int $redeemPoin, float $totalAkhir): array

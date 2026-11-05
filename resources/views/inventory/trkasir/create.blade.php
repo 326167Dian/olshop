@@ -242,6 +242,25 @@
             </div>
         </div>
     </div>
+
+    <!-- Modal QRIS Otomatis (GDC Pay) -->
+    <div class="modal fade" id="modalQrisGdc" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content text-center">
+                <div class="modal-header">
+                    <h5 class="modal-title">Bayar dengan QRIS</h5>
+                </div>
+                <div class="modal-body">
+                    <div id="qrisGdcStatus" class="alert alert-warning">Membuat QR...</div>
+                    <img id="qrisGdcImage" src="" alt="QR Code QRIS" class="img-fluid" style="display:none; max-width:240px;">
+                    <p id="qrisGdcAmount" class="fw-bold mt-2"></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" id="qrisGdcBatal" data-bs-dismiss="modal">Batalkan</button>
+                </div>
+            </div>
+        </div>
+    </div>
 @endsection
 
 @push('scripts')
@@ -565,13 +584,28 @@
 
     // --- Simpan Transaksi (finalisasi) ---
     function simpanTransaksi() {
-        // Petugas Pelayanan boleh dikosongkan -- server otomatis menjadikan kasir
-        // (operator yang sedang login) sebagai default kalau tidak dipilih.
-        var idUser = document.getElementById('id_user').value;
-
         var carabayarEl = document.getElementById('id_carabayar');
         if (!carabayarEl) { alert('Tabel item belum selesai dimuat, coba lagi sebentar.'); return; }
         if (!document.querySelector('#tabelKeranjang tbody tr[data-id]')) { alert('Belum ada item dalam transaksi.'); return; }
+
+        var namaCarabayar = carabayarEl.options[carabayarEl.selectedIndex].text.trim().toUpperCase();
+        if (namaCarabayar === 'QRIS') {
+            mulaiQrisGdc();
+            return;
+        }
+
+        finalisasiTransaksi();
+    }
+    document.getElementById('btnSimpanTransaksi').addEventListener('click', simpanTransaksi);
+
+    // Panggilan store() sesungguhnya -- TIDAK berubah dari sebelumnya, cuma dipindah
+    // jadi fungsi sendiri supaya bisa dipanggil langsung (carabayar selain QRIS) ATAU
+    // setelah modalQrisGdc mengonfirmasi 'paid' (lihat pollQrisGdc()).
+    function finalisasiTransaksi() {
+        // Petugas Pelayanan boleh dikosongkan -- server otomatis menjadikan kasir
+        // (operator yang sedang login) sebagai default kalau tidak dipilih.
+        var idUser = document.getElementById('id_user').value;
+        var carabayarEl = document.getElementById('id_carabayar');
 
         var form = new FormData();
         form.append('kd_trkasir', kdTrkasir());
@@ -599,7 +633,83 @@
                 window.location = "{{ route('inventory.trkasir.index') }}";
             });
     }
-    document.getElementById('btnSimpanTransaksi').addEventListener('click', simpanTransaksi);
+
+    // --- QRIS Otomatis (GDC Pay lewat hub mysifacenter.my.id) ---
+    var qrisGdcModal = null;
+    var qrisGdcPollTimer = null;
+
+    function mulaiQrisGdc() {
+        qrisGdcModal = qrisGdcModal || new bootstrap.Modal(document.getElementById('modalQrisGdc'));
+        document.getElementById('qrisGdcImage').style.display = 'none';
+        document.getElementById('qrisGdcAmount').textContent = '';
+        setQrisGdcStatus('alert-warning', 'Membuat QR...');
+        qrisGdcModal.show();
+
+        var form = new FormData();
+        form.append('kd_trkasir', kdTrkasir());
+        form.append('diskon1', document.getElementById('diskon1').value || 0);
+        form.append('diskon2', parseAngka(document.getElementById('diskon2').value));
+        form.append('redeem_poin', parseAngka(document.getElementById('redeem_poin').value));
+
+        fetch("{{ route('inventory.trkasir.qris-gdc.create') }}", { method: 'POST', headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }, body: form })
+            .then(function(res) { return res.json().then(function(d) { return { ok: res.ok, d: d }; }); })
+            .then(function(r) {
+                if (!r.ok) {
+                    setQrisGdcStatus('alert-danger', r.d.message || 'Gagal membuat QR.');
+                    return;
+                }
+
+                if (r.d.qr_image) {
+                    var img = document.getElementById('qrisGdcImage');
+                    img.src = r.d.qr_image;
+                    img.style.display = 'inline-block';
+                }
+                document.getElementById('qrisGdcAmount').textContent = 'Total: Rp ' + Number(r.d.amount).toLocaleString('id-ID');
+                setQrisGdcStatus('alert-warning', 'Menunggu pembayaran...');
+
+                pollQrisGdc(r.d.reference_no);
+            })
+            .catch(function() { setQrisGdcStatus('alert-danger', 'Gagal membuat QR.'); });
+    }
+
+    function pollQrisGdc(referenceNo) {
+        clearTimeout(qrisGdcPollTimer);
+
+        var statusUrl = "{{ url('inventory/trkasir/qris-gdc') }}/" + referenceNo + "/status";
+
+        qrisGdcPollTimer = setTimeout(function() {
+            fetch(statusUrl, { headers: { 'Accept': 'application/json' } })
+                .then(function(res) { return res.json(); })
+                .then(function(d) {
+                    if (d.status === 'paid') {
+                        setQrisGdcStatus('alert-success', 'Pembayaran diterima!');
+                        setTimeout(function() {
+                            qrisGdcModal.hide();
+                            finalisasiTransaksi();
+                        }, 800);
+                        return;
+                    }
+
+                    if (d.status === 'expired' || d.status === 'failed') {
+                        setQrisGdcStatus('alert-danger', 'QR kedaluwarsa atau pembayaran gagal. Batalkan lalu coba lagi.');
+                        return;
+                    }
+
+                    pollQrisGdc(referenceNo);
+                })
+                .catch(function() { pollQrisGdc(referenceNo); });
+        }, 3000);
+    }
+
+    function setQrisGdcStatus(className, text) {
+        var badge = document.getElementById('qrisGdcStatus');
+        badge.className = 'alert ' + className;
+        badge.textContent = text;
+    }
+
+    document.getElementById('modalQrisGdc').addEventListener('hidden.bs.modal', function() {
+        clearTimeout(qrisGdcPollTimer);
+    });
 
     document.addEventListener('keydown', function(event) {
         if (event.key === 'F1') { event.preventDefault(); tambahKeranjang(); }
