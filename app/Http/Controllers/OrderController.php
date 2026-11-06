@@ -776,7 +776,13 @@ class OrderController extends Controller
                     'tlp_pelanggan'    => $user->no_tlp ?? '-',
                     'alamat_pelanggan' => $user->alamat ?? '-',
                     'ttl_trkasir'      => $order->total_harga,
-                    'id_carabayar'     => $order->tipe_pembayaran === 'COD' ? 1 : 2,
+                    // 1=Tunai (COD), 7=QRIS (Qris manual, QRIS GDC, Midtrans -- semuanya QRIS),
+                    // 2=Transfer sebagai fallback untuk tipe lain yang belum dikenal.
+                    'id_carabayar'     => match ($order->tipe_pembayaran) {
+                        'COD' => 1,
+                        'Qris', 'QRIS GDC', 'Midtrans' => 7,
+                        default => 2,
+                    },
                     'jenistx'          => 3,
                     'poin_awal'        => 0,
                     'tambahan_poin'    => 0,
