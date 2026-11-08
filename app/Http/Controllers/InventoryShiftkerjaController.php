@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Admin;
 use App\Models\CaraBayar;
 use App\Models\JurnalKas;
 use App\Models\NamaShift;
@@ -216,7 +217,7 @@ class InventoryShiftkerjaController extends Controller
             'judul' => 'Inventory',
             'waktuKerja' => $waktuKerja,
             'shiftList' => NamaShift::orderBy('shift')->get(),
-            'petugasList' => DB::table('admin')->orderBy('nama_lengkap')->pluck('nama_lengkap'),
+            'petugasList' => Admin::bukanAkunMysifa()->orderBy('nama_lengkap')->pluck('nama_lengkap'),
         ]);
     }
 

@@ -27,7 +27,9 @@ class InventoryAbsensiController extends Controller
         $tglAkhir = $request->query('tgl_akhir') ?: now()->endOfMonth()->toDateString();
         $idAdminFilter = (int) $request->query('id_admin', 0);
 
-        $query = Absensi::with(['admin', 'shift'])->whereBetween('tanggal', [$tglAwal, $tglAkhir]);
+        $query = Absensi::with(['admin', 'shift'])
+            ->whereBetween('tanggal', [$tglAwal, $tglAkhir])
+            ->whereNotIn('id_admin', Admin::mysifaIds());
 
         if (!$admin->isPemilik()) {
             $query->where('id_admin', $admin->id_admin);
@@ -46,7 +48,7 @@ class InventoryAbsensiController extends Controller
             'tglAwal' => $tglAwal,
             'tglAkhir' => $tglAkhir,
             'idAdminFilter' => $idAdminFilter,
-            'pegawaiList' => $admin->isPemilik() ? Admin::where('blokir', 'N')->orderBy('nama_lengkap')->get() : collect(),
+            'pegawaiList' => $admin->isPemilik() ? Admin::bukanAkunMysifa()->where('blokir', 'N')->orderBy('nama_lengkap')->get() : collect(),
             'isPemilik' => $admin->isPemilik(),
         ]);
     }
@@ -57,7 +59,7 @@ class InventoryAbsensiController extends Controller
 
         return view('inventory.kehadiran.absensi.create', [
             'judul' => 'Inventory',
-            'pegawaiList' => Admin::where('blokir', 'N')->orderBy('nama_lengkap')->get(),
+            'pegawaiList' => Admin::bukanAkunMysifa()->where('blokir', 'N')->orderBy('nama_lengkap')->get(),
             'shiftList' => MasterShift::where('status_aktif', true)->orderBy('jam_masuk')->get(),
         ]);
     }

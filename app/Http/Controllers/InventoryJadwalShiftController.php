@@ -32,7 +32,8 @@ class InventoryJadwalShiftController extends Controller
         $idAdminFilter = (int) $request->query('id_admin', 0);
 
         $query = JadwalShift::with(['admin', 'shift', 'penyetuju'])
-            ->whereBetween('tanggal', [$tglAwal, $tglAkhir]);
+            ->whereBetween('tanggal', [$tglAwal, $tglAkhir])
+            ->whereNotIn('id_admin', Admin::mysifaIds());
 
         if (!$admin->isPemilik()) {
             $query->where('id_admin', $admin->id_admin);
@@ -48,7 +49,7 @@ class InventoryJadwalShiftController extends Controller
             'tglAwal' => $tglAwal,
             'tglAkhir' => $tglAkhir,
             'idAdminFilter' => $idAdminFilter,
-            'pegawaiList' => $admin->isPemilik() ? Admin::where('blokir', 'N')->orderBy('nama_lengkap')->get() : collect(),
+            'pegawaiList' => $admin->isPemilik() ? Admin::bukanAkunMysifa()->where('blokir', 'N')->orderBy('nama_lengkap')->get() : collect(),
             'isPemilik' => $admin->isPemilik(),
         ]);
     }
@@ -89,7 +90,7 @@ class InventoryJadwalShiftController extends Controller
         ];
 
         if ($isPemilik) {
-            $pegawaiAktif = Admin::where('blokir', 'N')->orderBy('nama_lengkap')->get();
+            $pegawaiAktif = Admin::bukanAkunMysifa()->where('blokir', 'N')->orderBy('nama_lengkap')->get();
             $data['pegawaiAktif'] = $pegawaiAktif;
             $data['mingguGrid'] = $this->buildGridApprovalSemua($bulan, $tahun, $shiftList, $pegawaiAktif);
         } else {
@@ -260,7 +261,7 @@ class InventoryJadwalShiftController extends Controller
         $hariIni = Carbon::today();
 
         if ($isPemilik) {
-            $adminIds = Admin::where('blokir', 'N')->pluck('id_admin');
+            $adminIds = Admin::bukanAkunMysifa()->where('blokir', 'N')->pluck('id_admin');
             $shiftIds = MasterShift::where('status_aktif', true)->pluck('id_shift');
 
             $existing = JadwalShift::whereBetween('tanggal', [$awalBulan->toDateString(), $akhirBulan->toDateString()])

@@ -769,7 +769,7 @@ class InventoryTrkasirController extends Controller
             'idPelangganAwal' => $kdtk->id_pelanggan ?? 0,
             'nmPelangganAwal' => $kdtk->nm_pelanggan ?? '',
             'admin' => $admin,
-            'petugasList' => Admin::where('id_admin', '!=', $admin->id_admin)->orderBy('nama_lengkap')->get(['id_admin', 'nama_lengkap']),
+            'petugasList' => Admin::bukanAkunMysifa()->where('id_admin', '!=', $admin->id_admin)->orderBy('nama_lengkap')->get(['id_admin', 'nama_lengkap']),
             'carabayarList' => CaraBayar::orderBy('urutan')->get(),
         ]);
     }
@@ -1278,7 +1278,7 @@ class InventoryTrkasirController extends Controller
             'judul' => 'Inventory',
             'trkasir' => $trkasir,
             'admin' => $admin,
-            'petugasList' => Admin::where('id_admin', '!=', $admin->id_admin)->orderBy('nama_lengkap')->get(['id_admin', 'nama_lengkap']),
+            'petugasList' => Admin::bukanAkunMysifa()->where('id_admin', '!=', $admin->id_admin)->orderBy('nama_lengkap')->get(['id_admin', 'nama_lengkap']),
             'carabayarList' => CaraBayar::orderBy('urutan')->get(),
             'routePrefix' => $this->resolveRoutePrefix(),
         ]);

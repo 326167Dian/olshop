@@ -164,4 +164,78 @@
             </div>
         </form>
     </div>
+
+    <div class="card card-primary mt-4">
+        <div class="card-header">
+            <h3 class="card-title">Radius Kehadiran (Lokasi Apotek)</h3>
+        </div>
+
+        <form action="{{ route('inventory.setheader.kehadiran-lokasi') }}" method="POST">
+            @csrf
+            @method('PUT')
+            <div class="card-body">
+                <p class="text-muted small">Dipakai untuk validasi check-in/check-out kehadiran pegawai lewat HP
+                    masing-masing (menu Kehadiran Pegawai). Kosongkan latitude/longitude kalau belum mau
+                    mengaktifkan validasi ini.</p>
+
+                <div class="mb-3">
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="gunakanLokasiSayaKehadiran()">
+                        <i class="align-middle" data-feather="map-pin"></i> Gunakan Lokasi Saya Sekarang
+                    </button>
+                    <small class="form-text text-muted">Buka halaman ini dari HP/laptop yang sedang berada di apotek, lalu klik tombol ini.</small>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4 form-group">
+                        <label for="kehadiran_lat">Latitude</label>
+                        <input type="text" name="kehadiran_lat" id="kehadiran_lat"
+                            class="form-control @error('kehadiran_lat') is-invalid @enderror"
+                            value="{{ old('kehadiran_lat', $companySetting->kehadiran_lat ?? '') }}"
+                            placeholder="Contoh: -6.2345678">
+                        @error('kehadiran_lat') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="col-md-4 form-group">
+                        <label for="kehadiran_lng">Longitude</label>
+                        <input type="text" name="kehadiran_lng" id="kehadiran_lng"
+                            class="form-control @error('kehadiran_lng') is-invalid @enderror"
+                            value="{{ old('kehadiran_lng', $companySetting->kehadiran_lng ?? '') }}"
+                            placeholder="Contoh: 106.9876543">
+                        @error('kehadiran_lng') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="col-md-4 form-group">
+                        <label for="kehadiran_radius">Radius Toleransi (meter)</label>
+                        <input type="number" min="10" name="kehadiran_radius" id="kehadiran_radius"
+                            class="form-control @error('kehadiran_radius') is-invalid @enderror"
+                            value="{{ old('kehadiran_radius', $companySetting->kehadiran_radius ?? 100) }}">
+                        @error('kehadiran_radius') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-footer">
+                <button type="submit" class="btn btn-primary">Simpan</button>
+            </div>
+        </form>
+    </div>
 @endsection
+
+@push('scripts')
+<script>
+    function gunakanLokasiSayaKehadiran() {
+        if (!navigator.geolocation) {
+            alert('Browser ini tidak mendukung akses lokasi.');
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(function (pos) {
+            document.getElementById('kehadiran_lat').value = pos.coords.latitude;
+            document.getElementById('kehadiran_lng').value = pos.coords.longitude;
+        }, function (err) {
+            alert('Gagal mengambil lokasi: ' + err.message);
+        }, {
+            enableHighAccuracy: true,
+            timeout: 10000
+        });
+    }
+</script>
+@endpush

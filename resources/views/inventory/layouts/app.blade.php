@@ -179,12 +179,14 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <a href="{{ route('backend.dashboard') }}" class="dropdown-item">
-                                        <div class="d-flex align-items-center">
-                                            <i class="font-size-lg me-2 feather icon-grid"></i>
-                                            <span>Dashboard E-Commerce</span>
-                                        </div>
-                                    </a>
+                                    @if (\App\Models\Fitur::isEcommerceAktif())
+                                        <a href="{{ route('backend.dashboard') }}" class="dropdown-item">
+                                            <div class="d-flex align-items-center">
+                                                <i class="font-size-lg me-2 feather icon-grid"></i>
+                                                <span>Dashboard E-Commerce</span>
+                                            </div>
+                                        </a>
+                                    @endif
                                     <a href="{{ route('admin.profile.edit') }}" class="dropdown-item">
                                         <div class="d-flex align-items-center">
                                             <i class="font-size-lg me-2 feather icon-user"></i>

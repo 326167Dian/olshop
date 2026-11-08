@@ -46,7 +46,7 @@ class InventoryLpkasirController extends Controller
     {
         return view('inventory.lpkasir.index', [
             'judul' => 'Inventory',
-            'petugasList' => Admin::orderBy('nama_lengkap')->get(['id_admin', 'nama_lengkap']),
+            'petugasList' => Admin::bukanAkunMysifa()->orderBy('nama_lengkap')->get(['id_admin', 'nama_lengkap']),
         ]);
     }
 

@@ -117,7 +117,7 @@ class InventoryLapkomisiController extends Controller
 
         $persenGlobal = (float) (KomisiGlobal::where('status', 'ON')->value('nilai') ?? 0) / 100;
 
-        return Admin::where('blokir', 'N')->orderBy('nama_lengkap')->get()->map(function ($admin) use ($komisiProduk, $omzetPerPetugas, $persenGlobal) {
+        return Admin::bukanAkunMysifa()->where('blokir', 'N')->orderBy('nama_lengkap')->get()->map(function ($admin) use ($komisiProduk, $omzetPerPetugas, $persenGlobal) {
             $pk = (float) ($komisiProduk[$admin->id_admin] ?? 0);
             $omzet = (float) ($omzetPerPetugas[$admin->nama_lengkap] ?? 0);
             $global = $omzet * $persenGlobal;

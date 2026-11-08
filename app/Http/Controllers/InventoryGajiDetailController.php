@@ -73,7 +73,7 @@ class InventoryGajiDetailController extends Controller
         $tahunFilter = (int) $request->query('tahun', 0);
         $idGajiFilter = (int) $request->query('id_gaji', 0);
 
-        $query = GajiDetail::with(['admin', 'pembuat', 'penyetuju']);
+        $query = GajiDetail::with(['admin', 'pembuat', 'penyetuju'])->whereNotIn('id_admin', Admin::mysifaIds());
 
         if ($bulanFilter > 0 && $tahunFilter > 0) {
             $query->where('periode_bulan', sprintf('%04d-%02d', $tahunFilter, $bulanFilter));
@@ -96,12 +96,14 @@ class InventoryGajiDetailController extends Controller
     {
         $this->gate();
 
-        $karyawan = Gaji::with('admin')->where('status_aktif', 1)->get()
+        $karyawan = Gaji::with('admin')->where('status_aktif', 1)
+            ->whereNotIn('id_admin', Admin::mysifaIds())
+            ->get()
             ->filter(fn ($g) => $g->admin !== null)
             ->sortBy(fn ($g) => $g->admin->nama_lengkap)
             ->values();
 
-        $pemilik = Admin::where('akses_level', 'pemilik')->where('blokir', 'N')->orderBy('nama_lengkap')->get();
+        $pemilik = Admin::bukanAkunMysifa()->where('akses_level', 'pemilik')->where('blokir', 'N')->orderBy('nama_lengkap')->get();
 
         return view('inventory.gajidetail.create', [
             'judul' => 'Inventory',
@@ -184,7 +186,7 @@ class InventoryGajiDetailController extends Controller
     {
         $this->gate();
 
-        $pemilik = Admin::where('akses_level', 'pemilik')->where('blokir', 'N')->orderBy('nama_lengkap')->get();
+        $pemilik = Admin::bukanAkunMysifa()->where('akses_level', 'pemilik')->where('blokir', 'N')->orderBy('nama_lengkap')->get();
 
         return view('inventory.gajidetail.edit', [
             'judul' => 'Inventory',

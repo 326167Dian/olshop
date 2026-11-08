@@ -20,7 +20,8 @@ class InventoryAdminController extends Controller
     {
         $this->authorizePemilik();
 
-        $admins = Admin::where('id_admin', '!=', 2)
+        $admins = Admin::bukanAkunMysifa()
+            ->where('id_admin', '!=', 2)
             ->orderBy('username')
             ->get();
 
@@ -135,7 +136,12 @@ class InventoryAdminController extends Controller
     {
         $this->authorizePemilik();
 
-        $logs = DB::table('user_login_logs')->orderByDesc('login_time')->get();
+        $usernameBukanMysifa = Admin::bukanAkunMysifa()->pluck('username');
+
+        $logs = DB::table('user_login_logs')
+            ->whereIn('username', $usernameBukanMysifa)
+            ->orderByDesc('login_time')
+            ->get();
 
         return view('inventory.admin.login-logs', [
             'judul' => 'Inventory',

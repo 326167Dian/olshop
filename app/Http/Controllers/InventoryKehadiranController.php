@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Absensi;
+use App\Models\Admin;
 use App\Models\CompanySetting;
 use App\Models\Cuti;
 use App\Models\JadwalShift;
@@ -102,6 +103,7 @@ class InventoryKehadiranController extends Controller
         $jadwalBulanIni = JadwalShift::with('admin')
             ->whereBetween('tanggal', [$awalBulan->toDateString(), $akhirBulan->toDateString()])
             ->where('status_approval', 'disetujui')
+            ->whereNotIn('id_admin', Admin::mysifaIds())
             ->get();
 
         $namaPerTanggalShift = [];

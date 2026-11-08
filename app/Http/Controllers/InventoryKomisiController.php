@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Admin;
 use App\Models\KomisiGlobal;
 use App\Models\Product;
 use Illuminate\Http\Request;
@@ -150,7 +151,7 @@ class InventoryKomisiController extends Controller
         $awalBulan = now()->startOfMonth()->toDateString();
         $hariIni = now()->toDateString();
 
-        $petugasList = DB::table('admin')
+        $petugasList = Admin::bukanAkunMysifa()
             ->where('akses_level', 'petugas')
             ->where('blokir', 'N')
             ->get(['id_admin', 'nama_lengkap']);
@@ -257,7 +258,7 @@ class InventoryKomisiController extends Controller
         $global = KomisiGlobal::whereYear('tgl', $tahun)->whereMonth('tgl', $bulan)->first();
         $persen = $global->nilai ?? 0;
 
-        $petugasList = DB::table('admin')->where('akses_level', 'petugas')->get(['id_admin', 'nama_lengkap']);
+        $petugasList = Admin::bukanAkunMysifa()->where('akses_level', 'petugas')->get(['id_admin', 'nama_lengkap']);
 
         $rows = [];
         foreach ($petugasList as $p) {

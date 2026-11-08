@@ -11,11 +11,19 @@ use Illuminate\Support\Facades\DB;
 class InventoryFiturController extends Controller
 {
     /**
-     * Modul "Pengaturan Fitur" -- toggle tier starter/premium (tabel fitur).
-     * Khusus admin level 'pemilik' DENGAN flag vendor admin.mysifa='Y' (lihat
-     * Admin::isMySifa()), bukan flag biasa di Admin::PERMISSION_GROUPS supaya
-     * pemilik apotek tidak bisa membuka kuncinya sendiri lewat form centang
-     * izin Admin yang sudah ada.
+     * Baris tier starter/premium bersifat eksklusif (hanya satu yang aktif),
+     * beda dengan baris fitur lain seperti Fitur::NAMA_ECOMMERCE yang
+     * independen (bisa Aktif/Nonaktif tanpa memengaruhi baris lain).
+     */
+    private const TIER_EKSKLUSIF = ['starter', 'premium'];
+
+    /**
+     * Modul "Pengaturan Fitur" -- toggle tier starter/premium & fitur
+     * independen seperti E-Commerce (tabel fitur). Khusus admin level
+     * 'pemilik' DENGAN flag vendor admin.mysifa='Y' (lihat Admin::isMySifa()),
+     * bukan flag biasa di Admin::PERMISSION_GROUPS supaya pemilik apotek tidak
+     * bisa membuka kuncinya sendiri lewat form centang izin Admin yang sudah
+     * ada.
      */
     public function index()
     {
@@ -30,20 +38,34 @@ class InventoryFiturController extends Controller
     }
 
     /**
-     * Toggle acc='Y' untuk satu baris (starter/premium), otomatis set baris
-     * lainnya ='N' -- starter dan premium eksklusif (hanya satu tier aktif).
+     * Tier starter/premium: toggle acc='Y' untuk baris ini, otomatis set
+     * baris tier lainnya ='N' (eksklusif, hanya satu tier aktif). Fitur
+     * independen (mis. E-Commerce): toggle langsung Y<->N, tidak memengaruhi
+     * baris lain.
      */
     public function update(Fitur $fitur)
     {
         $this->authorizePemilikMysifa();
 
-        DB::transaction(function () use ($fitur) {
-            Fitur::where('id_fitur', '!=', $fitur->id_fitur)->update(['acc' => 'N']);
-            $fitur->update(['acc' => 'Y']);
-        });
+        if (in_array($fitur->fitur, self::TIER_EKSKLUSIF, true)) {
+            DB::transaction(function () use ($fitur) {
+                Fitur::whereIn('fitur', self::TIER_EKSKLUSIF)
+                    ->where('id_fitur', '!=', $fitur->id_fitur)
+                    ->update(['acc' => 'N']);
+                $fitur->update(['acc' => 'Y']);
+            });
+
+            return redirect()->route('inventory.fitur.index')
+                ->with('success', "Fitur '{$fitur->fitur}' diaktifkan.");
+        }
+
+        $sedangAktif = strtoupper($fitur->acc) === 'Y';
+        $fitur->update(['acc' => $sedangAktif ? 'N' : 'Y']);
 
         return redirect()->route('inventory.fitur.index')
-            ->with('success', "Fitur '{$fitur->fitur}' diaktifkan.");
+            ->with('success', $sedangAktif
+                ? "Fitur '{$fitur->fitur}' dinonaktifkan."
+                : "Fitur '{$fitur->fitur}' diaktifkan.");
     }
 
     private function authorizePemilikMysifa(): void

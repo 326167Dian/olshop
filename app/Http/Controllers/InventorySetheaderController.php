@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CompanySetting;
 use App\Models\Setheader;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -24,7 +25,31 @@ class InventorySetheaderController extends Controller
         return view('inventory.setheader.index', [
             'judul' => 'Inventory',
             'setheader' => $setheader,
+            'companySetting' => CompanySetting::first(),
         ]);
+    }
+
+    /**
+     * Titik lokasi & radius toleransi untuk validasi check-in/check-out
+     * kehadiran pegawai (dipakai InventoryKehadiranController::validasiRadiusKehadiran()).
+     * Form terpisah dari header struk di atas, supaya bisa diisi dari sini
+     * tanpa masuk ke panel e-commerce (/backend/company-setting) -- field ini
+     * menulis ke tabel company_settings yang sama (hanya 3 kolom kehadiran_*),
+     * tidak menyentuh kolom lain punya CompanySettingController (nama
+     * perusahaan, komisi reseller, dll).
+     */
+    public function updateKehadiranLokasi(Request $request)
+    {
+        $validated = $request->validate([
+            'kehadiran_lat' => 'nullable|numeric|between:-90,90',
+            'kehadiran_lng' => 'nullable|numeric|between:-180,180',
+            'kehadiran_radius' => 'required|integer|min:10',
+        ]);
+
+        CompanySetting::firstOrCreate([], ['nama_perusahaan' => ''])->update($validated);
+
+        return redirect()->route('inventory.setheader.index')
+            ->with('success', 'Titik lokasi kehadiran berhasil diperbarui.');
     }
 
     public function update(Request $request)

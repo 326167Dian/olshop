@@ -145,7 +145,7 @@ class InventoryEvaluasiController extends Controller
             ->selectRaw('id_user, SUM(ttl_trkasir) as total')
             ->pluck('total', 'id_user');
 
-        return Admin::where('blokir', 'N')->orderBy('nama_lengkap')->get()->map(function ($admin) use ($labaPerAdmin, $omzetPerAdmin) {
+        return Admin::bukanAkunMysifa()->where('blokir', 'N')->orderBy('nama_lengkap')->get()->map(function ($admin) use ($labaPerAdmin, $omzetPerAdmin) {
             return (object) [
                 'id_admin' => $admin->id_admin,
                 'nama_lengkap' => $admin->nama_lengkap,

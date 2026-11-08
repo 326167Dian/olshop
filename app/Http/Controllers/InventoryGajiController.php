@@ -29,7 +29,7 @@ class InventoryGajiController extends Controller
     {
         $this->gate();
 
-        $gajiList = Gaji::with('admin')->get()->sortBy(fn ($g) => $g->admin->nama_lengkap ?? '')->values();
+        $gajiList = Gaji::with('admin')->whereNotIn('id_admin', Admin::mysifaIds())->get()->sortBy(fn ($g) => $g->admin->nama_lengkap ?? '')->values();
 
         return view('inventory.gaji.index', [
             'judul' => 'Inventory',
@@ -41,7 +41,8 @@ class InventoryGajiController extends Controller
     {
         $this->gate();
 
-        $petugas = Admin::where('blokir', 'N')
+        $petugas = Admin::bukanAkunMysifa()
+            ->where('blokir', 'N')
             ->whereDoesntHave('gaji')
             ->orderBy('nama_lengkap')
             ->get();

@@ -21,9 +21,31 @@ class Fitur extends Model
      */
     public const BATAS_STOK_STARTER = 1000;
 
+    /**
+     * Nama baris fitur yang menggerbang toko online (produk, keranjang,
+     * checkout, dll). acc='Y' (default) -> toko online aktif, tampilan awal
+     * domain adalah /home-page. acc='N' -> toko online nonaktif, tampilan awal
+     * domain adalah /inventory dan rute e-commerce ditolak, lihat
+     * App\Http\Middleware\EnsureEcommerceActive.
+     */
+    public const NAMA_ECOMMERCE = 'E-Commerce';
+
     public static function isPremiumAktif(): bool
     {
         return strtoupper((string) static::where('fitur', 'premium')->value('acc')) === 'Y';
+    }
+
+    public static function isEcommerceAktif(): bool
+    {
+        $acc = static::where('fitur', self::NAMA_ECOMMERCE)->value('acc');
+
+        // Baris belum ada (migrasi belum jalan di DB lama) -> anggap aktif,
+        // sama seperti perilaku sebelum fitur ini ada.
+        if ($acc === null) {
+            return true;
+        }
+
+        return strtoupper((string) $acc) === 'Y';
     }
 
     /**

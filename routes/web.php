@@ -76,99 +76,122 @@ use App\Http\Controllers\InventoryJurnalkasController;
 use App\Http\Controllers\InventoryLpitemController;
 use App\Http\Controllers\InventoryLpbrgmasukController;
 
+// Fitur 'E-Commerce' (tabel fitur, lihat Fitur::isEcommerceAktif()) menentukan
+// tampilan awal domain: aktif -> /home-page (toko online), nonaktif ->
+// /inventory. Diatur lewat halaman inventory/Pengaturan Fitur.
 Route::get('/', function () {
-    return redirect()->route('home-page');
+    return redirect(\App\Models\Fitur::isEcommerceAktif() ? route('home-page') : '/inventory');
 });
 
-// Login pelanggan/member (Google saja)
-Route::get('/login', [LoginController::class, 'loginForm'])->name('login.form')->middleware('prevent.back.history');
-Route::post('/logout', [LoginController::class, 'logoutFrontend'])->name('logout');
-
-// Login admin/staf (username & password)
+// Login admin/staf (username & password) -- selalu bisa diakses walau fitur
+// e-commerce nonaktif, supaya admin tetap bisa masuk ke /inventory.
 Route::get('/staf', [LoginController::class, 'adminLoginForm'])->name('admin.login.form')->middleware('prevent.back.history');
 Route::post('/staf', [LoginController::class, 'adminLogin'])->name('admin.login');
 Route::post('backend/logout', [LoginController::class, 'logoutBackend'])->name('backend.logout');
 
-Route::get('auth/google', [LoginController::class, 'redirectToGoogle'])->name('google.login');
-Route::get('auth/google/callback', [LoginController::class, 'handleGoogleCallback']);
-
-// Reseller -- masuk lewat akun Google yang sama dengan customer (lihat
-// LoginController::redirectToGoogleForReseller()/handleGoogleCallback()), profil
-// reseller ('resellers' table) terpisah dari data akun 'users'.
-Route::prefix('reseller')->name('reseller.')->group(function () {
-    Route::get('/auth/google', [LoginController::class, 'redirectToGoogleForReseller'])->name('google');
-    Route::get('/register', [ResellerController::class, 'register'])->name('register');
-    Route::post('/register', [ResellerController::class, 'store'])->name('store');
-    Route::get('/', [ResellerController::class, 'home'])->name('home');
-    Route::get('/pelanggan/{userId}', [ResellerController::class, 'pelangganDetail'])->name('pelanggan.detail');
-    Route::get('/profil', [ResellerController::class, 'editProfil'])->name('profil.edit');
-    Route::put('/profil', [ResellerController::class, 'updateProfil'])->name('profil.update');
-});
-
-Route::get('/home-page', [HomepageController::class, 'index'])->name('home-page');
-
-// Route Product
-
-Route::get('/produk/detail/{id}', [ProductController::class, 'detail'])->name('produk.detail')->middleware('track.visit');
-Route::get('/produk/kategori/{id}', [ProductController::class, 'produkKategori'])->name('produk.kategori')->middleware('track.visit');
-Route::get('/produk/cari', [ProductController::class, 'search'])->name('produk.search')->middleware('track.visit');
-// Bisa diakses tanpa login (pengunjung dari iklan). Tamu disimpan di keranjang
-// session (App\Services\GuestCart) dan diminta login saat membuka keranjang/checkout.
-Route::get('/produk/all', [ProductController::class, 'index'])->name('produk.all')->middleware('track.visit');
-Route::post('add-to-cart/{id}', [OrderController::class, 'addToCart'])->name('order.addToCart');
-Route::get('cart', [OrderController::class, 'viewCart'])->name('order.cart');
-// Webhook Midtrans -- dipanggil server Midtrans, jadi tidak boleh di balik login.
+// Webhook pembayaran -- dipanggil server Midtrans/hub QRIS GDC, server-to-server
+// dan tidak boleh digerbang fitur e-commerce ataupun login.
 Route::post('/midtrans-callback', [OrderController::class, 'callback']);
-
-// Notifikasi yang diteruskan hub QRIS GDC (mysifacenter.my.id) -- server-to-server,
-// tidak boleh di balik login/CSRF. Lihat HubQrisWebhookController.
 Route::post('/webhooks/hub-qris/notification', [HubQrisWebhookController::class, 'notification'])->name('hub-qris.webhook');
 
-Route::get('/artikel/all', [ArticleController::class, 'indexFrontend'])->name('artikel.all')->middleware('track.visit');
-Route::get('/artikel/{slug}', [ArticleController::class, 'show'])->name('article.show')->middleware('track.visit');
+// Semua halaman toko online (e-commerce) -- digerbang fitur 'E-Commerce'.
+// Jika nonaktif, redirect ke /inventory, lihat App\Http\Middleware\EnsureEcommerceActive.
+Route::middleware('ecommerce.active')->group(function () {
+    // Login pelanggan/member (Google saja)
+    Route::get('/login', [LoginController::class, 'loginForm'])->name('login.form')->middleware('prevent.back.history');
+    Route::post('/logout', [LoginController::class, 'logoutFrontend'])->name('logout');
 
-Route::get('/testimoni/all', [TestimoniController::class, 'indexFrontend'])->name('testimoni.all')->middleware('track.visit');
+    Route::get('auth/google', [LoginController::class, 'redirectToGoogle'])->name('google.login');
+    Route::get('auth/google/callback', [LoginController::class, 'handleGoogleCallback']);
 
-Route::get('/video-edukasi/all', [VideoEdukasiController::class, 'indexFrontend'])->name('video-edukasi.all')->middleware('track.visit');
-Route::get('/video-edukasi/{slug}', [VideoEdukasiController::class, 'show'])->name('video-edukasi.show')->middleware('track.visit');
+    // Reseller -- masuk lewat akun Google yang sama dengan customer (lihat
+    // LoginController::redirectToGoogleForReseller()/handleGoogleCallback()), profil
+    // reseller ('resellers' table) terpisah dari data akun 'users'.
+    Route::prefix('reseller')->name('reseller.')->group(function () {
+        Route::get('/auth/google', [LoginController::class, 'redirectToGoogleForReseller'])->name('google');
+        Route::get('/register', [ResellerController::class, 'register'])->name('register');
+        Route::post('/register', [ResellerController::class, 'store'])->name('store');
+        Route::get('/', [ResellerController::class, 'home'])->name('home');
+        Route::get('/pelanggan/{userId}', [ResellerController::class, 'pelangganDetail'])->name('pelanggan.detail');
+        Route::get('/profil', [ResellerController::class, 'editProfil'])->name('profil.edit');
+        Route::put('/profil', [ResellerController::class, 'updateProfil'])->name('profil.update');
+    });
 
+    Route::get('/home-page', [HomepageController::class, 'index'])->name('home-page');
 
+    // Route Product
 
+    Route::get('/produk/detail/{id}', [ProductController::class, 'detail'])->name('produk.detail')->middleware('track.visit');
+    Route::get('/produk/kategori/{id}', [ProductController::class, 'produkKategori'])->name('produk.kategori')->middleware('track.visit');
+    Route::get('/produk/cari', [ProductController::class, 'search'])->name('produk.search')->middleware('track.visit');
+    // Bisa diakses tanpa login (pengunjung dari iklan). Tamu disimpan di keranjang
+    // session (App\Services\GuestCart) dan diminta login saat membuka keranjang/checkout.
+    Route::get('/produk/all', [ProductController::class, 'index'])->name('produk.all')->middleware('track.visit');
+    Route::post('add-to-cart/{id}', [OrderController::class, 'addToCart'])->name('order.addToCart');
+    Route::get('cart', [OrderController::class, 'viewCart'])->name('order.cart');
 
-Route::middleware('is.customer')->group(function () {
-    //route untuk Menampilkan halaman Akun Customer
-    Route::get('/customer/akun/{id}', [CustomerController::class, 'akun'])->name('customer.akun');
-    Route::put('/customer/updateakun/{id}', [CustomerController::class, 'updateAkun'])->name('customer.updateakun');
-    // History Cek Darah (self-service, ditautkan ke tabel pelanggan lewat email)
-    Route::get('/customer/cek-darah', [CustomerCekDarahController::class, 'index'])->name('customer.cekdarah.index');
-    Route::post('/customer/cek-darah/link', [CustomerCekDarahController::class, 'link'])->name('customer.cekdarah.link');
-    Route::get('/customer/cek-darah/{id}', [CustomerCekDarahController::class, 'detail'])->name('customer.cekdarah.detail');
-    // Route untuk menambahkan produk ke keranjang 
-    Route::post('cart/update/{id}', [OrderController::class, 'updateCart'])->name('order.updateCart');
-    Route::post('remove/{id}', [OrderController::class, 'removeFromCart'])->name('order.remove');
-    Route::post('/order/select-pickup', [OrderController::class, 'selectPickup'])->name('order.selectPickup');
-    Route::post('update-ongkir', [OrderController::class, 'updateOngkir'])->name('order.update-ongkir');
-    Route::match(['get', 'post'], 'select-payment', [OrderController::class, 'selectPayment'])->name('order.selectpayment');
-    Route::match(['get', 'post'], 'select-shipping', [OrderController::class, 'selectShipping'])->name('order.selectShipping');
+    Route::get('/artikel/all', [ArticleController::class, 'indexFrontend'])->name('artikel.all')->middleware('track.visit');
+    Route::get('/artikel/{slug}', [ArticleController::class, 'show'])->name('article.show')->middleware('track.visit');
 
-    Route::get('/order/complete', [OrderController::class, 'complete'])->name('order.complete');
+    Route::get('/testimoni/all', [TestimoniController::class, 'indexFrontend'])->name('testimoni.all')->middleware('track.visit');
 
-    Route::get('history', [OrderController::class, 'orderHistory'])->name('order.history');
-    Route::get('order/invoice/{id}', [OrderController::class, 'invoiceFrontend'])->name('order.invoice');
-    Route::post('/order/cod', [OrderController::class, 'cod'])->name('order.cod');
-    Route::post('/order/bank-transfer', [OrderController::class, 'bankTransfer'])->name('order.bank_transfer');
+    Route::get('/video-edukasi/all', [VideoEdukasiController::class, 'indexFrontend'])->name('video-edukasi.all')->middleware('track.visit');
+    Route::get('/video-edukasi/{slug}', [VideoEdukasiController::class, 'show'])->name('video-edukasi.show')->middleware('track.visit');
 
-    // QRIS Otomatis (GDC Pay lewat hub mysifacenter.my.id) -- lihat HubQrisService.
-    Route::post('/order/qris-gdc', [OrderController::class, 'createGdcQris'])->name('order.qris-gdc.create');
-    Route::get('/order/qris-gdc/{reference}', [OrderController::class, 'showGdcQris'])->name('order.qris-gdc.show');
-    Route::get('/order/qris-gdc/{reference}/status', [OrderController::class, 'statusGdcQris'])->name('order.qris-gdc.status');
+    Route::middleware('is.customer')->group(function () {
+        //route untuk Menampilkan halaman Akun Customer
+        Route::get('/customer/akun/{id}', [CustomerController::class, 'akun'])->name('customer.akun');
+        Route::put('/customer/updateakun/{id}', [CustomerController::class, 'updateAkun'])->name('customer.updateakun');
+        // History Cek Darah (self-service, ditautkan ke tabel pelanggan lewat email)
+        Route::get('/customer/cek-darah', [CustomerCekDarahController::class, 'index'])->name('customer.cekdarah.index');
+        Route::post('/customer/cek-darah/link', [CustomerCekDarahController::class, 'link'])->name('customer.cekdarah.link');
+        Route::get('/customer/cek-darah/{id}', [CustomerCekDarahController::class, 'detail'])->name('customer.cekdarah.detail');
+        // Route untuk menambahkan produk ke keranjang
+        Route::post('cart/update/{id}', [OrderController::class, 'updateCart'])->name('order.updateCart');
+        Route::post('remove/{id}', [OrderController::class, 'removeFromCart'])->name('order.remove');
+        Route::post('/order/select-pickup', [OrderController::class, 'selectPickup'])->name('order.selectPickup');
+        Route::post('update-ongkir', [OrderController::class, 'updateOngkir'])->name('order.update-ongkir');
+        Route::match(['get', 'post'], 'select-payment', [OrderController::class, 'selectPayment'])->name('order.selectpayment');
+        Route::match(['get', 'post'], 'select-shipping', [OrderController::class, 'selectShipping'])->name('order.selectShipping');
 
-    // Testimoni (satu testimoni per pelanggan, hanya yang pernah belanja)
-    Route::get('/customer/testimoni', [TestimoniController::class, 'form'])->name('customer.testimoni.form');
-    Route::post('/customer/testimoni', [TestimoniController::class, 'store'])->name('customer.testimoni.store');
+        Route::get('/order/complete', [OrderController::class, 'complete'])->name('order.complete');
+
+        Route::get('history', [OrderController::class, 'orderHistory'])->name('order.history');
+        Route::get('order/invoice/{id}', [OrderController::class, 'invoiceFrontend'])->name('order.invoice');
+        Route::post('/order/cod', [OrderController::class, 'cod'])->name('order.cod');
+        Route::post('/order/bank-transfer', [OrderController::class, 'bankTransfer'])->name('order.bank_transfer');
+
+        // QRIS Otomatis (GDC Pay lewat hub mysifacenter.my.id) -- lihat HubQrisService.
+        Route::post('/order/qris-gdc', [OrderController::class, 'createGdcQris'])->name('order.qris-gdc.create');
+        Route::get('/order/qris-gdc/{reference}', [OrderController::class, 'showGdcQris'])->name('order.qris-gdc.show');
+        Route::get('/order/qris-gdc/{reference}/status', [OrderController::class, 'statusGdcQris'])->name('order.qris-gdc.status');
+
+        // Testimoni (satu testimoni per pelanggan, hanya yang pernah belanja)
+        Route::get('/customer/testimoni', [TestimoniController::class, 'form'])->name('customer.testimoni.form');
+        Route::post('/customer/testimoni', [TestimoniController::class, 'store'])->name('customer.testimoni.store');
+    });
 });
 
+// Setting profil perusahaan & profil admin -- SENGAJA di luar gerbang
+// 'ecommerce.active': company_settings juga dipakai modul non-ecommerce
+// (mis. kehadiran_lat/kehadiran_lng dikonsumsi InventoryKehadiranController),
+// dan profil admin harus tetap bisa diubah walau fitur e-commerce nonaktif.
 Route::prefix('/backend')->middleware('auth:admin')->group(function () {
+    Route::get('/company-setting', [CompanySettingController::class, 'index'])->name('company-setting.index');
+    Route::post('/company-setting', [CompanySettingController::class, 'store'])->name('company-setting.store');
+    Route::put('/company-setting/{id}', [CompanySettingController::class, 'update'])->name('company-setting.update');
+
+    Route::get('/profile', [AdminProfileController::class, 'edit'])->name('admin.profile.edit');
+    Route::put('/profile', [AdminProfileController::class, 'update'])->name('admin.profile.update');
+    Route::put('/profile/bank', [AdminProfileController::class, 'updateBank'])->name('admin.profile.update-bank');
+    Route::put('/profile/password', [AdminProfileController::class, 'updatePassword'])->name('admin.profile.update-password');
+});
+
+// Panel admin e-commerce (kelola produk/pesanan/konten toko online) --
+// digerbang fitur 'E-Commerce' juga, supaya user manapun (termasuk admin yang
+// sudah login) tidak bisa mengelola ataupun berpindah ke halaman e-commerce
+// saat fiturnya nonaktif. Lihat App\Http\Middleware\EnsureEcommerceActive.
+Route::prefix('/backend')->middleware(['auth:admin', 'ecommerce.active'])->group(function () {
     // Dashboard backend
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('backend.dashboard');
     Route::get('/dashboard/check-new-order', [DashboardController::class, 'checkNewOrder'])->name('backend.dashboard.checkNewOrder');
@@ -261,11 +284,6 @@ Route::prefix('/backend')->middleware('auth:admin')->group(function () {
     Route::match(['get', 'post'], 'backend/laporan/cetak-pesanan-proses', [ReportController::class, 'cetakOrderProses'])->name('backend.laporan.cetakpesananproses')->middleware('auth');
     Route::match(['get', 'post'], 'backend/laporan/cetak-pesanan-selesai', [ReportController::class, 'cetakOrderSelesai'])->name('backend.laporan.cetakpesananselesai')->middleware('auth');
 
-    // Setting profil perusahaan
-    Route::get('/company-setting', [CompanySettingController::class, 'index'])->name('company-setting.index');
-    Route::post('/company-setting', [CompanySettingController::class, 'store'])->name('company-setting.store');
-    Route::put('/company-setting/{id}', [CompanySettingController::class, 'update'])->name('company-setting.update');
-
     // Meta Pixel (Setting > Input Pixel)
     Route::get('/meta-pixel', [\App\Http\Controllers\MetaPixelSettingController::class, 'index'])->name('meta-pixel.index');
     Route::put('/meta-pixel', [\App\Http\Controllers\MetaPixelSettingController::class, 'update'])->name('meta-pixel.update');
@@ -278,12 +296,6 @@ Route::prefix('/backend')->middleware('auth:admin')->group(function () {
 
     // Lokasi antar (wilayah pengantaran & biayanya)
     Route::resource('lokasi-antar', LokasiAntarController::class)->except(['show']);
-
-    // Profil admin (foto profil)
-    Route::get('/profile', [AdminProfileController::class, 'edit'])->name('admin.profile.edit');
-    Route::put('/profile', [AdminProfileController::class, 'update'])->name('admin.profile.update');
-    Route::put('/profile/bank', [AdminProfileController::class, 'updateBank'])->name('admin.profile.update-bank');
-    Route::put('/profile/password', [AdminProfileController::class, 'updatePassword'])->name('admin.profile.update-password');
 });
 
 // Sistem Inventory (adaptasi Laravel dari public/apotekberlian, database yang sama)
@@ -304,6 +316,7 @@ Route::prefix('inventory')->middleware(['auth:admin', 'admin.active'])->name('in
     Route::prefix('setheader')->middleware('inventory.module:mheader')->name('setheader.')->group(function () {
         Route::get('/', [InventorySetheaderController::class, 'index'])->name('index');
         Route::put('/', [InventorySetheaderController::class, 'update'])->name('update');
+        Route::put('/kehadiran-lokasi', [InventorySetheaderController::class, 'updateKehadiranLokasi'])->name('kehadiran-lokasi');
     });
 
     // Tidak digerbang flag Admin::PERMISSION_GROUPS -- khusus pemilik + admin.mysifa='Y',

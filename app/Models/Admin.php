@@ -219,4 +219,31 @@ class Admin extends Authenticatable
     {
         return strtoupper((string) $this->mysifa) === 'Y';
     }
+
+    /**
+     * Query scope: kecualikan akun vendor (mysifa='Y', lihat isMySifa()) dari
+     * listing/dropdown pegawai-pegawai apotek (Operator, Jadwal Shift, Absensi,
+     * Cuti, Lembur, Gaji Karyawan, Evaluasi Pegawai, Komisi Pegawai, Kasir/POS,
+     * dll) -- permintaan user supaya akun dukungan vendor tidak terlihat staf
+     * apotek & tidak menimbulkan prasangka "dimata-matai". TIDAK dipakai di
+     * login/Auth guard ataupun lookup by-id (Admin::find()) karena akan
+     * mematahkan sesi login akun vendor itu sendiri.
+     */
+    public function scopeBukanAkunMysifa($query)
+    {
+        return $query->where(function ($q) {
+            $q->whereNull('mysifa')->orWhereRaw("UPPER(mysifa) != 'Y'");
+        });
+    }
+
+    /**
+     * id_admin semua akun vendor (mysifa='Y'), dipakai untuk menyaring tabel
+     * transaksional lain yang keyed by id_admin (Absensi, Cuti, Lembur,
+     * JadwalShift, Gaji, GajiDetail, dll) lewat whereNotIn('id_admin', ...)
+     * supaya baris milik akun vendor ikut tidak tampil di laporan/listing.
+     */
+    public static function mysifaIds(): array
+    {
+        return static::whereRaw("UPPER(mysifa) = 'Y'")->pluck('id_admin')->all();
+    }
 }

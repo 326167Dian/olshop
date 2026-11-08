@@ -27,7 +27,7 @@ class InventoryCutiController extends Controller
         $statusFilter = $request->query('status', '');
         $idAdminFilter = (int) $request->query('id_admin', 0);
 
-        $query = Cuti::with(['admin', 'penyetuju']);
+        $query = Cuti::with(['admin', 'penyetuju'])->whereNotIn('id_admin', Admin::mysifaIds());
 
         if (!$admin->isPemilik()) {
             $query->where('id_admin', $admin->id_admin);
@@ -48,7 +48,7 @@ class InventoryCutiController extends Controller
             'cutiList' => $cutiList,
             'statusFilter' => $statusFilter,
             'idAdminFilter' => $idAdminFilter,
-            'pegawaiList' => $admin->isPemilik() ? Admin::where('blokir', 'N')->orderBy('nama_lengkap')->get() : collect(),
+            'pegawaiList' => $admin->isPemilik() ? Admin::bukanAkunMysifa()->where('blokir', 'N')->orderBy('nama_lengkap')->get() : collect(),
             'isPemilik' => $admin->isPemilik(),
             'sisaKuotaSendiri' => KuotaCuti::sisaUntuk($admin->id_admin, $tahunIni),
             'tahunIni' => $tahunIni,
@@ -62,7 +62,7 @@ class InventoryCutiController extends Controller
         return view('inventory.kehadiran.cuti.create', [
             'judul' => 'Inventory',
             'isPemilik' => $admin->isPemilik(),
-            'pegawaiList' => $admin->isPemilik() ? Admin::where('blokir', 'N')->orderBy('nama_lengkap')->get() : collect([$admin]),
+            'pegawaiList' => $admin->isPemilik() ? Admin::bukanAkunMysifa()->where('blokir', 'N')->orderBy('nama_lengkap')->get() : collect([$admin]),
         ]);
     }
 
@@ -159,7 +159,7 @@ class InventoryCutiController extends Controller
 
         $tahun = (int) $request->query('tahun', now()->year);
 
-        $pegawaiList = Admin::where('blokir', 'N')->orderBy('nama_lengkap')->get()->map(function ($p) use ($tahun) {
+        $pegawaiList = Admin::bukanAkunMysifa()->where('blokir', 'N')->orderBy('nama_lengkap')->get()->map(function ($p) use ($tahun) {
             $p->kuota_hari = KuotaCuti::kuotaUntuk($p->id_admin, $tahun);
             $p->terpakai = KuotaCuti::terpakaiUntuk($p->id_admin, $tahun);
             $p->sisa = $p->kuota_hari - $p->terpakai;

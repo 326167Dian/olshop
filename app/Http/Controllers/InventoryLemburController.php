@@ -27,7 +27,9 @@ class InventoryLemburController extends Controller
         $tglAkhir = $request->query('tgl_akhir') ?: now()->endOfMonth()->toDateString();
         $idAdminFilter = (int) $request->query('id_admin', 0);
 
-        $query = Lembur::with(['admin', 'admin.gaji'])->whereBetween('tanggal', [$tglAwal, $tglAkhir]);
+        $query = Lembur::with(['admin', 'admin.gaji'])
+            ->whereBetween('tanggal', [$tglAwal, $tglAkhir])
+            ->whereNotIn('id_admin', Admin::mysifaIds());
 
         if (!$admin->isPemilik()) {
             $query->where('id_admin', $admin->id_admin);
@@ -43,7 +45,7 @@ class InventoryLemburController extends Controller
             'tglAwal' => $tglAwal,
             'tglAkhir' => $tglAkhir,
             'idAdminFilter' => $idAdminFilter,
-            'pegawaiList' => $admin->isPemilik() ? Admin::where('blokir', 'N')->orderBy('nama_lengkap')->get() : collect(),
+            'pegawaiList' => $admin->isPemilik() ? Admin::bukanAkunMysifa()->where('blokir', 'N')->orderBy('nama_lengkap')->get() : collect(),
             'isPemilik' => $admin->isPemilik(),
         ]);
     }
@@ -54,7 +56,7 @@ class InventoryLemburController extends Controller
 
         return view('inventory.kehadiran.lembur.create', [
             'judul' => 'Inventory',
-            'pegawaiList' => Admin::where('blokir', 'N')->orderBy('nama_lengkap')->get(),
+            'pegawaiList' => Admin::bukanAkunMysifa()->where('blokir', 'N')->orderBy('nama_lengkap')->get(),
         ]);
     }
 
