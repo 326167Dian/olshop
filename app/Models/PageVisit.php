@@ -8,6 +8,7 @@ class PageVisit extends Model
 {
     protected $fillable = [
         'page',
+        'ref_id',
         'ip_address',
         'user_agent',
     ];

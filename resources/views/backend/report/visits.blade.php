@@ -73,5 +73,37 @@
             </div>
         </div>
     </div>
+
+    <div class="col-md-12 mb-3">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Kategori Produk Terbanyak Dikunjungi -- 30 Hari Terakhir</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered table-striped">
+                        <thead>
+                            <tr>
+                                <th>Kategori</th>
+                                <th>Jumlah Kunjungan</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse ($rekapKategori as $baris)
+                            <tr>
+                                <td>{{ $baris['nama'] }}</td>
+                                <td>{{ number_format($baris['jumlah'], 0, ',', '.') }}</td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="2" class="text-center text-muted">Belum ada data -- rincian per kategori baru mulai tercatat sejak fitur ini aktif.</td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 @endsection

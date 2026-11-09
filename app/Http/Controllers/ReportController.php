@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\Category;
 use App\Models\Order;
 use App\Models\PageVisit;
 use Illuminate\Support\Facades\DB;
@@ -62,12 +63,31 @@ class ReportController extends Controller
                 'jumlah' => $baris->jumlah,
             ]);
 
+        // Rincian kategori yang dikunjungi (dari baris 'produk.kategori' di atas) --
+        // cuma mencakup kunjungan SETELAH kolom ref_id ada (lihat migration
+        // add_ref_id_to_page_visits_table); kunjungan sebelumnya tidak tersimpan id
+        // kategorinya jadi tidak ikut terhitung di rincian ini.
+        $rekapKategori = PageVisit::where('page', 'produk.kategori')
+            ->whereNotNull('ref_id')
+            ->where('created_at', '>=', now()->subDays(29)->startOfDay())
+            ->selectRaw('ref_id, COUNT(*) as jumlah')
+            ->groupBy('ref_id')
+            ->orderByDesc('jumlah')
+            ->get()
+            ->map(function ($baris) {
+                return [
+                    'nama' => Category::find($baris->ref_id)->name ?? "Kategori #{$baris->ref_id} (sudah dihapus)",
+                    'jumlah' => $baris->jumlah,
+                ];
+            });
+
         return view('backend.report.visits', [
             'judul' => 'Laporan',
             'subJudul' => 'Laporan Kunjungan Website',
             'totalVisits' => $totalVisits,
             'rekap' => $rekap,
             'rekapHalaman' => $rekapHalaman,
+            'rekapKategori' => $rekapKategori,
         ]);
     }
 
