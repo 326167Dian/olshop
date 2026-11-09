@@ -48,6 +48,75 @@
             </div>
             @endif
 
+            @if ($order->tipe_layanan === 'Dikirim ke alamat' && $order->isKurirInstan())
+            @php
+                $kurirAktif = $order->biteship_order_id && !\App\Services\BiteshipService::isFinalFailed($order->biteship_status);
+            @endphp
+            <div class="card border-primary mb-3">
+                <div class="card-body">
+                    <h5 class="mb-2"><i class="fa fa-motorcycle"></i> Kurir Instan &mdash; {{ $order->layanan_pengiriman }}</h5>
+
+                    @if (session('error'))
+                    <div class="alert alert-danger py-2">{{ session('error') }}</div>
+                    @endif
+
+                    <p class="mb-1">Ongkir dibayar pelanggan: <strong>Rp {{ number_format($order->biaya_ongkir, 0, ',', '.') }}</strong>
+                        @if ($order->biteship_price)
+                        &middot; Tagihan Biteship: <strong>Rp {{ number_format($order->biteship_price, 0, ',', '.') }}</strong>
+                        @endif
+                    </p>
+
+                    @if ($order->biteship_order_id)
+                    <p class="mb-1">Status kurir: <span class="badge badge-info bg-info text-dark">{{ \App\Services\BiteshipService::statusLabel($order->biteship_status) }}</span></p>
+                    @if ($order->kurir_driver_name)
+                    <p class="mb-1">Driver: {{ $order->kurir_driver_name }}
+                        @if ($order->kurir_driver_phone) &middot; {{ $order->kurir_driver_phone }} @endif
+                        @if ($order->kurir_driver_plate) &middot; {{ $order->kurir_driver_plate }} @endif
+                    </p>
+                    @endif
+                    @if ($order->kurir_waybill_id)
+                    <p class="mb-1">No. resi: {{ $order->kurir_waybill_id }}</p>
+                    @endif
+                    @if ($order->kurir_link)
+                    <p class="mb-1"><a href="{{ $order->kurir_link }}" target="_blank" rel="noopener">Lacak posisi driver</a></p>
+                    @endif
+                    @else
+                    <p class="mb-1 text-muted">Kurir belum dipesan. Pesan setelah obat selesai disiapkan &mdash; driver biasanya tiba dalam 5&ndash;15 menit.</p>
+                    @endif
+
+                    <div class="d-flex flex-wrap gap-2 mt-2">
+                        @if (!$kurirAktif && in_array($order->status, ['Paid', 'Kirim'], true))
+                        <form action="{{ route('pesanan.kurir-instan.pesan', $order->id) }}" method="post"
+                            onsubmit="return confirm('Panggil driver kurir instan sekarang?');">
+                            @csrf
+                            <button type="submit" class="btn btn-primary btn-sm">Pesan Kurir Sekarang</button>
+                        </form>
+                        @endif
+
+                        @if ($order->biteship_order_id)
+                        <form action="{{ route('pesanan.kurir-instan.refresh', $order->id) }}" method="post">
+                            @csrf
+                            <button type="submit" class="btn btn-outline-secondary btn-sm">Refresh Status</button>
+                        </form>
+                        @endif
+
+                        @if ($kurirAktif && !in_array($order->biteship_status, ['picked', 'dropping_off', 'delivered'], true))
+                        <form action="{{ route('pesanan.kurir-instan.batal', $order->id) }}" method="post"
+                            onsubmit="return confirm('Batalkan driver untuk pesanan ini?');">
+                            @csrf
+                            <input type="hidden" name="alasan" value="Dibatalkan oleh apotek">
+                            <button type="submit" class="btn btn-outline-danger btn-sm">Batalkan Kurir</button>
+                        </form>
+                        @endif
+                    </div>
+
+                    @unless (in_array($order->status, ['Paid', 'Kirim'], true) || $order->biteship_order_id)
+                    <small class="text-muted d-block mt-2">Tombol pesan kurir muncul setelah pembayaran diverifikasi (status Paid).</small>
+                    @endunless
+                </div>
+            </div>
+            @endif
+
             <form action="{{ route('pesanan.proses.update', $order->id) }}" method="post" enctype="multipart/form-data">
                 @csrf
                 @method('PUT')

@@ -21,6 +21,17 @@ class Order extends Model
         'jarak_km',
         'biaya_ongkir',
         'layanan_pengiriman',
+        'kurir_company',
+        'kurir_type',
+        'biteship_order_id',
+        'biteship_status',
+        'biteship_price',
+        'kurir_tracking_id',
+        'kurir_waybill_id',
+        'kurir_driver_name',
+        'kurir_driver_phone',
+        'kurir_driver_plate',
+        'kurir_link',
         'estimasi_antar',
         'tipe_pembayaran',
         'total_berat',
@@ -42,6 +53,14 @@ class Order extends Model
         'waktu_approval' => 'datetime',
         'estimasi_antar' => 'datetime',
     ];
+
+    /**
+     * Pesanan diantar Kurir Instan (GoSend/Grab via Biteship), bukan kurir apotek.
+     */
+    public function isKurirInstan(): bool
+    {
+        return !empty($this->kurir_company);
+    }
 
     public function orderItems()
     {

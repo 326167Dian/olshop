@@ -177,8 +177,13 @@
                                 {{-- <option value="midtrans">Bayar Online (Midtrans)</option> --}}
                                 <option value="qris_gdc">QRIS Otomatis</option>
                                 <option value="bank_transfer">QRIS Manual (upload bukti transfer)</option>
+                                @unless ($order->tipe_layanan === 'Dikirim ke alamat' && $order->isKurirInstan())
                                 <option value="cod">COD (Cash on Delivery)</option>
+                                @endunless
                             </select>
+                            @if ($order->tipe_layanan === 'Dikirim ke alamat' && $order->isKurirInstan())
+                            <small class="text-muted">COD tidak tersedia untuk Kurir Instan (GoSend/Grab).</small>
+                            @endif
                         </div>
 
                         {{-- COD info --}}

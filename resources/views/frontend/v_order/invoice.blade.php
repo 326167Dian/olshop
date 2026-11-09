@@ -431,6 +431,17 @@
                 @if ($order->estimasi_antar)
                 <p class="mb-1"><strong class="me-2">Estimasi Antar:</strong>{{ $order->estimasi_antar->format('d/m/Y H:i') }}</p>
                 @endif
+                @if ($order->isKurirInstan() && $order->biteship_order_id)
+                <p class="mb-1"><strong class="me-2">Status Kurir:</strong>{{ \App\Services\BiteshipService::statusLabel($order->biteship_status) }}</p>
+                @if ($order->kurir_driver_name)
+                <p class="mb-1"><strong class="me-2">Driver:</strong>{{ $order->kurir_driver_name }}
+                    @if ($order->kurir_driver_plate) ({{ $order->kurir_driver_plate }}) @endif
+                </p>
+                @endif
+                @if ($order->kurir_link)
+                <p class="mb-1"><a href="{{ $order->kurir_link }}" target="_blank" rel="noopener">Lacak posisi driver</a></p>
+                @endif
+                @endif
                 @endif
 
             </div>

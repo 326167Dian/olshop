@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CaraBayar;
 use App\Models\CompanySetting;
 use App\Models\LokasiAntar;
 use App\Models\Order;
@@ -11,6 +12,7 @@ use App\Models\Promo;
 use App\Models\QrisPayment;
 use App\Models\User;
 use App\Models\UserAddress;
+use App\Services\BiteshipService;
 use App\Services\DeliveryPricingService;
 use App\Services\GuestCart;
 use App\Services\HubQrisService;
@@ -236,13 +238,15 @@ class OrderController extends Controller
         $alamatLain = UserAddress::where('user_id', $customer->id)->orderByDesc('id')->get();
         $regulerTersedia = (new DeliveryPricingService(CompanySetting::first() ?? new CompanySetting()))
             ->regulerTersediaHariIni();
+        $kurirInstanAktif = app(BiteshipService::class)->isConfigured();
 
         return view('frontend.v_order.shipping', compact(
             'order',
             'customer',
             'lokasiAntar',
             'alamatLain',
-            'regulerTersedia'
+            'regulerTersedia',
+            'kurirInstanAktif'
         ));
     }
 
@@ -309,7 +313,8 @@ class OrderController extends Controller
         $validator = Validator::make($request->all(), [
             'no_tlp' => 'required|string|max:20',
             'tipe_alamat' => 'required|in:rumah,lain',
-            'metode_antar' => 'required|in:reguler,express',
+            'metode_antar' => 'required|in:reguler,express,kurir_instan',
+            'kurir_instan_pilihan' => 'required_if:metode_antar,kurir_instan|nullable|string|max:100',
             'rumah_lat' => 'nullable|numeric|between:-90,90',
             'rumah_lng' => 'nullable|numeric|between:-180,180',
             'alamat_lain_pilihan' => 'required_if:tipe_alamat,lain|nullable|string',
@@ -366,6 +371,11 @@ class OrderController extends Controller
         }
 
         $pricing = new DeliveryPricingService(CompanySetting::first() ?? new CompanySetting());
+
+        if ($request->input('metode_antar') === 'kurir_instan') {
+            return $this->simpanKurirInstan($request, $order, (float) $lat, (float) $lng, $alamatTeks, $alamatLabel);
+        }
+
         $quote = $pricing->quote((float) $lat, (float) $lng, $request->input('metode_antar'));
 
         if (!$quote['ok']) {
@@ -385,9 +395,68 @@ class OrderController extends Controller
         $order->lokasi_antar_id = $quote['tier']->id;
         $order->biaya_ongkir = $quote['biaya'];
         $order->layanan_pengiriman = $request->input('metode_antar') === 'express' ? 'Instan' : 'Reguler';
+        $order->kurir_company = null;
+        $order->kurir_type = null;
         $order->estimasi_antar = $request->input('metode_antar') === 'express'
             ? $pricing->estimasiAntarExpress()
             : $pricing->estimasiAntarReguler();
+        $order->no_tlp = $request->input('no_tlp');
+        $order->save();
+
+        return redirect()->route('order.selectpayment');
+    }
+
+    /**
+     * Kurir Instan (GoSend/Grab via Biteship): tarif diambil ulang dari Biteship di
+     * server -- harga dari browser tidak dipakai. Radius tetap dibatasi
+     * DeliveryPricingService::MAX_RADIUS_KM, tapi tidak butuh tier lokasi_antar.
+     */
+    private function simpanKurirInstan(Request $request, Order $order, float $lat, float $lng, ?string $alamatTeks, ?string $alamatLabel)
+    {
+        $biteship = app(BiteshipService::class);
+
+        if (!$biteship->isConfigured()) {
+            return back()->withInput()->with('error', 'Kurir Instan belum tersedia. Silakan pilih Reguler/Express.');
+        }
+
+        $km = (CompanySetting::first() ?? new CompanySetting())->jarakKmDari($lat, $lng);
+
+        if ($km === null) {
+            return back()->withInput()->with('error', 'Lokasi apotek belum diatur. Hubungi admin.');
+        }
+
+        if ($km > DeliveryPricingService::MAX_RADIUS_KM) {
+            return back()->withInput()->with('error', sprintf(
+                'Alamat berada di luar radius pengantaran maksimal %g km (jarak %.2f km).',
+                DeliveryPricingService::MAX_RADIUS_KM,
+                $km
+            ));
+        }
+
+        try {
+            $rate = $biteship->findRate($lat, $lng, $order, (string) $request->input('kurir_instan_pilihan'));
+        } catch (\Throwable $e) {
+            report($e);
+
+            return back()->withInput()->with('error', 'Tarif kurir instan sedang tidak bisa diambil. Silakan coba lagi atau pilih Reguler/Express.');
+        }
+
+        if (!$rate) {
+            return back()->withInput()->with('error', 'Layanan kurir yang dipilih sudah tidak tersedia. Silakan pilih ulang.');
+        }
+
+        $order->tipe_alamat = $request->input('tipe_alamat');
+        $order->alamat_label = $alamatLabel;
+        $order->alamat = $alamatTeks;
+        $order->alamat_lat = $lat;
+        $order->alamat_lng = $lng;
+        $order->jarak_km = round($km, 2);
+        $order->lokasi_antar_id = null;
+        $order->biaya_ongkir = $rate['price'];
+        $order->layanan_pengiriman = $rate['label'];
+        $order->kurir_company = $rate['company'];
+        $order->kurir_type = $rate['type'];
+        $order->estimasi_antar = now()->addHours(2);
         $order->no_tlp = $request->input('no_tlp');
         $order->save();
 
@@ -776,11 +845,13 @@ class OrderController extends Controller
                     'tlp_pelanggan'    => $user->no_tlp ?? '-',
                     'alamat_pelanggan' => $user->alamat ?? '-',
                     'ttl_trkasir'      => $order->total_harga,
-                    // 1=Tunai (COD), 7=QRIS (Qris manual, QRIS GDC, Midtrans -- semuanya QRIS),
-                    // 2=Transfer sebagai fallback untuk tipe lain yang belum dikenal.
+                    // 1=Tunai (COD). 'QRIS GDC' = QRIS Dinamis (GDC Pay, otomatis) --
+                    // pakai id carabayar "QRIS" yang sebenarnya (lihat migration
+                    // seed_qris_carabayar_row), bukan angka hardcode. Selain itu (Qris
+                    // manual upload bukti, Midtrans, dll) dianggap Transfer biasa.
                     'id_carabayar'     => match ($order->tipe_pembayaran) {
                         'COD' => 1,
-                        'Qris', 'QRIS GDC', 'Midtrans' => 7,
+                        'QRIS GDC' => CaraBayar::where('nm_carabayar', 'QRIS')->value('id_carabayar') ?? 2,
                         default => 2,
                     },
                     'jenistx'          => 3,
@@ -900,6 +971,11 @@ class OrderController extends Controller
 
         if (!$order) {
             return redirect()->route('order.history')->with('error', 'Tidak ada pesanan yang bisa diproses COD.');
+        }
+
+        // Driver GoSend/Grab tidak menagihkan pembayaran untuk apotek.
+        if ($order->tipe_layanan === 'Dikirim ke alamat' && $order->isKurirInstan()) {
+            return redirect()->route('order.selectpayment')->with('error', 'COD tidak tersedia untuk Kurir Instan (GoSend/Grab). Silakan bayar dengan QRIS.');
         }
 
         DB::beginTransaction();
@@ -1171,6 +1247,11 @@ class OrderController extends Controller
 
         // simpan pilihan user
         $order->tipe_layanan = $request->tipe_layanan;
+        if ($request->tipe_layanan === 'Ambil di toko') {
+            // Buang sisa pilihan Kurir Instan kalau pelanggan sempat memilihnya lalu kembali.
+            $order->kurir_company = null;
+            $order->kurir_type = null;
+        }
         $order->save();
 
         $order->loadMissing('orderItems');

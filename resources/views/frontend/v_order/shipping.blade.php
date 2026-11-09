@@ -15,6 +15,9 @@
                         <hr>
                     </div>
                     <div class="card-body">
+                        @if (session('error'))
+                        <div class="alert alert-danger">{{ session('error') }}</div>
+                        @endif
                         <form action="{{ route('order.update-ongkir') }}" method="POST" id="shipping-form">
                             @csrf
 
@@ -39,6 +42,21 @@
                                         Express <span class="text-muted">(diantar maksimal 2 jam setelah pesanan, tarif 2x Reguler)</span>
                                     </label>
                                 </div>
+                                @if ($kurirInstanAktif)
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="metode_antar"
+                                        id="metode_kurir_instan" value="kurir_instan" required onchange="recomputeQuote()">
+                                    <label class="form-check-label" for="metode_kurir_instan">
+                                        Kurir Instan GoSend / Grab <span class="text-muted">(tarif live sesuai jarak, driver dipanggil setelah pesanan diproses, tanpa COD)</span>
+                                    </label>
+                                </div>
+                                <div id="blok-kurir-instan" style="display:none; margin:8px 0 12px 32px; padding:10px 14px; border-left:4px solid #3ea010; background:#f6fbf3; border-radius:4px;">
+                                    <div style="font-weight:600; margin-bottom:6px; color:#2d7a0b;">
+                                        Pilih layanan di bawah ini <span style="font-weight:400; color:#666;">(klik salah satu)</span>:
+                                    </div>
+                                    <div id="kurir-instan-opsi" style="padding-left:6px;"></div>
+                                </div>
+                                @endif
 
                                 <strong>Note</strong>
                                 <div class="alert alert-info mt-2" role="alert">
@@ -287,7 +305,101 @@
         document.getElementById('submit-btn').disabled = !enabled;
     }
 
+    // ---- Kurir Instan (GoSend/Grab via Biteship) ----
+    // Tarif diambil live dari server (KurirInstanController::rates) dan dicek ulang
+    // di server saat submit; angka di sini hanya untuk ditampilkan.
+    const KURIR_INSTAN_URL = @json($kurirInstanAktif ? route('order.kurir-instan.rates') : null);
+    const CSRF_TOKEN = @json(csrf_token());
+    let KI_CACHE = { key: null, data: null };
+    let KI_REQ = 0;
+    let KI_RATES = [];
+    let KI_KM = null;
+
+    function escapeHtml(s) {
+        return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    function toggleBlokKurirInstan(metode) {
+        var blok = document.getElementById('blok-kurir-instan');
+        if (blok) {
+            blok.style.display = metode === 'kurir_instan' ? 'block' : 'none';
+        }
+    }
+
+    function loadKurirInstan(pos, km) {
+        var key = pos.lat.toFixed(6) + ',' + pos.lng.toFixed(6);
+        if (KI_CACHE.key === key && KI_CACHE.data) {
+            renderKurirInstan(KI_CACHE.data, km);
+            return;
+        }
+
+        showPreview('Mengambil tarif GoSend/Grab...');
+        setSubmitEnabled(false);
+        var reqId = ++KI_REQ;
+
+        fetch(KURIR_INSTAN_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF_TOKEN },
+            body: JSON.stringify({ lat: pos.lat, lng: pos.lng })
+        })
+            .then(r => r.json().catch(() => ({ ok: false, error: 'Gagal membaca tarif kurir instan.' })))
+            .then(data => {
+                if (reqId !== KI_REQ) return;
+                if (data.ok) KI_CACHE = { key: key, data: data };
+                renderKurirInstan(data, km);
+            })
+            .catch(() => {
+                if (reqId !== KI_REQ) return;
+                showPreview('Gagal mengambil tarif kurir instan. Periksa koneksi lalu coba lagi.', true);
+                setSubmitEnabled(false);
+            });
+    }
+
+    function renderKurirInstan(data, km) {
+        var box = document.getElementById('kurir-instan-opsi');
+        KI_KM = km;
+
+        if (!data.ok) {
+            KI_RATES = [];
+            box.innerHTML = '';
+            showPreview(data.error || 'Kurir instan tidak tersedia untuk alamat ini.', true);
+            setSubmitEnabled(false);
+            return;
+        }
+
+        var prev = document.querySelector('input[name=kurir_instan_pilihan]:checked')?.value;
+        KI_RATES = data.rates;
+        box.innerHTML = data.rates.map(function (r, i) {
+            return '<div class="form-check">'
+                + '<input class="form-check-input" type="radio" name="kurir_instan_pilihan" id="ki_' + i + '"'
+                + ' value="' + escapeHtml(r.key) + '"' + (r.key === prev ? ' checked' : '')
+                + ' onchange="updateKurirInstanPreview()"> '
+                + '<label class="form-check-label" for="ki_' + i + '" style="margin-left:4px;">' + escapeHtml(r.label)
+                + ' &mdash; Rp ' + Number(r.price).toLocaleString('id-ID')
+                + (r.duration ? ' <span class="text-muted">(' + escapeHtml(r.duration) + ')</span>' : '')
+                + '</label></div>';
+        }).join('');
+
+        updateKurirInstanPreview();
+    }
+
+    function updateKurirInstanPreview() {
+        var sel = document.querySelector('input[name=kurir_instan_pilihan]:checked')?.value;
+        var r = KI_RATES.find(x => x.key === sel);
+
+        if (!r) {
+            showPreview('Jarak ' + KI_KM.toFixed(2) + ' km — pilih layanan GoSend/Grab di bawah.');
+            setSubmitEnabled(false);
+            return;
+        }
+
+        showPreview('Jarak ' + KI_KM.toFixed(2) + ' km — ' + r.label + ': Rp ' + Number(r.price).toLocaleString('id-ID'));
+        setSubmitEnabled(true);
+    }
+
     function recomputeQuote() {
+        toggleBlokKurirInstan(document.querySelector('input[name=metode_antar]:checked')?.value);
+
         if (!PHARMACY.lat) {
             showPreview('Lokasi apotek belum diatur. Hubungi admin.', true);
             setSubmitEnabled(false);
@@ -306,6 +418,11 @@
         if (km > MAX_RADIUS_KM) {
             showPreview('Alamat melebihi radius pengantaran maksimal ' + MAX_RADIUS_KM + ' km (jarak ' + km.toFixed(2) + ' km). Silakan pilih alamat lain.', true);
             setSubmitEnabled(false);
+            return;
+        }
+
+        if (document.querySelector('input[name=metode_antar]:checked')?.value === 'kurir_instan') {
+            loadKurirInstan(pos, km);
             return;
         }
 

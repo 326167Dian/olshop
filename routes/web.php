@@ -9,6 +9,8 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HomepageController;
 use App\Http\Controllers\HubQrisWebhookController;
+use App\Http\Controllers\BiteshipWebhookController;
+use App\Http\Controllers\KurirInstanController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\TestimoniController;
@@ -93,6 +95,8 @@ Route::post('backend/logout', [LoginController::class, 'logoutBackend'])->name('
 // dan tidak boleh digerbang fitur e-commerce ataupun login.
 Route::post('/midtrans-callback', [OrderController::class, 'callback']);
 Route::post('/webhooks/hub-qris/notification', [HubQrisWebhookController::class, 'notification'])->name('hub-qris.webhook');
+// Status kurir instan (GoSend/Grab) dari Biteship -- lihat BiteshipWebhookController.
+Route::post('/webhooks/biteship/{token}', [BiteshipWebhookController::class, 'handle'])->name('biteship.webhook');
 
 // Semua halaman toko online (e-commerce) -- digerbang fitur 'E-Commerce'.
 // Jika nonaktif, redirect ke /inventory, lihat App\Http\Middleware\EnsureEcommerceActive.
@@ -151,6 +155,7 @@ Route::middleware('ecommerce.active')->group(function () {
         Route::post('remove/{id}', [OrderController::class, 'removeFromCart'])->name('order.remove');
         Route::post('/order/select-pickup', [OrderController::class, 'selectPickup'])->name('order.selectPickup');
         Route::post('update-ongkir', [OrderController::class, 'updateOngkir'])->name('order.update-ongkir');
+        Route::post('/order/kurir-instan/tarif', [KurirInstanController::class, 'rates'])->name('order.kurir-instan.rates');
         Route::match(['get', 'post'], 'select-payment', [OrderController::class, 'selectPayment'])->name('order.selectpayment');
         Route::match(['get', 'post'], 'select-shipping', [OrderController::class, 'selectShipping'])->name('order.selectShipping');
 
@@ -270,6 +275,11 @@ Route::prefix('/backend')->middleware(['auth:admin', 'ecommerce.active'])->group
     Route::delete('/pesanan/batalkan/{id}', [OrderController::class, 'batalkan'])
         ->middleware(['auth:admin']) // jika ada sistem role
         ->name('pesanan.batalkan');
+
+    // Kurir Instan (GoSend/Grab via Biteship)
+    Route::post('/pesanan/{id}/kurir-instan/pesan', [KurirInstanController::class, 'pesan'])->name('pesanan.kurir-instan.pesan');
+    Route::post('/pesanan/{id}/kurir-instan/refresh', [KurirInstanController::class, 'refresh'])->name('pesanan.kurir-instan.refresh');
+    Route::post('/pesanan/{id}/kurir-instan/batal', [KurirInstanController::class, 'batal'])->name('pesanan.kurir-instan.batal');
 
 
     // pesanan selesai
