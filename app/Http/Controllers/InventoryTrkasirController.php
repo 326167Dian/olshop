@@ -136,16 +136,23 @@ class InventoryTrkasirController extends Controller
      */
     public function sinkronisasiStok()
     {
+        // WHERE kd_barang REGEXP "^[0-9]+$": barang.kd_barang bertipe bigint, tapi
+        // trbmasuk_detail/trkasir_detail.kd_barang bertipe varchar -- data lama yang
+        // kd_barang-nya kosong/bukan angka bikin MySQL gagal meng-cast ke angka saat
+        // JOIN (error 1292 Truncated incorrect DECIMAL value) dan membatalkan SELURUH
+        // UPDATE. Baris semacam itu dikecualikan di sini saja (bukan dihapus).
         $affected = DB::update("
             UPDATE barang b
             LEFT JOIN (
                 SELECT kd_barang, SUM(qty_dtrbmasuk) AS totalbeli
                 FROM trbmasuk_detail
+                WHERE kd_barang REGEXP '^[0-9]+$'
                 GROUP BY kd_barang
             ) beli ON beli.kd_barang = b.kd_barang
             LEFT JOIN (
                 SELECT kd_barang, SUM(qty_dtrkasir) AS totaljual
                 FROM trkasir_detail
+                WHERE kd_barang REGEXP '^[0-9]+$'
                 GROUP BY kd_barang
             ) jual ON jual.kd_barang = b.kd_barang
             SET b.stok_barang = (COALESCE(beli.totalbeli, 0) - COALESCE(jual.totaljual, 0))
