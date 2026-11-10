@@ -554,7 +554,7 @@ class InventoryTrbmasukPbfController extends Controller
 
     public function ordersData()
     {
-        $query = SupplierOrder::query()->where('id_resto', 'pesan')->select([
+        $query = SupplierOrder::query()->where('id_resto', 'pesan')->orderByDesc('id_trbmasuk')->select([
             'id_trbmasuk', 'petugas', 'kd_trbmasuk', 'tgl_trbmasuk', 'nm_supplier',
             'ket_trbmasuk', 'ttl_trbmasuk', 'dp_bayar', 'sisa_bayar',
         ]);
