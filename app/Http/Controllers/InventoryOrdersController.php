@@ -375,7 +375,7 @@ class InventoryOrdersController extends Controller
         $items = Product::where('nm_barang', 'like', "%{$query}%")
             ->orderBy('nm_barang')
             ->limit(20)
-            ->get(['nm_barang', 'stok_barang', 'sat_barang']);
+            ->get(['id_barang', 'nm_barang', 'stok_barang', 'sat_barang']);
 
         return response()->json($items);
     }
@@ -386,12 +386,20 @@ class InventoryOrdersController extends Controller
      */
     public function itemResolve(Request $request)
     {
+        $idBarang = $request->input('id_barang');
         $namaBarang = $request->input('nm_barang');
         $kdBarang = $request->input('kd_barang');
 
         $query = Product::query();
-        if ($namaBarang !== null) {
-            $query->where('nm_barang', $namaBarang);
+        if ($idBarang !== null) {
+            $query->where('id_barang', $idBarang);
+        } elseif ($namaBarang !== null) {
+            // TRIM di kedua sisi: sebagian data lama punya spasi/tab tersisa di akhir
+            // nm_barang, sementara TrimStrings middleware sudah memangkas input user.
+            $query->whereRaw(
+                "TRIM(BOTH ' ' FROM REPLACE(REPLACE(REPLACE(nm_barang, '\\t', ' '), '\\r', ' '), '\\n', ' ')) = ?",
+                [trim((string) $namaBarang)]
+            );
         } elseif ($kdBarang !== null) {
             $query->where('kd_barang', $kdBarang);
         } else {
@@ -457,7 +465,7 @@ class InventoryOrdersController extends Controller
             ->addColumn('harga_beli', fn ($row) => $row->hrgsat_barang)
             ->addColumn('pilih', function ($row) {
                 return "<button type='button' class='btn btn-xs btn-info btn-pilih-barang'
-                    data-nm_barang='" . e($row->nm_barang) . "'>
+                    data-id_barang='{$row->id_barang}'>
                     <i class='fa fa-check'></i></button>";
             })
             ->rawColumns(['pilih'])

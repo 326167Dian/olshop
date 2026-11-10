@@ -344,7 +344,7 @@
 
     $(document).on('click', '.btn-pilih-barang', function() {
         document.getElementById('is_bundle').value = '0';
-        resolveItemByName($(this).data('nm_barang'));
+        resolveItemById($(this).data('id_barang'));
         bootstrap.Modal.getInstance(document.getElementById('modalItem')).hide();
     });
     $(document).on('click', '.btn-pilih-bundle', function() {
@@ -401,6 +401,14 @@
             .then(function(res) { return res.json(); })
             .then(function(d) { if (d.id_barang) fillItemForm(d); else alert(d.message || 'Barang tidak ditemukan'); });
     }
+    function resolveItemById(id) {
+        var form = new FormData();
+        form.append('id_barang', id);
+        form.append('jenistx', document.getElementById('jenistx').value);
+        fetch("{{ route('inventory.trkasir.item-resolve') }}", { method: 'POST', headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }, body: form })
+            .then(function(res) { return res.json(); })
+            .then(function(d) { if (d.id_barang) fillItemForm(d); else alert(d.message || 'Barang tidak ditemukan'); });
+    }
     function resolveItemByCode(kode) {
         var form = new FormData();
         form.append('kd_barang', kode);
@@ -445,7 +453,7 @@
                             document.getElementById('nmbrg_dtrkasir').value = item.nm_barang;
                             document.getElementById('is_bundle').value = '0';
                             panel.style.display = 'none';
-                            resolveItemByName(item.nm_barang);
+                            resolveItemById(item.id_barang);
                         });
                         panel.appendChild(div);
                     });

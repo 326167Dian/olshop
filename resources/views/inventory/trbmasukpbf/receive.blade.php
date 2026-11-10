@@ -237,7 +237,7 @@
     });
 
     $(document).on('click', '#modalItemTambah .btn-pilih-barang', function() {
-        resolveItemTambahByName($(this).data('nm_barang'));
+        resolveItemTambahById($(this).data('id_barang'));
         bootstrap.Modal.getInstance(document.getElementById('modalItemTambah')).hide();
     });
 
@@ -270,6 +270,21 @@
     function resolveItemTambahByCode(kode) {
         var form = new FormData();
         form.append('kd_barang', kode);
+        fetch("{{ route('inventory.trbmasukpbf.item-resolve') }}", {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                body: form,
+            })
+            .then(function(res) { return res.json(); })
+            .then(function(d) {
+                if (d.id_barang) fillItemTambahForm(d);
+                else alert(d.message || 'Barang tidak ditemukan');
+            });
+    }
+
+    function resolveItemTambahById(id) {
+        var form = new FormData();
+        form.append('id_barang', id);
         fetch("{{ route('inventory.trbmasukpbf.item-resolve') }}", {
                 method: 'POST',
                 headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
@@ -319,7 +334,7 @@
                         div.addEventListener('click', function() {
                             document.getElementById('tambah_nmbrg_dtrbmasuk').value = item.nm_barang;
                             panel.style.display = 'none';
-                            resolveItemTambahByName(item.nm_barang);
+                            resolveItemTambahById(item.id_barang);
                         });
                         panel.appendChild(div);
                     });
