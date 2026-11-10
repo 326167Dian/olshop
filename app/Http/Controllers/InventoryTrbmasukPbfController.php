@@ -1222,6 +1222,15 @@ class InventoryTrbmasukPbfController extends Controller
             $validated['kd_orders'] = $validated['kd_orders'] ?? '';
         }
 
+        // ttl_trbmasuk/sisa_bayar dihitung ulang dari baris trbmasuk_detail yang sudah
+        // tersimpan (bukan dipercaya dari input form) -- form Input Manual
+        // (trbmasukpbf/form.blade.php) mengirim keduanya hardcoded '0' karena belum ada
+        // footer Sub Total/Total Tagihan seperti modul non-PBF, sehingga Sisa Bayar selalu
+        // tercatat 0 meski carabayar=KREDIT.
+        $totalBarang = (float) TrbmasukDetail::where('kd_trbmasuk', $validated['kd_trbmasuk'])->sum('hrgttl_dtrbmasuk');
+        $validated['ttl_trbmasuk'] = $totalBarang;
+        $validated['sisa_bayar'] = $totalBarang - $validated['dp_bayar'];
+
         // Mengikuti act=input_trbmasuk/ubah_trbmasuk legacy: setiap kali disimpan dengan
         // carabayar=LUNAS, tgl_lunas/petugas_lunas SELALU di-stamp ulang ke hari ini/petugas
         // yang sedang login (bukan hanya saat transisi dari belum-lunas ke lunas).
