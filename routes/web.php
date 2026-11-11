@@ -225,6 +225,7 @@ Route::prefix('/backend')->middleware(['auth:admin', 'ecommerce.active'])->group
     Route::put('/product/{product}/update-image', [ProductController::class, 'updateImage'])->name('product.updateImage');
     Route::put('/product/{product}/update-ket-barang', [ProductController::class, 'updateKetBarangInline'])->name('product.updateKetBarang');
     Route::put('/product/{product}/update-category', [ProductController::class, 'updateCategory'])->name('product.updateCategory');
+    Route::put('/product/{product}/update-jenisobat', [ProductController::class, 'updateJenisobat'])->name('product.updateJenisobat');
     Route::get('/product/{product}/edit', [ProductController::class, 'edit'])->name('product.edit');
     Route::put('/product/{product}', [ProductController::class, 'update'])->name('product.update');
     Route::get('/product/{product}', [ProductController::class, 'show'])->name('product.show');

@@ -35,6 +35,7 @@
                             <th>Deskripsi Obat</th>
                             <th>Status</th>
                             <th>Kategori</th>
+                            <th>Rak Obat</th>
                             <th>Stok</th>
                             <th>Harga Jual</th>
                             <th>Diskon</th>
@@ -109,6 +110,7 @@
             },
             { data: 'status', name: 'status' },
             { data: 'kategori', name: 'kategori' },
+            { data: 'jenisobat_select', name: 'jenisobat_select', orderable: false, searchable: false },
             { data: 'stok_barang', name: 'stok_barang' },
             { data: 'hrgjual_barang2', name: 'hrgjual_barang2', render: $.fn.dataTable.render.number('.', ',', 0) },
             { 
@@ -221,6 +223,51 @@
                     icon: 'error',
                     title: 'Oops...',
                     text: xhr.responseJSON?.message || 'Gagal memperbarui kategori!',
+                });
+            },
+            complete: function () {
+                $select.prop('disabled', false);
+            }
+        });
+    });
+
+    // Simpan nilai Rak Obat sebelum diubah, untuk dikembalikan kalau update gagal
+    $(document).on('focus', '.select-jenisobat-inline', function () {
+        $(this).data('previous-value', $(this).val());
+    });
+
+    // Inline edit Rak Obat (jenisobat): langsung simpan ke server saat dipilih
+    $(document).on('change', '.select-jenisobat-inline', function () {
+        const $select = $(this);
+        const id = $select.data('id');
+        const previousValue = $select.data('previous-value');
+        const jenisobat = $select.val();
+
+        $select.prop('disabled', true);
+
+        $.ajax({
+            url: "{{ route('product.updateJenisobat', ':id') }}".replace(':id', id),
+            method: 'PUT',
+            data: {
+                _token: $('meta[name="csrf-token"]').attr('content'),
+                jenisobat: jenisobat,
+            },
+            success: function (res) {
+                $select.data('previous-value', jenisobat);
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil',
+                    text: res.message,
+                    showConfirmButton: false,
+                    timer: 1200
+                });
+            },
+            error: function (xhr) {
+                $select.val(previousValue);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Oops...',
+                    text: xhr.responseJSON?.message || 'Gagal memperbarui Rak Obat!',
                 });
             },
             complete: function () {

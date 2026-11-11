@@ -216,6 +216,7 @@ class ProductController extends Controller
             'nm_barang',
             'status',
             'category_id',
+            'jenisobat',
             'stok_barang',
             'hrgjual_barang2',
             'diskon',
@@ -224,6 +225,7 @@ class ProductController extends Controller
         ]);
 
         $categories = Category::orderBy('name')->get(['id', 'name']);
+        $jenisObatList = JenisObat::all();
 
         return DataTables::of($query)
             ->addIndexColumn()
@@ -235,6 +237,17 @@ class ProductController extends Controller
                 }
 
                 return '<select class="form-control form-control-sm select-kategori-inline" data-id="' . $row->id_barang . '">'
+                    . $options
+                    . '</select>';
+            })
+            ->addColumn('jenisobat_select', function ($row) use ($jenisObatList) {
+                $options = '<option value="">- Pilih Rak Obat -</option>';
+                foreach ($jenisObatList as $jo) {
+                    $selected = $row->jenisobat === $jo->jenisobat ? 'selected' : '';
+                    $options .= '<option value="' . e($jo->jenisobat) . '" ' . $selected . '>' . e($jo->jenisobat) . '</option>';
+                }
+
+                return '<select class="form-control form-control-sm select-jenisobat-inline" data-id="' . $row->id_barang . '">'
                     . $options
                     . '</select>';
             })
@@ -290,7 +303,7 @@ class ProductController extends Controller
             </div>';
                 return $btn;
             })
-            ->rawColumns(['aksi', 'checkbox', 'gambar_status', 'kategori', 'ket_barang_raw'])
+            ->rawColumns(['aksi', 'checkbox', 'gambar_status', 'kategori', 'jenisobat_select', 'ket_barang_raw'])
             ->make(true);
     }
 
@@ -344,6 +357,27 @@ class ProductController extends Controller
         $product->save();
 
         return response()->json(['message' => 'Kategori produk berhasil diperbarui.']);
+    }
+
+    /**
+     * Inline edit Rak Obat (kolom barang.jenisobat) dari halaman Data Produk,
+     * mengikuti pola InventoryBarangController::updateJenisobat() -- field yang
+     * sama ini juga menentukan badge "Butuh Resep Obat" & tombol pesan-via-WA
+     * di storefront (lihat Product::jenisObat(), v_produk/index & produkkategori).
+     */
+    public function updateJenisobat(Request $request, Product $product)
+    {
+        $jenisobat = trim((string) $request->input('jenisobat', ''));
+
+        if ($jenisobat !== '' && !JenisObat::where('jenisobat', $jenisobat)->exists()) {
+            return response()->json(['message' => 'Pilihan Rak Obat tidak valid.'], 422);
+        }
+
+        $product->jenisobat = $jenisobat;
+        $product->updated_by = Auth::id();
+        $product->save();
+
+        return response()->json(['message' => 'Rak Obat berhasil diperbarui.']);
     }
 
     public function multipleUpdateStatus(Request $request)
