@@ -246,6 +246,12 @@
                                     <span class="nav-menu-item-title">Laporan Kunjungan Website</span>
                                 </a>
                             </li>
+                            <li class="nav-menu-item {{ Route::currentRouteName() == 'report.shippingCost' ? 'active' : '' }}">
+                                <a href="{{ route('report.shippingCost') }}">
+                                    <i class="feather icon-truck"></i>
+                                    <span class="nav-menu-item-title">Laporan Biaya Kirim</span>
+                                </a>
+                            </li>
                         </ul>
                     </li>
 

@@ -292,8 +292,10 @@ Route::prefix('/backend')->middleware(['auth:admin', 'ecommerce.active'])->group
     Route::get('/report/process', [ReportController::class, 'reportProcess'])->name('report.process');
     Route::get('/report/finished', [ReportController::class, 'reportFinished'])->name('report.finished');
     Route::get('/report/visits', [ReportController::class, 'reportVisits'])->name('report.visits');
+    Route::get('/report/shipping-cost', [ReportController::class, 'reportShippingCost'])->name('report.shippingCost');
     Route::match(['get', 'post'], 'backend/laporan/cetak-pesanan-proses', [ReportController::class, 'cetakOrderProses'])->name('backend.laporan.cetakpesananproses')->middleware('auth');
     Route::match(['get', 'post'], 'backend/laporan/cetak-pesanan-selesai', [ReportController::class, 'cetakOrderSelesai'])->name('backend.laporan.cetakpesananselesai')->middleware('auth');
+    Route::match(['get', 'post'], 'backend/laporan/cetak-biaya-kirim', [ReportController::class, 'cetakBiayaKirim'])->name('backend.laporan.cetakbiayakirim')->middleware('auth');
 
     // Meta Pixel (Setting > Input Pixel)
     Route::get('/meta-pixel', [\App\Http\Controllers\MetaPixelSettingController::class, 'index'])->name('meta-pixel.index');

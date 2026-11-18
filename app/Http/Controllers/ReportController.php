@@ -124,6 +124,48 @@ class ReportController extends Controller
         ]);
     }
 
+    /**
+     * Rekap biaya kirim Kurir Instan (GoSend/Grab via Biteship) -- biaya_ongkir
+     * yang dibayar pelanggan vs biteship_price yang ditagihkan Biteship (dipotong
+     * dari saldo Biteship Balance, bukan uang tunai ke driver, lihat
+     * BiteshipService). Selisih keduanya dipakai untuk rekonsiliasi kas.
+     */
+    public function reportShippingCost()
+    {
+        return view('backend.report.shippingcost', [
+            'judul' => 'Laporan',
+            'subJudul' => 'Laporan Biaya Kirim',
+        ]);
+    }
+
+    public function cetakBiayaKirim(Request $request)
+    {
+        $request->validate([
+            'tanggal_awal' => 'required|date',
+            'tanggal_akhir' => 'required|date|after_or_equal:tanggal_awal',
+        ], [
+            'tanggal_awal.required' => 'Tanggal Awal harus diisi.',
+            'tanggal_akhir.required' => 'Tanggal Akhir harus diisi.',
+            'tanggal_akhir.after_or_equal' => 'Tanggal Akhir harus lebih besar atau sama dengan Tanggal Awal.',
+        ]);
+
+        $tanggalAwal = $request->input('tanggal_awal');
+        $tanggalAkhir = $request->input('tanggal_akhir');
+
+        $order = Order::whereNotNull('kurir_company')
+            ->whereBetween('created_at', [$tanggalAwal . ' 00:00:00', $tanggalAkhir . ' 23:59:59'])
+            ->orderBy('id', 'desc')
+            ->get();
+
+        return view('backend.report.cetakbiayakirim', [
+            'judul' => 'Laporan',
+            'subJudul' => 'Laporan Biaya Kirim',
+            'tanggalAwal' => $tanggalAwal,
+            'tanggalAkhir' => $tanggalAkhir,
+            'cetak' => $order,
+        ]);
+    }
+
     public function cetakOrderSelesai(Request $request)
     {
         // Validasi tanggal
