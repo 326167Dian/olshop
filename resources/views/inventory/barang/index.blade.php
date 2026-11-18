@@ -106,6 +106,7 @@
 @endsection
 
 @push('scripts')
+<script src="{{ asset('apotekberlian/masuk/vendors/ckeditor/ckeditor.js') }}"></script>
 <script>
     $(function() {
         var table = $('#tabel-barang').DataTable({
@@ -190,20 +191,36 @@
             });
         });
 
+        var indikasiEditor = null;
+
         $(document).on('click', '.btn-edit-indikasi', function() {
             currentIdBarang = $(this).data('id');
-            $('#inputIndikasi').val($(this).data('value') || '');
+            var content = $(this).data('value') || '';
+
+            if (indikasiEditor) {
+                indikasiEditor.setData(content);
+            } else {
+                $('#inputIndikasi').val(content);
+            }
+
             new bootstrap.Modal(document.getElementById('modalEditIndikasi')).show();
+        });
+
+        $('#modalEditIndikasi').on('shown.bs.modal', function() {
+            if (!indikasiEditor) {
+                indikasiEditor = CKEDITOR.replace('inputIndikasi');
+            }
         });
 
         $('#btnSaveIndikasi').on('click', function() {
             if (!currentIdBarang) return;
+            var content = indikasiEditor ? indikasiEditor.getData() : $('#inputIndikasi').val();
             $.ajax({
                 url: '{{ url('inventory/barang') }}/' + currentIdBarang + '/indikasi',
                 method: 'POST',
                 data: {
                     _token: '{{ csrf_token() }}',
-                    indikasi: $('#inputIndikasi').val()
+                    indikasi: content
                 },
                 success: function() {
                     table.ajax.reload(null, false);
