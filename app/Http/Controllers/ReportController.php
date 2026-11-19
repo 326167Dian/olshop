@@ -125,10 +125,12 @@ class ReportController extends Controller
     }
 
     /**
-     * Rekap biaya kirim Kurir Instan (GoSend/Grab via Biteship) -- biaya_ongkir
-     * yang dibayar pelanggan vs biteship_price yang ditagihkan Biteship (dipotong
-     * dari saldo Biteship Balance, bukan uang tunai ke driver, lihat
-     * BiteshipService). Selisih keduanya dipakai untuk rekonsiliasi kas.
+     * Rekap biaya kirim semua pesanan: Kurir Instan (GoSend/Grab via Biteship) --
+     * biaya_ongkir yang dibayar pelanggan vs biteship_price yang ditagihkan
+     * Biteship (dipotong dari saldo Biteship Balance, bukan uang tunai ke
+     * driver, lihat BiteshipService) -- dan juga pengantaran Reguler/Express
+     * oleh kurir apotek sendiri (termasuk COD), yang tidak punya tagihan
+     * Biteship sehingga selisihnya = ongkir yang diterima apotek.
      */
     public function reportShippingCost()
     {
@@ -152,7 +154,10 @@ class ReportController extends Controller
         $tanggalAwal = $request->input('tanggal_awal');
         $tanggalAkhir = $request->input('tanggal_akhir');
 
-        $order = Order::whereNotNull('kurir_company')
+        $order = Order::where(function ($q) {
+                $q->whereNotNull('kurir_company')
+                    ->orWhere('biaya_ongkir', '>', 0);
+            })
             ->whereBetween('created_at', [$tanggalAwal . ' 00:00:00', $tanggalAkhir . ' 23:59:59'])
             ->orderBy('id', 'desc')
             ->get();

@@ -62,20 +62,28 @@
     </thead>
     <tbody>
         @forelse ($cetak as $row)
+        @php
+            $kurirLabel = $row->kurir_company
+                ? trim(ucfirst($row->kurir_company) . ' ' . ucfirst($row->kurir_type))
+                : trim(($row->layanan_pengiriman ?? '-') . ' (Kurir Apotek)' . ($row->tipe_pembayaran === 'COD' ? ' - COD' : ''));
+            $statusLabel = $row->kurir_company
+                ? \App\Services\BiteshipService::statusLabel($row->biteship_status)
+                : $row->status;
+        @endphp
         <tr>
             <td>{{ $loop->iteration }}</td>
             <td>{{ $row->kode_pesanan }}</td>
             <td>{{ $row->user->name ?? '-' }}</td>
             <td>{{ $row->created_at->format('d M Y H:i') }}</td>
-            <td>{{ ucfirst($row->kurir_company) }} {{ ucfirst($row->kurir_type) }}</td>
-            <td>{{ \App\Services\BiteshipService::statusLabel($row->biteship_status) }}</td>
+            <td>{{ $kurirLabel }}</td>
+            <td>{{ $statusLabel }}</td>
             <td class="text-end">Rp. {{ number_format($row->biaya_ongkir ?? 0, 0, ',', '.') }}</td>
             <td class="text-end">Rp. {{ number_format($row->biteship_price ?? 0, 0, ',', '.') }}</td>
             <td class="text-end">Rp. {{ number_format(($row->biaya_ongkir ?? 0) - ($row->biteship_price ?? 0), 0, ',', '.') }}</td>
         </tr>
         @empty
         <tr>
-            <td colspan="9">Tidak ada pesanan Kurir Instan pada rentang tanggal ini.</td>
+            <td colspan="9">Tidak ada pesanan dengan biaya kirim pada rentang tanggal ini.</td>
         </tr>
         @endforelse
     </tbody>
