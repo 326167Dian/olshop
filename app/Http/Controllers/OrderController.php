@@ -559,6 +559,10 @@ class OrderController extends Controller
         $order->tipe_pembayaran = 'Midtrans';
         $order->status = 'Paid'; // Atau 'Completed' jika itu status akhir Anda
         $order->kode_pesanan = $invoice;
+        // Order bisa tertahan lama di keranjang (status pending) sebelum dibayar --
+        // majukan created_at ke saat pembayaran dikonfirmasi ini supaya tanggal
+        // transaksi di laporan/pembukuan tidak terbaca di bulan keranjang dibuat.
+        $order->created_at = now();
 
         // Layanan pengiriman untuk "Dikirim ke alamat" sudah ditentukan pelanggan
         // (Reguler/Express) saat mengisi form alamat -- lihat updateOngkir(). Jangan
@@ -1014,6 +1018,10 @@ class OrderController extends Controller
             // Generate kode pesanan berdasarkan ID (auto increment)
             $invoice = 'ORD-' . date('Ymd') . '-' . str_pad($order->id, 6, '0', STR_PAD_LEFT);
             $order->kode_pesanan = $invoice;
+            // Order bisa tertahan lama di keranjang (status pending) sebelum COD
+            // dikonfirmasi -- majukan created_at ke saat ini supaya tanggal transaksi
+            // di laporan/pembukuan tidak terbaca di bulan keranjang dibuat.
+            $order->created_at = now();
             $order->save();
 
             DB::commit();
@@ -1077,6 +1085,10 @@ class OrderController extends Controller
             // Generate kode pesanan berdasarkan ID (auto increment)
             $invoice = 'ORD-' . date('Ymd') . '-' . str_pad($order->id, 6, '0', STR_PAD_LEFT);
             $order->kode_pesanan = $invoice;
+            // Order bisa tertahan lama di keranjang (status pending) sebelum bukti
+            // bayar dikirim -- majukan created_at ke saat ini supaya tanggal transaksi
+            // di laporan/pembukuan tidak terbaca di bulan keranjang dibuat.
+            $order->created_at = now();
             $order->save();
             DB::commit();
             $this->pixelPurchase($order);
@@ -1135,6 +1147,10 @@ class OrderController extends Controller
 
             $invoice = 'ORD-' . date('Ymd') . '-' . str_pad($order->id, 6, '0', STR_PAD_LEFT);
             $order->kode_pesanan = $invoice;
+            // Order bisa tertahan lama di keranjang (status pending) sebelum QR dibuat
+            // -- majukan created_at ke saat ini supaya tanggal transaksi di
+            // laporan/pembukuan tidak terbaca di bulan keranjang dibuat.
+            $order->created_at = now();
             $order->save();
 
             $totalBayar = (int) round($order->total_harga + ($order->biaya_ongkir ?? 0));
