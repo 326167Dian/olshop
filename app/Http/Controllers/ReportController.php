@@ -154,11 +154,20 @@ class ReportController extends Controller
         $tanggalAwal = $request->input('tanggal_awal');
         $tanggalAkhir = $request->input('tanggal_akhir');
 
+        // kode_pesanan ('ORD-Ymd-NNNNNN') memuat tanggal pesanan itu
+        // dikonfirmasi/dibayar (lihat OrderController::cod() dkk). Order bisa
+        // nongkrong di keranjang ('pending', created_at lama) lalu baru
+        // dikonfirmasi/dibayar belakangan, jadi filter rentang tanggal laporan
+        // ikut tanggal konfirmasi itu, bukan created_at (waktu keranjang dibuat).
+        $awalYmd = str_replace('-', '', $tanggalAwal);
+        $akhirYmd = str_replace('-', '', $tanggalAkhir);
+
         $order = Order::where(function ($q) {
                 $q->whereNotNull('kurir_company')
                     ->orWhere('biaya_ongkir', '>', 0);
             })
-            ->whereBetween('created_at', [$tanggalAwal . ' 00:00:00', $tanggalAkhir . ' 23:59:59'])
+            ->whereNotNull('kode_pesanan')
+            ->whereRaw('SUBSTRING(kode_pesanan, 5, 8) BETWEEN ? AND ?', [$awalYmd, $akhirYmd])
             ->orderBy('id', 'desc')
             ->get();
 
