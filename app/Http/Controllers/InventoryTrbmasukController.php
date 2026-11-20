@@ -258,6 +258,10 @@ class InventoryTrbmasukController extends Controller
 
         $expDate = $validated['exp_date'] ?? now()->addDays(720)->toDateString();
 
+        if ($minExpError = $this->minExpDateError($expDate)) {
+            return response()->json(['status' => 'error', 'message' => $minExpError], 422);
+        }
+
         DB::transaction(function () use ($validated, $expDate) {
             $existing = TrbmasukDetail::where('kd_barang', $validated['kd_barang'])
                 ->where('kd_trbmasuk', $validated['kd_trbmasuk'])
@@ -590,6 +594,10 @@ class InventoryTrbmasukController extends Controller
 
         $field = $validated['field'];
         $value = $validated['value'];
+
+        if ($field === 'expdate' && ($minExpError = $this->minExpDateError($value))) {
+            return response()->json(['status' => 'error', 'message' => $minExpError], 422);
+        }
 
         $detail = DB::transaction(function () use ($validated, $field, $value) {
             $detail = TrbmasukDetail::where('kd_barang', $validated['kd_barang'])
@@ -1095,6 +1103,38 @@ class InventoryTrbmasukController extends Controller
         if ($selisihQty != 0) {
             Product::where('id_barang', $detail->id_barang)->update(['stok_barang' => DB::raw('stok_barang + (' . (float) $selisihQty . ')')]);
         }
+    }
+
+    /**
+     * Tegakkan setting "Minimum Exp. Date (Hari)" di Header Struk (Setheader->empatbelas).
+     * Ditambahkan 2026-11-20 -- sebelumnya setting ini cuma dikirim ke view sebagai
+     * $minExpDate tapi tidak pernah benar-benar dipakai di mana pun (tidak ada atribut
+     * `min` di input tanggal, tidak ada validasi JS, dan validasi server cuma
+     * 'nullable|date'), jadi barang dengan sisa umur lebih pendek dari batas tetap lolos
+     * masuk ke trbmasuk_detail/batch (insiden serupa modul PBF: Yusimox exp 2027-02-27
+     * masuk BPF-201126033603 padahal minimum diset 180 hari).
+     */
+    private function minExpDateError(string $expDate): ?string
+    {
+        $minDays = (int) (Setheader::first()->empatbelas ?? 0);
+
+        if ($minDays <= 0) {
+            return null;
+        }
+
+        try {
+            $tanggal = \Illuminate\Support\Carbon::parse($expDate)->startOfDay();
+        } catch (\Exception $e) {
+            return 'Tgl. Kadaluarsa tidak valid.';
+        }
+
+        $batas = now()->startOfDay()->addDays($minDays);
+
+        if ($tanggal->lt($batas)) {
+            return "Tgl. Kadaluarsa minimal {$minDays} hari dari sekarang (jatuh tempo >= {$batas->toDateString()}).";
+        }
+
+        return null;
     }
 
     /**

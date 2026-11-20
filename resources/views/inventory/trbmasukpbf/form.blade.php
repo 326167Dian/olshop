@@ -112,7 +112,9 @@
                     </div>
                     <div class="form-group">
                         <label>Tgl. Kadaluarsa</label>
-                        <input type="date" class="form-control" id="exp_date" value="{{ now()->addDays(720)->format('Y-m-d') }}">
+                        <input type="date" class="form-control" id="exp_date"
+                            min="{{ now()->addDays($minExpDate ?? 0)->format('Y-m-d') }}"
+                            value="{{ now()->addDays(720)->format('Y-m-d') }}">
                     </div>
                     <div class="form-group">
                         <label>HNA (Harga Netto Apotek)</label>

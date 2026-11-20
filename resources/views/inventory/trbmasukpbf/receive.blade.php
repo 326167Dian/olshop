@@ -109,7 +109,9 @@
                     </div>
                     <div class="form-group">
                         <label>Tgl. Kadaluarsa</label>
-                        <input type="date" class="form-control" id="tambah_exp_date" value="{{ now()->addDays(720)->format('Y-m-d') }}">
+                        <input type="date" class="form-control" id="tambah_exp_date"
+                            min="{{ now()->addDays($minExpDate ?? 0)->format('Y-m-d') }}"
+                            value="{{ now()->addDays(720)->format('Y-m-d') }}">
                     </div>
                     <div class="form-group">
                         <label>HNA (Harga Netto Apotek)</label>
@@ -382,8 +384,14 @@
                 headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
                 body: form,
             })
-            .then(function(res) { return res.json(); })
-            .then(function() {
+            .then(function(res) {
+                return res.json().then(function(data) { return { ok: res.ok, data: data }; });
+            })
+            .then(function(result) {
+                if (!result.ok || result.data.status !== 'ok') {
+                    alert(result.data.message || 'Gagal menyimpan detail.');
+                    return;
+                }
                 ['tambah_id_barang', 'tambah_kd_barang', 'tambah_nmbrg_dtrbmasuk', 'tambah_qty_grosir',
                     'tambah_konversi', 'tambah_no_batch', 'tambah_hnasat_dtrbmasuk', 'tambah_hrgjual_dtrbmasuk'
                 ].forEach(function(id) { document.getElementById(id).value = ''; });
