@@ -76,6 +76,39 @@
             height: 40px;
             max-height: 40px !important;
         }
+
+        /*
+         * Label menu sidebar yang panjang (mis. "Barang Masuk dari PBF",
+         * "Edit/Retur/Hapus Pembelian") terpotong rata di tepi sidebar pada tema
+         * Espire bawaan -- baris item punya tinggi/line-height TETAP (2.8rem) dan
+         * teksnya dipaksa satu baris, jadi sisanya ketiban .side-nav{overflow-x:
+         * hidden} alih-alih tampil. Dipaksa turun ke baris berikutnya (bukan
+         * menembus ke kolom konten di sampingnya) supaya labelnya tetap kebaca.
+         */
+        .side-nav .nav-menu-item-title {
+            white-space: normal !important;
+            overflow: visible !important;
+            word-break: break-word;
+        }
+
+        .side-nav .nav-menu-item>a {
+            display: flex !important;
+            align-items: center;
+            white-space: normal !important;
+            height: auto !important;
+            min-height: 2.8rem;
+            line-height: 1.3 !important;
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+        }
+
+        .side-nav .nav-menu-item>a>i {
+            flex-shrink: 0;
+        }
+
+        .side-nav .nav-submenu .nav-menu-item {
+            height: auto !important;
+        }
     </style>
 </head>
 

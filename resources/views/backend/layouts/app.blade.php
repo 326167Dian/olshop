@@ -44,6 +44,37 @@
         .main .container-fluid {
             padding-left: 0 !important;
         }
+
+        /*
+         * Label menu sidebar yang panjang (mis. "Laporan Kunjungan Website")
+         * terpotong rata di tepi sidebar pada tema Espire bawaan -- lihat catatan
+         * yang sama di resources/views/inventory/layouts/app.blade.php. Dipaksa
+         * turun ke baris berikutnya di sini juga.
+         */
+        .side-nav .nav-menu-item-title {
+            white-space: normal !important;
+            overflow: visible !important;
+            word-break: break-word;
+        }
+
+        .side-nav .nav-menu-item>a {
+            display: flex !important;
+            align-items: center;
+            white-space: normal !important;
+            height: auto !important;
+            min-height: 2.8rem;
+            line-height: 1.3 !important;
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+        }
+
+        .side-nav .nav-menu-item>a>i {
+            flex-shrink: 0;
+        }
+
+        .side-nav .nav-submenu .nav-menu-item {
+            height: auto !important;
+        }
     </style>
 </head>
 
