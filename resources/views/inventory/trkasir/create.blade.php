@@ -409,6 +409,25 @@
             .then(function(res) { return res.json(); })
             .then(function(d) { if (d.id_barang) fillItemForm(d); else alert(d.message || 'Barang tidak ditemukan'); });
     }
+    // Ganti Jenis Transaksi (Reguler/Resep/Marketplace) HARUS mengikuti harga jual
+    // tingkatan yang sesuai (barang.hrgjual_barang/_barang1/_barang2, lihat
+    // InventoryTrkasirController::itemResolve()) -- cukup Harga Jual yang disegarkan,
+    // bukan fillItemForm() penuh, supaya No. Batch/Tgl. Kadaluarsa yang sudah dipilih
+    // tidak ikut ter-reset.
+    function refreshHargaJualTier() {
+        if (document.getElementById('is_bundle').value === '1') return;
+        var idBarang = document.getElementById('id_barang').value;
+        if (!idBarang || idBarang === '0') return;
+
+        var form = new FormData();
+        form.append('id_barang', idBarang);
+        form.append('jenistx', document.getElementById('jenistx').value);
+        fetch("{{ route('inventory.trkasir.item-resolve') }}", { method: 'POST', headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }, body: form })
+            .then(function(res) { return res.json(); })
+            .then(function(d) { if (d.id_barang) document.getElementById('hrgjual_dtrkasir').value = formatRupiah(d.hrgjual_barang); });
+    }
+    document.getElementById('jenistx').addEventListener('change', refreshHargaJualTier);
+
     function resolveItemByCode(kode) {
         var form = new FormData();
         form.append('kd_barang', kode);
