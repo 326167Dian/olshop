@@ -253,7 +253,7 @@
                         <tr>
                             <td style="text-align:center;">{{ $index + 1 }}</td>
                             <td>{{ $row->nmbrg_dtrbmasuk }}</td>
-                            <td>{{ $row->barang->ket_barang ?? '' }}</td>
+                            <td>{!! nl2br(e($row->barang->zataktif ?? '')) !!}</td>
                             <td>{{ $row->barang->dosis ?? '' }}</td>
                             <td style="text-align:center;">{{ $row->satuan_tampil }}</td>
                             <td style="text-align:center;">{{ $row->qty_tampil }}</td>
