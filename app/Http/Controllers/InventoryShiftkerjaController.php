@@ -250,6 +250,15 @@ class InventoryShiftkerjaController extends Controller
 
     /**
      * Hapus baris shift, mengikuti act=hapus. KHUSUS pemilik.
+     *
+     * Dipanggil lewat fetch() (hapusShift() di index.blade.php), BUKAN form submit biasa
+     * -- harus balas JSON, bukan redirect(). Bug diperbaiki 2026-11-24: redirect() ke
+     * route index (GET-only) lolos tervalidasi (baris di DB memang terhapus), tapi fetch
+     * ikut mengikuti redirect 302 itu memakai method DELETE yang sama (DELETE bukan POST,
+     * jadi fetch TIDAK menurunkannya ke GET seperti pada redirect POST) -- menabrak
+     * /inventory/shiftkerja yang cuma terdaftar untuk GET, jadi balasan akhirnya 405.
+     * res.ok di JS pun jadi false, tabel tidak di-reload, dan user melihat alert "Gagal
+     * menghapus" padahal baris itu sendiri sudah benar-benar terhapus di DB.
      */
     public function destroy(WaktuKerja $waktuKerja)
     {
@@ -257,7 +266,7 @@ class InventoryShiftkerjaController extends Controller
 
         $waktuKerja->delete();
 
-        return redirect()->route('inventory.shiftkerja.index')->with('success', 'Data shift berhasil dihapus.');
+        return response()->json(['status' => 'ok']);
     }
 
     /**
