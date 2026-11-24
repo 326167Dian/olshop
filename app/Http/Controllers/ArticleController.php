@@ -115,6 +115,12 @@ class ArticleController extends Controller
     {
         $article = Article::where('slug', $slug)->firstOrFail();
 
+        seo()->for($article)->addSchema(\App\Services\Seo\SchemaBuilder::breadcrumb([
+            ['Beranda', route('home-page')],
+            ['Artikel', route('artikel.all')],
+            [$article->title, $article->seoUrl()],
+        ]));
+
         return view('frontend.v_article.show', compact('article'));
     }
 
@@ -180,6 +186,10 @@ class ArticleController extends Controller
     public function indexFrontend()
     {
         $articles = Article::where('status', 'published')->orderBy('created_at', 'desc')->paginate(6);
+
+        seo()->title('Artikel Kesehatan')
+            ->description('Artikel dan tips kesehatan dari apoteker '.\App\Services\Seo\SeoManager::siteName().'.');
+
         return view('frontend.v_article.index', compact('articles'));
     }
 }

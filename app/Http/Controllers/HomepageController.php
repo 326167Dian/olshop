@@ -43,6 +43,9 @@ class HomepageController extends Controller
         ]);
         $visitorCount = PageVisit::where('page', 'home-page')->count();
 
+        // Beranda: title & description default dari Company Setting + schema Pharmacy
+        seo()->canonical(route('home-page'))->addSchema(\App\Services\Seo\SchemaBuilder::pharmacy());
+
         return view('frontend.dashboard.index', compact('companySetting', 'databarang', 'produkTerlaris', 'jenisobat', 'kategori', 'articles', 'videos', 'diskonbarang', 'banners', 'visitorCount'));
     }
 

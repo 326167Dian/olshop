@@ -8,8 +8,8 @@
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
 
     <link rel="icon" href="{{ asset('storage/' . ($companySetting->logo ?? '')) }}" type="image/png">
-    <title>{{ $companySetting->nama_perusahaan ?? 'Apotek' }} | Belanja Obat & Alkes Online, Diantar ke Rumah</title>
-    <meta name="description" content="{{ \Illuminate\Support\Str::limit(strip_tags($companySetting->deskripsi ?? ''), 155) }}">
+    {{-- Auto SEO: title, description, canonical, Open Graph, schema. Atur via seo()->... di controller --}}
+    <x-seo />
 
     <!-- Google font -->
     <link href="https://fonts.googleapis.com/css?family=Hind:400,700" rel="stylesheet">

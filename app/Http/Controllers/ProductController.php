@@ -23,6 +23,9 @@ class ProductController extends Controller
             ->paginate(16);
         $kategori = Category::orderBy('name', 'desc')->get();
 
+        seo()->title('Semua Produk')
+            ->description('Daftar lengkap obat, vitamin, dan alat kesehatan di '.\App\Services\Seo\SeoManager::siteName().'. Pesan online, diantar ke rumah.');
+
         return view('frontend.v_produk.index', compact('produk', 'kategori'));
     }
 
@@ -202,6 +205,9 @@ class ProductController extends Controller
             ->visibleFor(Auth::check())
             ->paginate(8)
             ->appends(['q' => $keyword]);
+
+        // Halaman hasil pencarian tidak perlu di-index Google
+        seo()->title('Cari: '.$keyword)->noindex();
 
         return view('frontend.v_produk.index', compact('produk'));
     }
@@ -504,6 +510,12 @@ class ProductController extends Controller
 
         $categories = Category::orderBy('name', 'desc')->get();
 
+        seo()->for($produks)->addSchema(\App\Services\Seo\SchemaBuilder::breadcrumb(array_values(array_filter([
+            ['Beranda', route('home-page')],
+            $produks->category ? [$produks->category->name, route('produk.kategori', $produks->category->id)] : null,
+            [$produks->nm_barang, $produks->seoUrl()],
+        ]))));
+
         return view('frontend.v_produk.detail', [
             'judul' => 'Detail Produk',
             'kategori' => $categories,
@@ -524,6 +536,10 @@ class ProductController extends Controller
         // Ambil produk berdasarkan label 'jenisobat' (bukan id)
         // $produk = Product::where('jenisobat', $selectedKategori->jenisobat)->paginate(8);
         $produk = Product::where('category_id', $id)->where('status', 1)->visibleFor(Auth::check())->orderBy('nm_barang', 'desc')->paginate(6);
+
+        if ($kategoriAktif = $categories->find($id)) {
+            seo()->for($kategoriAktif);
+        }
 
         return view('frontend.v_produk.produkkategori', [
             'judul' => $categories->find($id)->name,
