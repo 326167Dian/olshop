@@ -806,6 +806,7 @@ Route::prefix('inventory')->middleware(['auth:admin', 'admin.active'])->name('in
         Route::get('/create', [InventoryTrkasirController::class, 'create'])->name('create');
         Route::post('/', [InventoryTrkasirController::class, 'store'])->name('store');
         Route::post('/sinkronisasi-stok', [InventoryTrkasirController::class, 'sinkronisasiStok'])->name('sinkronisasi-stok');
+        Route::get('/sinkronisasi-stok/riwayat', [InventoryTrkasirController::class, 'sinkronisasiStokRiwayat'])->name('sinkronisasi-stok.riwayat');
 
         // QRIS Otomatis (GDC Pay lewat hub mysifacenter.my.id) -- lihat HubQrisService.
         // Murni gerbang sebelum store() yang sudah ada; store() sendiri tidak diubah.

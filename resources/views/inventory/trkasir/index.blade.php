@@ -20,6 +20,7 @@
                 @csrf
                 <button type="submit" class="btn btn-sm btn-success mb-3">SINKRONISASI</button>
             </form>
+            <a class="btn btn-sm btn-outline-success mb-3" href="{{ route('inventory.trkasir.sinkronisasi-stok.riwayat') }}">Riwayat Sinkronisasi</a>
             <span class="text-muted">Klik SINKRONISASI sebelum tutup shift</span>
 
             @if ($komisiGlobalText)

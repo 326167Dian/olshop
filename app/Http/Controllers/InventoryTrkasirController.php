@@ -16,6 +16,7 @@ use App\Models\PoinPelanggan;
 use App\Models\Product;
 use App\Models\QrisPayment;
 use App\Models\Setheader;
+use App\Models\SinkronisasiStokLog;
 use App\Models\Trkasir;
 use App\Models\TrkasirDetail;
 use App\Models\TrkasirDetailHist;
@@ -133,33 +134,105 @@ class InventoryTrkasirController extends Controller
      * Hitung ulang stok_barang = SUM(qty_dtrbmasuk) - SUM(qty_dtrkasir) per
      * kd_barang, lalu timpa HANYA baris yang nilainya beda -- sama persis
      * dengan query legacy, cuma lewat Eloquent/DB::update() bukan PDO.
+     *
+     * Ditambahkan 2026-11-24 (permintaan user, pasca insiden stok Panadol 500 mg
+     * 10 Kaplet berubah ke 0 tanpa jejak di mana pun SEBELUM tombol ini pernah
+     * dipakai sama sekali): setiap baris yang nilainya benar-benar berubah direkam
+     * ke `sinkronisasi_stok_logs` (stok sebelum/sesudah per barang, dikelompokkan
+     * per klik lewat `kode_sinkron`) SEBELUM UPDATE dijalankan, dalam transaction
+     * yang sama -- supaya klik SINKRONISASI berikutnya (atau yang sudah terlanjur
+     * jadi kebiasaan rutin "sebelum tutup shift") selalu punya jejak barang apa
+     * saja yang kena & nilai lama/barunya, bukan cuma angka ringkasan "N barang
+     * diperbarui" yang sebelumnya tidak bisa ditelusuri lagi begitu halaman
+     * di-refresh.
      */
     public function sinkronisasiStok()
     {
-        // WHERE kd_barang REGEXP "^[0-9]+$": barang.kd_barang bertipe bigint, tapi
-        // trbmasuk_detail/trkasir_detail.kd_barang bertipe varchar -- data lama yang
-        // kd_barang-nya kosong/bukan angka bikin MySQL gagal meng-cast ke angka saat
-        // JOIN (error 1292 Truncated incorrect DECIMAL value) dan membatalkan SELURUH
-        // UPDATE. Baris semacam itu dikecualikan di sini saja (bukan dihapus).
-        $affected = DB::update("
-            UPDATE barang b
-            LEFT JOIN (
-                SELECT kd_barang, SUM(qty_dtrbmasuk) AS totalbeli
-                FROM trbmasuk_detail
-                WHERE kd_barang REGEXP '^[0-9]+$'
-                GROUP BY kd_barang
-            ) beli ON beli.kd_barang = b.kd_barang
-            LEFT JOIN (
-                SELECT kd_barang, SUM(qty_dtrkasir) AS totaljual
-                FROM trkasir_detail
-                WHERE kd_barang REGEXP '^[0-9]+$'
-                GROUP BY kd_barang
-            ) jual ON jual.kd_barang = b.kd_barang
-            SET b.stok_barang = (COALESCE(beli.totalbeli, 0) - COALESCE(jual.totaljual, 0))
-            WHERE b.stok_barang <> (COALESCE(beli.totalbeli, 0) - COALESCE(jual.totaljual, 0))
-        ");
+        $kodeSinkron = 'SINKRON-' . now()->format('dmyHis');
+        $idAdmin = Auth::guard('admin')->id();
 
-        return back()->with('success', "Sinkronisasi stok selesai, {$affected} barang diperbarui.");
+        $affected = DB::transaction(function () use ($kodeSinkron, $idAdmin) {
+            // WHERE kd_barang REGEXP "^[0-9]+$": barang.kd_barang bertipe bigint,
+            // tapi trbmasuk_detail/trkasir_detail.kd_barang bertipe varchar -- data
+            // lama yang kd_barang-nya kosong/bukan angka bikin MySQL gagal meng-cast
+            // ke angka saat JOIN (error 1292 Truncated incorrect DECIMAL value) dan
+            // membatalkan SELURUH UPDATE. Baris semacam itu dikecualikan di sini saja
+            // (bukan dihapus).
+            $join = "
+                FROM barang b
+                LEFT JOIN (
+                    SELECT kd_barang, SUM(qty_dtrbmasuk) AS totalbeli
+                    FROM trbmasuk_detail
+                    WHERE kd_barang REGEXP '^[0-9]+$'
+                    GROUP BY kd_barang
+                ) beli ON beli.kd_barang = b.kd_barang
+                LEFT JOIN (
+                    SELECT kd_barang, SUM(qty_dtrkasir) AS totaljual
+                    FROM trkasir_detail
+                    WHERE kd_barang REGEXP '^[0-9]+$'
+                    GROUP BY kd_barang
+                ) jual ON jual.kd_barang = b.kd_barang
+            ";
+            $stokBaru = '(COALESCE(beli.totalbeli, 0) - COALESCE(jual.totaljual, 0))';
+
+            $berubah = DB::select("
+                SELECT b.id_barang, b.kd_barang, b.nm_barang,
+                       b.stok_barang AS stok_sebelum, {$stokBaru} AS stok_sesudah
+                {$join}
+                WHERE b.stok_barang <> {$stokBaru}
+            ");
+
+            if (empty($berubah)) {
+                return 0;
+            }
+
+            $waktu = now();
+            SinkronisasiStokLog::insert(array_map(fn ($row) => [
+                'kode_sinkron' => $kodeSinkron,
+                'id_barang' => $row->id_barang,
+                'kd_barang' => $row->kd_barang,
+                'nm_barang' => $row->nm_barang,
+                'stok_sebelum' => $row->stok_sebelum,
+                'stok_sesudah' => $row->stok_sesudah,
+                'selisih' => $row->stok_sesudah - $row->stok_sebelum,
+                'id_admin' => $idAdmin,
+                'waktu' => $waktu,
+            ], $berubah));
+
+            DB::update("
+                UPDATE barang b
+                {$join}
+                SET b.stok_barang = {$stokBaru}
+                WHERE b.stok_barang <> {$stokBaru}
+            ");
+
+            return count($berubah);
+        });
+
+        if ($affected === 0) {
+            return back()->with('info', 'Sinkronisasi stok selesai, tidak ada barang yang berubah.');
+        }
+
+        return back()->with('success', "Sinkronisasi stok selesai, {$affected} barang diperbarui. Lihat detailnya di Riwayat Sinkronisasi (kode {$kodeSinkron}).");
+    }
+
+    /**
+     * Daftar riwayat eksekusi tombol SINKRONISASI, dikelompokkan per klik
+     * (kode_sinkron) supaya barang apa saja yang berubah pada satu klik tertentu
+     * bisa ditelusuri -- lihat catatan di sinkronisasiStok(). Dibatasi 1000 baris
+     * terakhir (bukan dipaginasi) supaya halaman ini tidak lambat begitu riwayatnya
+     * menumpuk, cukup untuk investigasi jangka pendek; tidak ada kebutuhan arsip
+     * jangka panjang untuk fitur diagnostik ini.
+     */
+    public function sinkronisasiStokRiwayat()
+    {
+        $logs = SinkronisasiStokLog::orderByDesc('waktu')->orderByDesc('id')->limit(1000)->get();
+
+        return view('inventory.trkasir.sinkronisasi-riwayat', [
+            'judul' => 'Inventory',
+            'grouped' => $logs->groupBy('kode_sinkron'),
+            'adminNames' => Admin::pluck('nama_lengkap', 'id_admin'),
+        ]);
     }
 
     /**
