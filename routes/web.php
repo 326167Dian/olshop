@@ -85,6 +85,13 @@ Route::get('/', function () {
     return redirect(\App\Models\Fitur::isEcommerceAktif() ? route('home-page') : '/inventory');
 });
 
+// Auto SEO -- sitemap, robots.txt & file kunci IndexNow. Selalu aktif.
+Route::get('sitemap.xml', [\App\Http\Controllers\SeoController::class, 'sitemap'])->name('seo.sitemap');
+Route::get('robots.txt', [\App\Http\Controllers\SeoController::class, 'robots'])->name('seo.robots');
+Route::get('{key}.txt', [\App\Http\Controllers\SeoController::class, 'indexNowKey'])
+    ->where('key', '[a-f0-9]{32}')
+    ->name('seo.indexnow-key');
+
 // Login admin/staf (username & password) -- selalu bisa diakses walau fitur
 // e-commerce nonaktif, supaya admin tetap bisa masuk ke /inventory.
 Route::get('/staf', [LoginController::class, 'adminLoginForm'])->name('admin.login.form')->middleware('prevent.back.history');

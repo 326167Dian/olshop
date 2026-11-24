@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Product extends Model
 {
+    use \App\Models\Concerns\HasSeo;
+
     protected $table = 'barang';
 
     protected $primaryKey = 'id_barang';
@@ -126,5 +128,69 @@ class Product extends Model
         }
 
         return nl2br(e($value));
+    }
+
+    /* ===================== Auto SEO ===================== */
+
+    public function seoTitle(): string
+    {
+        return (string) $this->nm_barang;
+    }
+
+    public function seoDescription(): string
+    {
+        $text = \App\Services\Seo\SeoGenerator::plain($this->ket_barang)
+            ?: \App\Services\Seo\SeoGenerator::plain($this->indikasi);
+
+        $fallback = 'Beli '.$this->nm_barang.' di '.\App\Services\Seo\SeoManager::siteName()
+            .'. Produk asli, harga bersahabat, bisa diantar ke rumah.';
+
+        return \App\Services\Seo\SeoGenerator::description($text, $fallback);
+    }
+
+    public function seoUrl(): string
+    {
+        return route('produk.detail', $this->getKey());
+    }
+
+    public function seoImage(): ?string
+    {
+        return $this->image ? asset('storage/'.$this->image) : null;
+    }
+
+    /** Obat resep & produk nonaktif tidak di-index (selaras dengan scopeVisibleFor). */
+    public function seoIndexable(): bool
+    {
+        return $this->status === 'active' && $this->display === 'bebas';
+    }
+
+    public function seoLastModified(): ?\DateTimeInterface
+    {
+        return $this->waktu;
+    }
+
+    /** Hanya perubahan kolom ini yang memicu ping/refresh sitemap (bukan stok/kasir). */
+    public function seoWatchedFields(): array
+    {
+        return ['nm_barang', 'ket_barang', 'indikasi', 'image', 'display', 'status', 'hrgjual_barang', 'category_id'];
+    }
+
+    public function scopeSeoSitemap($query)
+    {
+        return $query->where('status', 'active')->where('display', 'bebas');
+    }
+
+    public function seoSchema(): ?array
+    {
+        return \App\Services\Seo\SchemaBuilder::product(
+            name: (string) $this->nm_barang,
+            url: $this->seoUrl(),
+            price: (float) $this->hrgjual_barang,
+            image: $this->seoImage(),
+            description: $this->seoDescription(),
+            inStock: (float) $this->stok_barang > 0,
+            sku: $this->kd_barang,
+            category: $this->category?->name,
+        );
     }
 }
