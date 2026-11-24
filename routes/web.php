@@ -316,6 +316,12 @@ Route::prefix('/backend')->middleware(['auth:admin', 'ecommerce.active'])->group
 
     // Lokasi antar (wilayah pengantaran & biayanya)
     Route::resource('lokasi-antar', LokasiAntarController::class)->except(['show']);
+
+    // Setting > SEO -- override manual per halaman (lihat catatan di SeoMetaController)
+    Route::get('/seo-meta', [\App\Http\Controllers\SeoMetaController::class, 'index'])->name('seo-meta.index');
+    Route::get('/seo-meta/{type}/{id}/edit', [\App\Http\Controllers\SeoMetaController::class, 'edit'])->name('seo-meta.edit');
+    Route::put('/seo-meta/{type}/{id}', [\App\Http\Controllers\SeoMetaController::class, 'update'])->name('seo-meta.update');
+    Route::delete('/seo-meta/{type}/{id}', [\App\Http\Controllers\SeoMetaController::class, 'destroy'])->name('seo-meta.destroy');
 });
 
 // Sistem Inventory (adaptasi Laravel dari public/apotekberlian, database yang sama)

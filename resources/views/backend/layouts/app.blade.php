@@ -324,6 +324,12 @@
                                     <span class="nav-menu-item-title">Input Pixel</span>
                                 </a>
                             </li>
+                            <li class="nav-menu-item {{ in_array(Route::currentRouteName(), ['seo-meta.index', 'seo-meta.edit']) ? 'active' : '' }}">
+                                <a href="{{ route('seo-meta.index') }}">
+                                    <i class="feather icon-search"></i>
+                                    <span class="nav-menu-item-title">SEO</span>
+                                </a>
+                            </li>
                         </ul>
                     </li>
 

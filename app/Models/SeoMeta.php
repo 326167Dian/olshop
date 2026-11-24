@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Schema;
 
 class SeoMeta extends Model
 {
-    protected $fillable = ['meta_title', 'meta_description', 'og_image', 'noindex'];
+    protected $fillable = ['seoable_type', 'seoable_id', 'meta_title', 'meta_description', 'og_image', 'noindex'];
 
     protected $casts = ['noindex' => 'boolean'];
 
