@@ -956,13 +956,9 @@ class InventoryTrkasirController extends Controller
 
         $qtyBundle = (float) $validated['qty_dtrkasir'];
 
-        // Validasi stok SEMUA komponen dulu sebelum memotong apa pun (all-or-nothing).
-        foreach ($components as $component) {
-            $butuh = $component->qty_barang * $qtyBundle;
-            $stokBarang = (float) (Product::where('id_barang', $component->id_barang)->value('stok_barang') ?? 0);
-            abort_if($stokBarang < $butuh, 422, "Stok tidak mencukupi untuk komponen bundle: {$component->nm_barang}.");
-        }
-
+        // Branch stok_kosong: validasi stok semua komponen (all-or-nothing) dihapus --
+        // lihat catatan di kurangiStokAtauGagal(), yang tetap dipanggil per komponen di
+        // bawah tapi sekarang tidak pernah menolak.
         Bundle::where('id_bundle', $bundle->id_bundle)->where('qty_bundle', '>=', $qtyBundle)->decrement('qty_bundle', $qtyBundle);
 
         foreach ($components as $component) {
@@ -2630,10 +2626,15 @@ class InventoryTrkasirController extends Controller
         return $kode;
     }
 
+    /**
+     * Branch stok_kosong: transaksi penjualan TETAP boleh jalan walau stok tidak cukup
+     * (termasuk sudah 0) -- stok_barang dibiarkan minus alih-alih diblokir 422 seperti di
+     * master (permintaan user 2026-11-24). Nama method dipertahankan (dipanggil dari
+     * banyak tempat) walau sekarang tidak pernah benar-benar "gagal".
+     */
     private function kurangiStokAtauGagal(int $idBarang, float $qty): void
     {
-        $affected = DB::table('barang')->where('id_barang', $idBarang)->where('stok_barang', '>=', $qty)->decrement('stok_barang', $qty);
-        abort_if($affected === 0, 422, 'Stok barang tidak mencukupi.');
+        DB::table('barang')->where('id_barang', $idBarang)->decrement('stok_barang', $qty);
     }
 
     /**
