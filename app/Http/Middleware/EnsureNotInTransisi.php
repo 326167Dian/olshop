@@ -34,7 +34,9 @@ class EnsureNotInTransisi
             }
         }
 
+        // Pesan sengaja dibuat diplomatis (terkesan kendala teknis), bukan
+        // menyebut langsung soal masa transisi/lisensi -- permintaan user.
         return redirect()->route('inventory.trkasir.index')
-            ->with('error', 'Sedang dalam masa transisi -- hanya Buka/Tutup Kasir dan Penjualan/Kasir yang bisa diakses.');
+            ->with('error', 'Saat ini terjadi penurunan bandwidth oleh server, beberapa fitur tidak bisa diakses terutama yang membutuhkan memori besar. Silahkan hubungi admin untuk upgrade paket.');
     }
 }
