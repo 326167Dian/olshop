@@ -257,12 +257,14 @@
                     <span class="fw-semibold text-muted">{{ \Illuminate\Support\Facades\DB::table('setheader')->value('satu') ?? 'APOTEK' }}</span>
                 </div>
                 <ul class="nav-menu">
-                    <li class="nav-menu-item {{ $activeModule === 'home' ? 'active' : '' }}">
-                        <a href="{{ route('inventory.index') }}">
-                            <i class="feather icon-home"></i>
-                            <span class="nav-menu-item-title">Dashboard</span>
-                        </a>
-                    </li>
+                    @unless (\App\Models\Fitur::isTransisiAktif())
+                        <li class="nav-menu-item {{ $activeModule === 'home' ? 'active' : '' }}">
+                            <a href="{{ route('inventory.index') }}">
+                                <i class="feather icon-home"></i>
+                                <span class="nav-menu-item-title">Dashboard</span>
+                            </a>
+                        </li>
+                    @endunless
 
                     @php
                         $sidebarIcons = [
@@ -370,6 +372,22 @@
                                 // jadi sub-item Transaksi, atas permintaan user 2026-09-17.
                                 $visibleItems = $visibleItems->except('kehadiran');
                             }
+
+                            // Masa transisi (lihat EnsureNotInTransisi/Fitur::isTransisiAktif())
+                            // -- sidebar dipaksa cuma menyisakan Buka/Tutup Kasir & Penjualan/
+                            // Kasir, berapa pun banyaknya flag lain yang admin ini sebenarnya
+                            // punya. 'fitur' (Pengaturan Fitur) TETAP disisakan juga -- kalau
+                            // tidak, vendor/mysifa yang mengaktifkan masa transisi ini jadi
+                            // tidak kelihatan jalan lagi untuk menonaktifkannya lewat sidebar
+                            // (hanya muncul untuk akun pemilik+mysifa, lihat
+                            // $extraDataMasterItems['fitur'] di atas -- aman disisakan untuk
+                            // admin lain karena memang tidak pernah ter-merge untuk mereka).
+                            // Ditempatkan PALING TERAKHIR (bukan di awal filter) supaya tetap
+                            // berlaku biarpun $extraLaporanItems/$extraDataMasterItems sempat
+                            // ikut ter-merge sebelumnya.
+                            if (\App\Models\Fitur::isTransisiAktif()) {
+                                $visibleItems = $visibleItems->only(['shiftkerja', 'tpk', 'fitur']);
+                            }
                         @endphp
                         @if ($visibleItems->isNotEmpty())
                             <li class="nav-group-title">{{ strtoupper($groupName) }}</li>
@@ -397,30 +415,33 @@
                     Admin::PERMISSION_GROUPS sama sekali (tidak ada kolom flag untuk
                     modul ini, legacy sendiri menampilkan menu ini tanpa syarat apapun
                     ke semua admin yang login) -- disuntikkan manual di sini sebagai
-                    grup sidebar sendiri, bukan lewat mekanisme flag standar. --}}
-                    <li class="nav-group-title">PROGRAM PROMO</li>
-                    <li class="nav-submenu">
-                        <a class="nav-submenu-title" href="javascript:void(0)">
-                            <i class="feather icon-percent"></i>
-                            <span>Program Promo</span>
-                            <i class="nav-submenu-arrow"></i>
-                        </a>
-                        <ul class="nav-menu menu-collapse">
-                            <li class="nav-menu-item {{ $activeModule === 'bundle' ? 'active' : '' }}">
-                                <a href="{{ route('inventory.bundle.index') }}">
-                                    <i class="feather icon-tag"></i>
-                                    <span class="nav-menu-item-title">Bundle/Paket Produk</span>
-                                </a>
-                            </li>
-                        </ul>
-                    </li>
+                    grup sidebar sendiri, bukan lewat mekanisme flag standar. Disembunyikan
+                    total saat masa transisi aktif, sama seperti blok lain di bawah. --}}
+                    @unless (\App\Models\Fitur::isTransisiAktif())
+                        <li class="nav-group-title">PROGRAM PROMO</li>
+                        <li class="nav-submenu">
+                            <a class="nav-submenu-title" href="javascript:void(0)">
+                                <i class="feather icon-percent"></i>
+                                <span>Program Promo</span>
+                                <i class="nav-submenu-arrow"></i>
+                            </a>
+                            <ul class="nav-menu menu-collapse">
+                                <li class="nav-menu-item {{ $activeModule === 'bundle' ? 'active' : '' }}">
+                                    <a href="{{ route('inventory.bundle.index') }}">
+                                        <i class="feather icon-tag"></i>
+                                        <span class="nav-menu-item-title">Bundle/Paket Produk</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                    @endunless
 
                     {{-- "Kehadiran Pegawai" -- sejajar Data Master/Inventory/Transaksi/
                     Laporan/Program Promo (grup sidebar sendiri, bukan sub-item Transaksi),
                     atas permintaan user 2026-09-17. Tetap digerbang flag 'kehadiran' yang
                     sama seperti di Admin::PERMISSION_GROUPS -- lihat pengecualian
                     ->except('kehadiran') di render grup Transaksi di atas. --}}
-                    @if ($currentAdmin->hasModuleAccess('kehadiran'))
+                    @if ($currentAdmin->hasModuleAccess('kehadiran') && ! \App\Models\Fitur::isTransisiAktif())
                         <li class="nav-group-title">KEHADIRAN PEGAWAI</li>
                         <li class="nav-submenu">
                             <a class="nav-submenu-title" href="javascript:void(0)">

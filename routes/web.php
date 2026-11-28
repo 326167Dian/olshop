@@ -325,7 +325,7 @@ Route::prefix('/backend')->middleware(['auth:admin', 'ecommerce.active'])->group
 });
 
 // Sistem Inventory (adaptasi Laravel dari public/apotekberlian, database yang sama)
-Route::prefix('inventory')->middleware(['auth:admin', 'admin.active'])->name('inventory.')->group(function () {
+Route::prefix('inventory')->middleware(['auth:admin', 'admin.active', 'transisi.lock'])->name('inventory.')->group(function () {
     Route::get('/', [InventoryController::class, 'index'])->name('index');
     Route::get('/sales-chart-data', [InventoryController::class, 'salesChartData'])->name('sales-chart-data');
 
