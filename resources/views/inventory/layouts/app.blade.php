@@ -153,6 +153,7 @@
             'bundle' => 'inventory.bundle.',
             'neraca' => 'inventory.neraca.',
             'lapstokopname' => 'inventory.lapstokopname.',
+            'lapbatch' => 'inventory.lapbatch.',
             'lapkomisi' => 'inventory.lapkomisi.',
             'evaluasi' => 'inventory.evaluasi.',
             'gaji' => 'inventory.gaji.',
@@ -301,6 +302,7 @@
                             // 'lppelanggan' => 'icon-printer', -- modul dihapus, lihat Admin::PERMISSION_GROUPS
                             'neraca' => 'icon-printer',
                             'lapstokopname' => 'icon-printer',
+                            'lapbatch' => 'icon-printer',
                             'lapkomisi' => 'icon-printer',
                             'evaluasi' => 'icon-printer',
                             'gaji' => 'icon-dollar-sign',

@@ -1116,7 +1116,14 @@ class InventoryTrbmasukController extends Controller
      */
     private function minExpDateError(string $expDate): ?string
     {
-        $minDays = (int) (Setheader::first()->empatbelas ?? 0);
+        // Bug diperbaiki 2026-11-26: Setheader::first() bisa null (apotek baru yang
+        // belum pernah mengisi Header Struk sama sekali, mis. insiden apotekbenmari.my.id
+        // -- tabel setheader kosong) -- ->empatbelas di objek null dulu bikin seluruh
+        // request detailStore()/receiveDetailUpdate() gagal 500 (PHP warning "Attempt to
+        // read property on null" ditangkap HandleExceptions Laravel jadi ErrorException),
+        // membuat fetch() di JS gagal parse JSON lalu diam-diam tidak melakukan apa-apa
+        // sama sekali saat tombol "Simpan Detail" diklik.
+        $minDays = (int) (Setheader::first()?->empatbelas ?? 0);
 
         if ($minDays <= 0) {
             return null;

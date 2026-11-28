@@ -951,6 +951,13 @@ Route::prefix('inventory')->middleware(['auth:admin', 'admin.active'])->name('in
         Route::post('/sinkron-plus', [InventoryLapstokopnameController::class, 'sinkronPlus'])->name('sinkron-plus');
     });
 
+    // Laporan > Laporan Dekat Expired (flag BARU lapbatch -- legacy tidak menggerbang
+    // halaman ini per-admin sama sekali, lihat catatan kelas InventoryLapbatchController).
+    Route::prefix('lapbatch')->middleware('inventory.module:lapbatch')->name('lapbatch.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\InventoryLapbatchController::class, 'index'])->name('index');
+        Route::post('/tampil', [\App\Http\Controllers\InventoryLapbatchController::class, 'tampil'])->name('tampil');
+    });
+
     // Laporan > Komisi Pegawai & Evaluasi Pegawai -- TIDAK digerbang lewat
     // middleware inventory.module:x standar (tidak ada 1 kolom flag yang cocok
     // untuk keduanya, lihat catatan kelas masing-masing controller); setiap

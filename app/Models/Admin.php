@@ -57,6 +57,7 @@ class Admin extends Authenticatable
             'kehadiran' => 'Kehadiran Pegawai',
         ],
         'Laporan' => [
+            'lapbatch' => 'Laporan Dekat Expired',
             'lpitem' => 'Item Barang',
             'lpbrgmasuk' => 'Barang Masuk',
             'lpkasir' => 'Penjualan',
@@ -111,6 +112,7 @@ class Admin extends Authenticatable
         'shiftkerja',
         'neraca',
         'lapstokopname',
+        'lapbatch',
         'komisi',
         'kartustok',
         'catatan',
